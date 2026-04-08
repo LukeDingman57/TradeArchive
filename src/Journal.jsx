@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { supabase } from "./lib/supabase";
 
 const defaultTrades = [
   {
@@ -122,19 +123,72 @@ export default function Journal() {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [selectedCalendarDate, setSelectedCalendarDate] = useState("");
+  const [loadingTrades, setLoadingTrades] = useState(true);
 
   useEffect(() => {
-    const savedTrades = localStorage.getItem("tradearchive-journal-trades");
-    if (savedTrades) {
-      setTrades(JSON.parse(savedTrades));
-    } else {
-      setTrades(defaultTrades);
-    }
+    let isMounted = true;
+
+    const loadTrades = async () => {
+      setLoadingTrades(true);
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        if (isMounted) {
+          setTrades([]);
+          setLoadingTrades(false);
+        }
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("trades")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("date", { ascending: false });
+
+      if (error) {
+        console.error("Error loading trades:", error);
+        if (isMounted) {
+          setTrades([]);
+          setLoadingTrades(false);
+        }
+        return;
+      }
+
+      const mappedTrades = (data || []).map((trade) => ({
+        id: trade.id,
+        date: trade.date,
+        symbol: trade.symbol || "NQ",
+        setup: trade.setup || "",
+        side: trade.side || "Long",
+        session: trade.session || "NY Open",
+        grade: trade.grade || "A",
+        mistakes: trade.mistakes || "",
+        result: trade.result || "Break-Even",
+        pnl: Number(trade.pnl || 0),
+        entry: trade.entry ?? "",
+        stop: trade.stop ?? "",
+        target: trade.target ?? "",
+        rMultiple: trade.r_multiple ?? null,
+        notes: trade.notes || "",
+        screenshot: trade.screenshot || "",
+      }));
+
+      if (isMounted) {
+        setTrades(mappedTrades);
+        setLoadingTrades(false);
+      }
+    };
+
+    loadTrades();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem("tradearchive-journal-trades", JSON.stringify(trades));
-  }, [trades]);
 
   const stats = useMemo(() => {
     const totalTrades = trades.length;
@@ -436,21 +490,30 @@ export default function Journal() {
     setShowEditModal(true);
   };
 
-  const handleAddTrade = () => {
+  const handleAddTrade = async () => {
     if (!form.setup.trim() || form.pnl === "" || !form.notes.trim()) {
       alert("Please fill out setup, P/L, and notes.");
       return;
     }
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      alert("You must be logged in.");
+      return;
+    }
+
     const pnlNumber = Number(form.pnl);
-    const entryNum = form.entry === "" ? "" : Number(form.entry);
-    const stopNum = form.stop === "" ? "" : Number(form.stop);
-    const targetNum = form.target === "" ? "" : Number(form.target);
+    const entryNum = form.entry === "" ? null : Number(form.entry);
+    const stopNum = form.stop === "" ? null : Number(form.stop);
+    const targetNum = form.target === "" ? null : Number(form.target);
 
     const rMultiple = calculateRMultiple(form.side, entryNum, stopNum, targetNum);
 
-    const newTrade = {
-      id: Date.now(),
+    const tradeToInsert = {
+      user_id: user.id,
       date: form.date,
       symbol: form.symbol,
       setup: form.setup,
@@ -463,9 +526,40 @@ export default function Journal() {
       entry: entryNum,
       stop: stopNum,
       target: targetNum,
-      rMultiple,
+      r_multiple: rMultiple,
       notes: form.notes,
       screenshot: form.screenshot || "",
+    };
+
+    const { data, error } = await supabase
+      .from("trades")
+      .insert([tradeToInsert])
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error saving trade:", error);
+      alert("Could not save trade.");
+      return;
+    }
+
+    const newTrade = {
+      id: data.id,
+      date: data.date,
+      symbol: data.symbol,
+      setup: data.setup,
+      side: data.side,
+      session: data.session,
+      grade: data.grade,
+      mistakes: data.mistakes,
+      result: data.result,
+      pnl: Number(data.pnl || 0),
+      entry: data.entry ?? "",
+      stop: data.stop ?? "",
+      target: data.target ?? "",
+      rMultiple: data.r_multiple ?? null,
+      notes: data.notes,
+      screenshot: data.screenshot || "",
     };
 
     setTrades((prev) => [newTrade, ...prev]);
@@ -473,21 +567,20 @@ export default function Journal() {
     resetForm();
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!form.setup.trim() || form.pnl === "" || !form.notes.trim()) {
       alert("Please fill out setup, P/L, and notes.");
       return;
     }
 
     const pnlNumber = Number(form.pnl);
-    const entryNum = form.entry === "" ? "" : Number(form.entry);
-    const stopNum = form.stop === "" ? "" : Number(form.stop);
-    const targetNum = form.target === "" ? "" : Number(form.target);
+    const entryNum = form.entry === "" ? null : Number(form.entry);
+    const stopNum = form.stop === "" ? null : Number(form.stop);
+    const targetNum = form.target === "" ? null : Number(form.target);
 
     const rMultiple = calculateRMultiple(form.side, entryNum, stopNum, targetNum);
 
-    const updatedTrade = {
-      id: form.id,
+    const updatedTradePayload = {
       date: form.date,
       symbol: form.symbol,
       setup: form.setup,
@@ -500,9 +593,41 @@ export default function Journal() {
       entry: entryNum,
       stop: stopNum,
       target: targetNum,
-      rMultiple,
+      r_multiple: rMultiple,
       notes: form.notes,
       screenshot: form.screenshot || "",
+    };
+
+    const { data, error } = await supabase
+      .from("trades")
+      .update(updatedTradePayload)
+      .eq("id", form.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating trade:", error);
+      alert("Could not update trade.");
+      return;
+    }
+
+    const updatedTrade = {
+      id: data.id,
+      date: data.date,
+      symbol: data.symbol,
+      setup: data.setup,
+      side: data.side,
+      session: data.session,
+      grade: data.grade,
+      mistakes: data.mistakes,
+      result: data.result,
+      pnl: Number(data.pnl || 0),
+      entry: data.entry ?? "",
+      stop: data.stop ?? "",
+      target: data.target ?? "",
+      rMultiple: data.r_multiple ?? null,
+      notes: data.notes,
+      screenshot: data.screenshot || "",
     };
 
     setTrades((prev) =>
@@ -517,9 +642,30 @@ export default function Journal() {
     resetForm();
   };
 
-  const handleDeleteTrade = (id) => {
+  const handleDeleteTrade = async (id) => {
     const confirmed = window.confirm("Delete this trade?");
     if (!confirmed) return;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      alert("You must be logged in.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("trades")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("Error deleting trade:", error);
+      alert(`Could not delete trade: ${error.message}`);
+      return;
+    }
 
     setTrades((prev) => prev.filter((trade) => trade.id !== id));
 
@@ -581,6 +727,12 @@ export default function Journal() {
   const clearDateFilter = () => {
     setSelectedCalendarDate("");
   };
+
+  if (loadingTrades) {
+    return (
+      <div style={{ padding: "40px", color: "white" }}>Loading trades...</div>
+    );
+  }
 
   return (
     <div style={styles.page}>

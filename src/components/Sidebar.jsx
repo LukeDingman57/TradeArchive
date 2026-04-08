@@ -1,85 +1,98 @@
-export default function Sidebar({ setPage }) {
+export default function Sidebar({ activePage, setActivePage }) {
   const navItems = [
     {
       label: "Dashboard",
       page: "dashboard",
       icon: "▦",
       sub: "Overview and stats",
-      active: true,
     },
     {
       label: "Replay",
       page: "backtesting",
       icon: "↻",
       sub: "Review market sessions",
-      active: false,
     },
     {
       label: "Journal",
       page: "journal",
       icon: "↗",
       sub: "Notes, trades, mistakes",
-      active: false,
+    },
+    {
+      label: "Pricing",
+      page: "pricing",
+      icon: "◈",
+      sub: "Plans and upgrades",
     },
   ];
 
   return (
     <div style={styles.sidebar}>
       <div>
-        <h1 style={styles.logo}>
-          <span style={styles.logoWhite}>Trade</span>
-          <span style={styles.logoBlue}>Archive</span>
-        </h1>
+        <button
+          type="button"
+          onClick={() => setActivePage("dashboard")}
+          style={styles.logoButton}
+        >
+          <h1 style={styles.logo}>
+            <span style={styles.logoWhite}>Trade</span>
+            <span style={styles.logoBlue}>Archive</span>
+          </h1>
+        </button>
 
         <div style={styles.menuGroup}>
-          {navItems.map((item, index) => (
-            <button
-              key={index}
-              onClick={() => setPage(item.page)}
-              style={{
-                ...styles.navCard,
-                ...(item.active ? styles.activeNavCard : {}),
-              }}
-            >
-              <div
+          {navItems.map((item, index) => {
+            const isActive = activePage === item.page;
+
+            return (
+              <button
+                key={index}
+                onClick={() => setActivePage(item.page)}
                 style={{
-                  ...styles.iconWrap,
-                  ...(item.active ? styles.activeIconWrap : {}),
+                  ...styles.navCard,
+                  ...(isActive ? styles.activeNavCard : {}),
                 }}
               >
-                {item.icon}
-              </div>
-
-              <div style={styles.navTextWrap}>
                 <div
                   style={{
-                    ...styles.navTitle,
-                    ...(item.active ? styles.activeNavTitle : {}),
+                    ...styles.iconWrap,
+                    ...(isActive ? styles.activeIconWrap : {}),
                   }}
                 >
-                  {item.label}
+                  {item.icon}
+                </div>
+
+                <div style={styles.navTextWrap}>
+                  <div
+                    style={{
+                      ...styles.navTitle,
+                      ...(isActive ? styles.activeNavTitle : {}),
+                    }}
+                  >
+                    {item.label}
+                  </div>
+
+                  <div
+                    style={{
+                      ...styles.navSub,
+                      ...(isActive ? styles.activeNavSub : {}),
+                    }}
+                  >
+                    {item.sub}
+                  </div>
                 </div>
 
                 <div
                   style={{
-                    ...styles.navSub,
-                    ...(item.active ? styles.activeNavSub : {}),
+                    ...styles.navArrow,
+                    ...(isActive ? styles.activeNavArrow : {}),
                   }}
                 >
-                  {item.sub}
+                  {isActive ? "•" : "−"}
                 </div>
-              </div>
-
-              <div
-                style={{
-                  ...styles.navArrow,
-                  ...(item.active ? styles.activeNavArrow : {}),
-                }}
-              >
-                −
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -95,7 +108,12 @@ export default function Sidebar({ setPage }) {
           Unlock deeper analytics, backtesting tools, and structured reviews.
         </p>
 
-        <button style={styles.priceButton}>View Pricing</button>
+        <button
+          style={styles.priceButton}
+          onClick={() => setActivePage("pricing")}
+        >
+          View Pricing
+        </button>
       </div>
     </div>
   );
@@ -113,6 +131,15 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
+  },
+
+  logoButton: {
+    background: "transparent",
+    border: "none",
+    padding: 0,
+    margin: 0,
+    cursor: "pointer",
+    textAlign: "left",
   },
 
   logo: {

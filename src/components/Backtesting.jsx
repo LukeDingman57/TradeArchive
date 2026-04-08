@@ -1,721 +1,567 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  createChart,
+  ColorType,
+  CrosshairMode,
+  CandlestickSeries,
+  LineSeries,
+} from "lightweight-charts";
 
-const CHART_WIDTH = 860;
-const CHART_HEIGHT = 520;
-const PRICE_SCALE_WIDTH = 78;
-const TIME_AXIS_HEIGHT = 36;
-const LEFT_PAD = 12;
-const RIGHT_PAD = 8;
-const TOP_PAD = 10;
-const BOTTOM_PAD = 10;
+const generateMockData = () => {
+  const data = [];
+  let lastClose = 24120;
 
-function mulberry32(seed) {
-  return function () {
-    let t = (seed += 0x6d2b79f5);
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+  for (let i = 0; i < 120; i++) {
+    const open = lastClose;
 
-function generateCandles(seed, startPrice, count) {
-  const rand = mulberry32(seed);
-  const candles = [];
-  let price = startPrice;
+    const drift =
+      i < 20 ? 6 :
+      i < 35 ? -3 :
+      i < 60 ? 8 :
+      i < 80 ? -6 :
+      i < 100 ? 4 : -2;
 
-  for (let i = 0; i < count; i += 1) {
-    const drift = (rand() - 0.47) * 14;
-    const open = price;
-    const close = open + drift;
-    const high = Math.max(open, close) + rand() * 7;
-    const low = Math.min(open, close) - rand() * 7;
+    const noise = (Math.random() - 0.5) * 18;
+    const close = open + drift + noise;
+    const high = Math.max(open, close) + Math.random() * 8 + 2;
+    const low = Math.min(open, close) - Math.random() * 8 - 2;
 
-    candles.push({
-      time: i,
-      open,
-      high,
-      low,
-      close,
+    data.push({
+      time: i + 1,
+      open: Number(open.toFixed(2)),
+      high: Number(high.toFixed(2)),
+      low: Number(low.toFixed(2)),
+      close: Number(close.toFixed(2)),
     });
 
-    price = close + (rand() - 0.5) * 3;
+    lastClose = close;
   }
 
-  return candles;
-}
+  return data;
+};
 
-function priceToY(price, minPrice, maxPrice) {
-  const usableHeight = CHART_HEIGHT - TOP_PAD - BOTTOM_PAD;
-  return TOP_PAD + ((maxPrice - price) / (maxPrice - minPrice || 1)) * usableHeight;
-}
-
-function indexToX(index, visibleCount) {
-  const usableWidth = CHART_WIDTH - LEFT_PAD - RIGHT_PAD;
-  const step = usableWidth / Math.max(visibleCount - 1, 1);
-  return LEFT_PAD + index * step;
-}
-
-function xToIndex(x, visibleCount) {
-  const usableWidth = CHART_WIDTH - LEFT_PAD - RIGHT_PAD;
-  const step = usableWidth / Math.max(visibleCount - 1, 1);
-  const raw = Math.round((x - LEFT_PAD) / step);
-  return Math.max(0, Math.min(visibleCount - 1, raw));
-}
-
-function yToPrice(y, minPrice, maxPrice) {
-  const usableHeight = CHART_HEIGHT - TOP_PAD - BOTTOM_PAD;
-  const clamped = Math.max(TOP_PAD, Math.min(CHART_HEIGHT - BOTTOM_PAD, y));
-  const ratio = (clamped - TOP_PAD) / usableHeight;
-  return maxPrice - ratio * (maxPrice - minPrice);
-}
-
-function formatPrice(value) {
-  return value.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function ToolButton({ active, onClick, children }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        ...styles.toolBtn,
-        ...(active ? styles.toolBtnActive : {}),
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-function SideRow({ name, value, change }) {
-  return (
-    <div style={styles.sideRow}>
-      <div>
-        <div style={styles.sideName}>{name}</div>
-        <div style={styles.sideSub}>5m</div>
-      </div>
-      <div style={{ textAlign: "right" }}>
-        <div style={styles.sideValue}>{value}</div>
-        <div style={styles.sideChange}>{change}</div>
-      </div>
-    </div>
-  );
-}
-
-function ChartPanel({
-  title,
-  subtitle,
-  visibleCandles,
-  visibleCount,
-  minPrice,
-  maxPrice,
-  priceLevels,
-  timeLabels,
-  annotations,
-  draft,
-  activeTool,
-  onMouseDown,
-  onMouseMove,
-  onMouseUp,
-}) {
-  const last = visibleCandles[visibleCandles.length - 1];
-
-  return (
-    <div style={styles.chartPanel}>
-      <div style={styles.chartHeader}>
-        <div>
-          <div style={styles.chartTitleLine}>
-            <span style={styles.chartSymbol}>{title}</span>
-            <span style={styles.chartTf}>5m</span>
-          </div>
-          <div style={styles.chartSubtitle}>{subtitle}</div>
-        </div>
-
-        <div style={styles.chartOhlc}>
-          O {formatPrice(last.open)} H {formatPrice(last.high)} L {formatPrice(last.low)} C{" "}
-          {formatPrice(last.close)}
-        </div>
-      </div>
-
-      <div style={styles.chartBodyWrap}>
-        <div style={styles.chartBody}>
-          {[...Array(7)].map((_, i) => (
-            <div
-              key={`h-${i}`}
-              style={{
-                ...styles.hLine,
-                top: `${14 + i * 12}%`,
-              }}
-            />
-          ))}
-
-          {[...Array(8)].map((_, i) => (
-            <div
-              key={`v-${i}`}
-              style={{
-                ...styles.vLine,
-                left: `${12 + i * 11}%`,
-              }}
-            />
-          ))}
-
-          <svg
-            viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
-            style={styles.chartSvg}
-            onMouseDown={onMouseDown}
-            onMouseMove={onMouseMove}
-            onMouseUp={onMouseUp}
-          >
-            {visibleCandles.map((candle, i) => {
-              const x = indexToX(i, visibleCount);
-              const bodyWidth = Math.max(5, Math.min(10, (CHART_WIDTH - 24) / visibleCount * 0.58));
-              const openY = priceToY(candle.open, minPrice, maxPrice);
-              const closeY = priceToY(candle.close, minPrice, maxPrice);
-              const highY = priceToY(candle.high, minPrice, maxPrice);
-              const lowY = priceToY(candle.low, minPrice, maxPrice);
-              const up = candle.close >= candle.open;
-              const bodyTop = Math.min(openY, closeY);
-              const bodyHeight = Math.max(2, Math.abs(closeY - openY));
-
-              return (
-                <g key={i}>
-                  <line
-                    x1={x}
-                    y1={highY}
-                    x2={x}
-                    y2={lowY}
-                    stroke={up ? "#2563eb" : "#111827"}
-                    strokeWidth="1.2"
-                  />
-                  <rect
-                    x={x - bodyWidth / 2}
-                    y={bodyTop}
-                    width={bodyWidth}
-                    height={bodyHeight}
-                    fill={up ? "#2563eb" : "#111827"}
-                    rx="0.5"
-                  />
-                </g>
-              );
-            })}
-
-            {annotations.lines.map((line, i) => (
-              <line
-                key={`line-${i}`}
-                x1={indexToX(line.startIndex, visibleCount)}
-                y1={priceToY(line.startPrice, minPrice, maxPrice)}
-                x2={indexToX(line.endIndex, visibleCount)}
-                y2={priceToY(line.endPrice, minPrice, maxPrice)}
-                stroke="#2563eb"
-                strokeWidth="2"
-              />
-            ))}
-
-            {annotations.equilibriums.map((eq, i) => {
-              const x1 = indexToX(Math.min(eq.startIndex, eq.endIndex), visibleCount);
-              const x2 = indexToX(Math.max(eq.startIndex, eq.endIndex), visibleCount);
-              const y1 = priceToY(Math.max(eq.startPrice, eq.endPrice), minPrice, maxPrice);
-              const y2 = priceToY(Math.min(eq.startPrice, eq.endPrice), minPrice, maxPrice);
-              const midPrice = (eq.startPrice + eq.endPrice) / 2;
-              const midY = priceToY(midPrice, minPrice, maxPrice);
-
-              return (
-                <g key={`eq-${i}`}>
-                  <rect
-                    x={x1}
-                    y={y1}
-                    width={Math.max(10, x2 - x1)}
-                    height={Math.max(10, y2 - y1)}
-                    fill="rgba(90, 90, 90, 0.18)"
-                    stroke="rgba(90, 90, 90, 0.35)"
-                  />
-                  <line
-                    x1={x1}
-                    y1={midY}
-                    x2={x2}
-                    y2={midY}
-                    stroke="#6b7280"
-                    strokeDasharray="6 4"
-                    strokeWidth="1.5"
-                  />
-                  <text
-                    x={x2 - 26}
-                    y={midY - 6}
-                    fill="#6b7280"
-                    fontSize="12"
-                    fontWeight="700"
-                  >
-                    EQ
-                  </text>
-                </g>
-              );
-            })}
-
-            {annotations.longs.map((position, i) => {
-              const x = indexToX(position.index, visibleCount);
-              const width = 110;
-              const entryY = priceToY(position.entry, minPrice, maxPrice);
-              const stopY = priceToY(position.stop, minPrice, maxPrice);
-              const targetY = priceToY(position.target, minPrice, maxPrice);
-
-              return (
-                <g key={`long-${i}`}>
-                  <rect
-                    x={x}
-                    y={targetY}
-                    width={width}
-                    height={entryY - targetY}
-                    fill="rgba(34, 197, 94, 0.16)"
-                  />
-                  <rect
-                    x={x}
-                    y={entryY}
-                    width={width}
-                    height={stopY - entryY}
-                    fill="rgba(239, 68, 68, 0.14)"
-                  />
-
-                  <line x1={x} y1={targetY} x2={x + width} y2={targetY} stroke="#16a34a" strokeWidth="2" />
-                  <line x1={x} y1={entryY} x2={x + width} y2={entryY} stroke="#2563eb" strokeWidth="2" />
-                  <line x1={x} y1={stopY} x2={x + width} y2={stopY} stroke="#dc2626" strokeWidth="2" />
-
-                  <text x={x + width - 62} y={targetY - 6} fill="#16a34a" fontSize="11" fontWeight="700">
-                    TP
-                  </text>
-                  <text x={x + width - 74} y={entryY - 6} fill="#2563eb" fontSize="11" fontWeight="700">
-                    Entry
-                  </text>
-                  <text x={x + width - 62} y={stopY - 6} fill="#dc2626" fontSize="11" fontWeight="700">
-                    SL
-                  </text>
-                </g>
-              );
-            })}
-
-            {draft && activeTool === "line" && (
-              <line
-                x1={indexToX(draft.startIndex, visibleCount)}
-                y1={priceToY(draft.startPrice, minPrice, maxPrice)}
-                x2={indexToX(draft.currentIndex, visibleCount)}
-                y2={priceToY(draft.currentPrice, minPrice, maxPrice)}
-                stroke="#60a5fa"
-                strokeWidth="2"
-                strokeDasharray="6 4"
-              />
-            )}
-
-            {draft && activeTool === "equilibrium" && (() => {
-              const x1 = indexToX(Math.min(draft.startIndex, draft.currentIndex), visibleCount);
-              const x2 = indexToX(Math.max(draft.startIndex, draft.currentIndex), visibleCount);
-              const y1 = priceToY(Math.max(draft.startPrice, draft.currentPrice), minPrice, maxPrice);
-              const y2 = priceToY(Math.min(draft.startPrice, draft.currentPrice), minPrice, maxPrice);
-              const midPrice = (draft.startPrice + draft.currentPrice) / 2;
-              const midY = priceToY(midPrice, minPrice, maxPrice);
-
-              return (
-                <g>
-                  <rect
-                    x={x1}
-                    y={y1}
-                    width={Math.max(10, x2 - x1)}
-                    height={Math.max(10, y2 - y1)}
-                    fill="rgba(90, 90, 90, 0.14)"
-                    stroke="rgba(90, 90, 90, 0.45)"
-                    strokeDasharray="5 4"
-                  />
-                  <line
-                    x1={x1}
-                    y1={midY}
-                    x2={x2}
-                    y2={midY}
-                    stroke="#6b7280"
-                    strokeDasharray="6 4"
-                    strokeWidth="1.5"
-                  />
-                </g>
-              );
-            })()}
-
-            {draft && activeTool === "long" && (() => {
-              const x = indexToX(draft.startIndex, visibleCount);
-              const width = 110;
-              const entry = draft.startPrice;
-              const stop = Math.min(entry - 0.5, draft.currentPrice);
-              const risk = entry - stop;
-              const target = entry + risk * 2;
-
-              const entryY = priceToY(entry, minPrice, maxPrice);
-              const stopY = priceToY(stop, minPrice, maxPrice);
-              const targetY = priceToY(target, minPrice, maxPrice);
-
-              return (
-                <g>
-                  <rect x={x} y={targetY} width={width} height={entryY - targetY} fill="rgba(34, 197, 94, 0.12)" />
-                  <rect x={x} y={entryY} width={width} height={stopY - entryY} fill="rgba(239, 68, 68, 0.12)" />
-                  <line x1={x} y1={targetY} x2={x + width} y2={targetY} stroke="#16a34a" strokeWidth="2" strokeDasharray="6 4" />
-                  <line x1={x} y1={entryY} x2={x + width} y2={entryY} stroke="#2563eb" strokeWidth="2" strokeDasharray="6 4" />
-                  <line x1={x} y1={stopY} x2={x + width} y2={stopY} stroke="#dc2626" strokeWidth="2" strokeDasharray="6 4" />
-                </g>
-              );
-            })()}
-          </svg>
-
-          <div style={styles.priceScale}>
-            {priceLevels.map((level, i) => (
-              <div key={i} style={styles.priceLabel}>
-                {formatPrice(level)}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div style={styles.timeAxis}>
-          {timeLabels.map((label, i) => (
-            <div key={i} style={styles.timeLabel}>
-              {label}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
+const fullData = generateMockData();
 
 export default function Backtesting() {
-  const esAll = useMemo(() => generateCandles(12, 5120, 140), []);
-  const nqAll = useMemo(() => generateCandles(28, 22300, 140), []);
+  const chartContainerRef = useRef(null);
+  const chartRef = useRef(null);
+  const candleSeriesRef = useRef(null);
+  const maSeriesRef = useRef(null);
+  const playIntervalRef = useRef(null);
 
-  const [visibleCount, setVisibleCount] = useState(80);
+  const entryLineRef = useRef(null);
+  const stopLineRef = useRef(null);
+  const targetLineRef = useRef(null);
+
+  const [index, setIndex] = useState(35);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);
-  const [activeTool, setActiveTool] = useState("cursor");
-  const [activeChart, setActiveChart] = useState("es");
+  const [speed, setSpeed] = useState(600);
 
-  const [annotations, setAnnotations] = useState({
-    es: { lines: [], longs: [], equilibriums: [] },
-    nq: { lines: [], longs: [], equilibriums: [] },
-  });
+  const [tradeDirection, setTradeDirection] = useState("long");
+  const [tradeStep, setTradeStep] = useState("idle");
+  const [entryPrice, setEntryPrice] = useState(null);
+  const [stopPrice, setStopPrice] = useState(null);
+  const [targetPrice, setTargetPrice] = useState(null);
+  const [tradeStatus, setTradeStatus] = useState("No trade");
+  const [tradeResult, setTradeResult] = useState(null);
 
-  const [draft, setDraft] = useState(null);
+  const visibleData = useMemo(() => fullData.slice(0, index), [index]);
+  const lastCandle = visibleData[visibleData.length - 1];
 
-  useEffect(() => {
-    if (!isPlaying) return undefined;
+  const removePriceLine = (lineRef) => {
+    if (lineRef.current && candleSeriesRef.current) {
+      candleSeriesRef.current.removePriceLine(lineRef.current);
+      lineRef.current = null;
+    }
+  };
 
-    const timer = setInterval(() => {
-      setVisibleCount((prev) => {
-        const next = prev + 1;
-        if (next >= Math.min(esAll.length, nqAll.length)) {
-          setIsPlaying(false);
-          return Math.min(esAll.length, nqAll.length);
-        }
-        return next;
+  const syncTradeLines = () => {
+    if (!candleSeriesRef.current) return;
+
+    removePriceLine(entryLineRef);
+    removePriceLine(stopLineRef);
+    removePriceLine(targetLineRef);
+
+    if (entryPrice != null) {
+      entryLineRef.current = candleSeriesRef.current.createPriceLine({
+        price: entryPrice,
+        color: tradeDirection === "long" ? "#22c55e" : "#3b82f6",
+        lineWidth: 2,
+        lineStyle: 0,
+        axisLabelVisible: true,
+        title: "ENTRY",
       });
-    }, speed === 1 ? 550 : speed === 2 ? 300 : 140);
+    }
 
-    return () => clearInterval(timer);
-  }, [isPlaying, speed, esAll.length, nqAll.length]);
+    if (stopPrice != null) {
+      stopLineRef.current = candleSeriesRef.current.createPriceLine({
+        price: stopPrice,
+        color: "#ef4444",
+        lineWidth: 2,
+        lineStyle: 2,
+        axisLabelVisible: true,
+        title: "STOP",
+      });
+    }
 
-  const esVisible = esAll.slice(0, visibleCount);
-  const nqVisible = nqAll.slice(0, visibleCount);
-
-  const buildScale = (candles) => {
-    const low = Math.min(...candles.map((c) => c.low));
-    const high = Math.max(...candles.map((c) => c.high));
-    const pad = (high - low) * 0.12 || 1;
-    const minPrice = low - pad;
-    const maxPrice = high + pad;
-    const step = (maxPrice - minPrice) / 5;
-    const priceLevels = Array.from({ length: 6 }, (_, i) => maxPrice - i * step);
-    const timeStep = Math.max(1, Math.floor(candles.length / 5));
-    const timeLabels = Array.from({ length: 6 }, (_, i) => {
-      const idx = Math.min(candles.length - 1, i * timeStep);
-      const mins = 30 + idx * 5;
-      const hour = 9 + Math.floor(mins / 60);
-      const minute = mins % 60;
-      return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-    });
-
-    return { minPrice, maxPrice, priceLevels, timeLabels };
-  };
-
-  const esScale = buildScale(esVisible);
-  const nqScale = buildScale(nqVisible);
-
-  const handleChartPointer = (chart, scale, event) => {
-    const svg = event.currentTarget;
-    const rect = svg.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * CHART_WIDTH;
-    const y = ((event.clientY - rect.top) / rect.height) * CHART_HEIGHT;
-
-    return {
-      chart,
-      index: xToIndex(x, visibleCount),
-      price: yToPrice(y, scale.minPrice, scale.maxPrice),
-    };
-  };
-
-  const handleMouseDown = (chart, scale) => (event) => {
-    if (activeTool === "cursor") return;
-
-    const point = handleChartPointer(chart, scale, event);
-    setActiveChart(chart);
-
-    if (activeTool === "line" || activeTool === "equilibrium" || activeTool === "long") {
-      setDraft({
-        chart,
-        startIndex: point.index,
-        startPrice: point.price,
-        currentIndex: point.index,
-        currentPrice: point.price,
+    if (targetPrice != null) {
+      targetLineRef.current = candleSeriesRef.current.createPriceLine({
+        price: targetPrice,
+        color: "#a855f7",
+        lineWidth: 2,
+        lineStyle: 2,
+        axisLabelVisible: true,
+        title: "TARGET",
       });
     }
   };
 
-  const handleMouseMove = (chart, scale) => (event) => {
-    if (!draft || draft.chart !== chart) return;
-    const point = handleChartPointer(chart, scale, event);
-
-    setDraft((prev) =>
-      prev
-        ? {
-            ...prev,
-            currentIndex: point.index,
-            currentPrice: point.price,
-          }
-        : prev
-    );
+  const clearTrade = () => {
+    setEntryPrice(null);
+    setStopPrice(null);
+    setTargetPrice(null);
+    setTradeStep("idle");
+    setTradeStatus("No trade");
+    setTradeResult(null);
+    removePriceLine(entryLineRef);
+    removePriceLine(stopLineRef);
+    removePriceLine(targetLineRef);
   };
 
-  const handleMouseUp = (chart) => () => {
-    if (!draft || draft.chart !== chart) return;
+  const startTradeSetup = () => {
+    clearTrade();
+    setTradeStep("entry");
+    setTradeStatus("Click chart to place ENTRY");
+  };
 
-    setAnnotations((prev) => {
-      const next = { ...prev };
-      const bucket = { ...next[chart] };
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
 
-      if (activeTool === "line") {
-        bucket.lines = [
-          ...bucket.lines,
-          {
-            startIndex: draft.startIndex,
-            startPrice: draft.startPrice,
-            endIndex: draft.currentIndex,
-            endPrice: draft.currentPrice,
-          },
-        ];
-      }
-
-      if (activeTool === "equilibrium") {
-        bucket.equilibriums = [
-          ...bucket.equilibriums,
-          {
-            startIndex: draft.startIndex,
-            startPrice: draft.startPrice,
-            endIndex: draft.currentIndex,
-            endPrice: draft.currentPrice,
-          },
-        ];
-      }
-
-      if (activeTool === "long") {
-        const entry = draft.startPrice;
-        const stop = Math.min(entry - 0.5, draft.currentPrice);
-        const risk = Math.max(0.25, entry - stop);
-        const target = entry + risk * 2;
-
-        bucket.longs = [
-          ...bucket.longs,
-          {
-            index: draft.startIndex,
-            entry,
-            stop,
-            target,
-          },
-        ];
-      }
-
-      next[chart] = bucket;
-      return next;
+    const chart = createChart(chartContainerRef.current, {
+      width: chartContainerRef.current.clientWidth,
+      height: 620,
+      layout: {
+        background: { type: ColorType.Solid, color: "#0a1220" },
+        textColor: "#9fb0c8",
+      },
+      grid: {
+        vertLines: { color: "rgba(148, 163, 184, 0.08)" },
+        horzLines: { color: "rgba(148, 163, 184, 0.08)" },
+      },
+      rightPriceScale: {
+        borderColor: "rgba(148, 163, 184, 0.15)",
+        scaleMargins: {
+          top: 0.08,
+          bottom: 0.08,
+        },
+      },
+      timeScale: {
+        borderColor: "rgba(148, 163, 184, 0.15)",
+        timeVisible: true,
+        secondsVisible: false,
+      },
+      crosshair: {
+        mode: CrosshairMode.Normal,
+      },
+      handleScroll: true,
+      handleScale: true,
     });
 
-    setDraft(null);
+    const candleSeries = chart.addSeries(CandlestickSeries, {
+      upColor: "#22c55e",
+      downColor: "#ef4444",
+      borderVisible: false,
+      wickUpColor: "#22c55e",
+      wickDownColor: "#ef4444",
+    });
+
+    const maSeries = chart.addSeries(LineSeries, {
+      color: "#60a5fa",
+      lineWidth: 2,
+      priceLineVisible: false,
+      lastValueVisible: false,
+    });
+
+    chart.subscribeClick((param) => {
+      if (!param?.point || !candleSeriesRef.current) return;
+      if (tradeStep === "idle" || tradeStep === "done") return;
+
+      const price = candleSeriesRef.current.coordinateToPrice(param.point.y);
+      if (price == null) return;
+
+      const rounded = Number(price.toFixed(2));
+
+      if (tradeStep === "entry") {
+        setEntryPrice(rounded);
+        setTradeStep("stop");
+        setTradeStatus("Click chart to place STOP");
+      } else if (tradeStep === "stop") {
+        setStopPrice(rounded);
+        setTradeStep("target");
+        setTradeStatus("Click chart to place TARGET");
+      } else if (tradeStep === "target") {
+        setTargetPrice(rounded);
+        setTradeStep("done");
+        setTradeStatus("Trade armed");
+      }
+    });
+
+    chartRef.current = chart;
+    candleSeriesRef.current = candleSeries;
+    maSeriesRef.current = maSeries;
+
+    const handleResize = () => {
+      if (!chartContainerRef.current || !chartRef.current) return;
+      chartRef.current.applyOptions({
+        width: chartContainerRef.current.clientWidth,
+      });
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      clearInterval(playIntervalRef.current);
+      chart.remove();
+    };
+  }, [tradeStep]);
+
+  useEffect(() => {
+    if (!candleSeriesRef.current || !maSeriesRef.current) return;
+
+    candleSeriesRef.current.setData(visibleData);
+
+    const maData = visibleData.map((bar, i) => {
+      const slice = visibleData.slice(Math.max(0, i - 9), i + 1);
+      const avg =
+        slice.reduce((sum, item) => sum + item.close, 0) / slice.length;
+
+      return {
+        time: bar.time,
+        value: Number(avg.toFixed(2)),
+      };
+    });
+
+    maSeriesRef.current.setData(maData);
+    chartRef.current?.timeScale().fitContent();
+  }, [visibleData]);
+
+  useEffect(() => {
+    syncTradeLines();
+  }, [entryPrice, stopPrice, targetPrice, tradeDirection]);
+
+  useEffect(() => {
+    if (!isPlaying) {
+      clearInterval(playIntervalRef.current);
+      return;
+    }
+
+    playIntervalRef.current = setInterval(() => {
+      setIndex((prev) => {
+        if (prev >= fullData.length) {
+          setIsPlaying(false);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, speed);
+
+    return () => clearInterval(playIntervalRef.current);
+  }, [isPlaying, speed]);
+
+  useEffect(() => {
+    if (
+      tradeStep !== "done" ||
+      entryPrice == null ||
+      stopPrice == null ||
+      targetPrice == null ||
+      !lastCandle ||
+      tradeResult
+    ) {
+      return;
+    }
+
+    if (tradeDirection === "long") {
+      if (lastCandle.low <= stopPrice) {
+        setTradeResult("Stopped Out");
+        setTradeStatus("Stopped Out");
+        setIsPlaying(false);
+        return;
+      }
+      if (lastCandle.high >= targetPrice) {
+        setTradeResult("Target Hit");
+        setTradeStatus("Target Hit");
+        setIsPlaying(false);
+      }
+    } else {
+      if (lastCandle.high >= stopPrice) {
+        setTradeResult("Stopped Out");
+        setTradeStatus("Stopped Out");
+        setIsPlaying(false);
+        return;
+      }
+      if (lastCandle.low <= targetPrice) {
+        setTradeResult("Target Hit");
+        setTradeStatus("Target Hit");
+        setIsPlaying(false);
+      }
+    }
+  }, [
+    lastCandle,
+    tradeDirection,
+    tradeStep,
+    entryPrice,
+    stopPrice,
+    targetPrice,
+    tradeResult,
+  ]);
+
+  const resetReplay = () => {
+    setIsPlaying(false);
+    setIndex(35);
+    clearTrade();
   };
 
-  const clearActiveChart = () => {
-    setAnnotations((prev) => ({
-      ...prev,
-      [activeChart]: { lines: [], longs: [], equilibriums: [] },
-    }));
-    setDraft(null);
-  };
+  const unrealizedPnL = (() => {
+    if (entryPrice == null || !lastCandle) return null;
+
+    const pnl =
+      tradeDirection === "long"
+        ? lastCandle.close - entryPrice
+        : entryPrice - lastCandle.close;
+
+    return Number(pnl.toFixed(2));
+  })();
+
+  const risk = (() => {
+    if (entryPrice == null || stopPrice == null) return null;
+    return Number(Math.abs(entryPrice - stopPrice).toFixed(2));
+  })();
+
+  const reward = (() => {
+    if (entryPrice == null || targetPrice == null) return null;
+    return Number(Math.abs(targetPrice - entryPrice).toFixed(2));
+  })();
+
+  const rr = (() => {
+    if (risk == null || reward == null || risk === 0) return null;
+    return Number((reward / risk).toFixed(2));
+  })();
 
   return (
-    <div style={styles.page}>
-      <div style={styles.topBar}>
-        <div style={styles.topLeft}>
-          <div style={styles.symbolChip}>ES1!</div>
-          <div style={styles.symbolChip}>5m</div>
-          <button style={styles.topBtn}>Indicators</button>
-          <button style={styles.topBtn}>Compare</button>
-          <button style={{ ...styles.topBtn, ...styles.topBtnPrimary }}>Dual Sync</button>
-        </div>
-
-        <div style={styles.topRight}>
-          <button style={styles.topIconBtn} onClick={() => setVisibleCount((v) => Math.max(20, v - 1))}>
-            ◀
-          </button>
-          <button style={styles.topIconBtn} onClick={() => setIsPlaying((v) => !v)}>
-            {isPlaying ? "⏸" : "▶"}
-          </button>
-          <button
-            style={styles.topIconBtn}
-            onClick={() => setVisibleCount((v) => Math.min(Math.min(esAll.length, nqAll.length), v + 1))}
-          >
-            Step
-          </button>
-          <button
-            style={styles.topIconBtn}
-            onClick={() => {
-              setVisibleCount(80);
-              setIsPlaying(false);
-            }}
-          >
-            Reset
-          </button>
-        </div>
-      </div>
-
-      <div style={styles.workspace}>
-        <div style={styles.leftToolbar}>
-          <ToolButton active={activeTool === "cursor"} onClick={() => { setActiveTool("cursor"); setDraft(null); }}>
-            ⌖
-          </ToolButton>
-          <ToolButton active={activeTool === "line"} onClick={() => { setActiveTool("line"); setDraft(null); }}>
-            ╱
-          </ToolButton>
-          <ToolButton active={activeTool === "long"} onClick={() => { setActiveTool("long"); setDraft(null); }}>
-            Long
-          </ToolButton>
-          <ToolButton active={activeTool === "equilibrium"} onClick={() => { setActiveTool("equilibrium"); setDraft(null); }}>
-            EQ
-          </ToolButton>
-          <ToolButton active={false} onClick={clearActiveChart}>
-            Clear
-          </ToolButton>
-        </div>
-
-        <div style={styles.center}>
-          <div style={styles.innerToolbar}>
-            <div style={styles.innerToolbarGroup}>
-              {["╱", "╲", "▭", "⊙", "T", "＋"].map((item, i) => (
-                <button key={i} style={styles.miniBtn}>
-                  {item}
-                </button>
-              ))}
+    <div
+      style={{
+        minHeight: "100vh",
+        background:
+          "radial-gradient(circle at top, #13233f 0%, #0a1220 45%, #060c16 100%)",
+        color: "white",
+        padding: "18px",
+      }}
+    >
+      <div
+        style={{
+          border: "1px solid rgba(148,163,184,0.14)",
+          borderRadius: "18px",
+          overflow: "hidden",
+          background: "rgba(8, 15, 28, 0.88)",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
+        }}
+      >
+        <div
+          style={{
+            borderBottom: "1px solid rgba(148,163,184,0.12)",
+            padding: "14px 18px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "12px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+            <div style={{ fontSize: "24px", fontWeight: 800, letterSpacing: "-0.03em" }}>
+              Backtesting / Replay
             </div>
 
-            <div style={styles.innerToolbarGroup}>
-              <button style={styles.miniBtn}>1x</button>
-              <button style={styles.miniBtn} onClick={() => setSpeed(1)}>1</button>
-              <button style={styles.miniBtn} onClick={() => setSpeed(2)}>2</button>
-              <button style={styles.miniBtn} onClick={() => setSpeed(4)}>4</button>
-            </div>
+            <div style={pillBlue}>NQ1!</div>
+            <div style={pillGray}>1m</div>
           </div>
 
-          <div style={styles.chartsRow}>
-            <ChartPanel
-              title="ES1!"
-              subtitle="E-mini S&P 500 Futures · 5 · CME"
-              visibleCandles={esVisible}
-              visibleCount={visibleCount}
-              minPrice={esScale.minPrice}
-              maxPrice={esScale.maxPrice}
-              priceLevels={esScale.priceLevels}
-              timeLabels={esScale.timeLabels}
-              annotations={annotations.es}
-              draft={draft?.chart === "es" ? draft : null}
-              activeTool={activeTool}
-              onMouseDown={handleMouseDown("es", esScale)}
-              onMouseMove={handleMouseMove("es", esScale)}
-              onMouseUp={handleMouseUp("es")}
-            />
-
-            <ChartPanel
-              title="NQ1!"
-              subtitle="NASDAQ 100 E-mini Futures · 5 · CME"
-              visibleCandles={nqVisible}
-              visibleCount={visibleCount}
-              minPrice={nqScale.minPrice}
-              maxPrice={nqScale.maxPrice}
-              priceLevels={nqScale.priceLevels}
-              timeLabels={nqScale.timeLabels}
-              annotations={annotations.nq}
-              draft={draft?.chart === "nq" ? draft : null}
-              activeTool={activeTool}
-              onMouseDown={handleMouseDown("nq", nqScale)}
-              onMouseMove={handleMouseMove("nq", nqScale)}
-              onMouseUp={handleMouseUp("nq")}
-            />
-          </div>
-
-          <div style={styles.bottomBar}>
-            <div style={styles.bottomLeft}>
-              <span style={styles.bottomText}>Visible Candles: {visibleCount}</span>
-              <span style={styles.bottomText}>Speed: {speed}x</span>
-            </div>
-
-            <div style={styles.bottomCenter}>
-              <span style={styles.modePill}>Mode: Dual Sync</span>
-            </div>
-
-            <div style={styles.bottomRight}>
-              <button style={styles.miniBtn} onClick={() => setAnnotations({
-                es: { lines: [], longs: [], equilibriums: [] },
-                nq: { lines: [], longs: [], equilibriums: [] },
-              })}>
-                Clear All
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            {["1m", "5m", "15m", "1H"].map((tf) => (
+              <button key={tf} style={toolbarButton(tf === "1m")}>
+                {tf}
               </button>
-            </div>
+            ))}
           </div>
+        </div>
 
-          <div style={styles.timeline}>
-            <div style={styles.timelineTrack} />
+        <div
+          style={{
+            borderBottom: "1px solid rgba(148,163,184,0.12)",
+            padding: "10px 18px",
+            display: "flex",
+            gap: "18px",
+            flexWrap: "wrap",
+            fontSize: "13px",
+            color: "#cbd5e1",
+          }}
+        >
+          <span><strong style={{ color: "#94a3b8" }}>O</strong> {lastCandle?.open?.toFixed(2)}</span>
+          <span><strong style={{ color: "#94a3b8" }}>H</strong> {lastCandle?.high?.toFixed(2)}</span>
+          <span><strong style={{ color: "#94a3b8" }}>L</strong> {lastCandle?.low?.toFixed(2)}</span>
+          <span><strong style={{ color: "#94a3b8" }}>C</strong> {lastCandle?.close?.toFixed(2)}</span>
+          <span><strong style={{ color: "#94a3b8" }}>Bars Visible</strong> {index}</span>
+          <span><strong style={{ color: "#94a3b8" }}>Replay</strong> {isPlaying ? "Playing" : "Paused"}</span>
+        </div>
+
+        <div
+          style={{
+            padding: "14px 18px",
+            display: "grid",
+            gridTemplateColumns: "1fr 280px",
+            gap: "16px",
+          }}
+        >
+          <div>
             <div
               style={{
-                ...styles.timelineMarker,
-                left: `${(visibleCount / Math.min(esAll.length, nqAll.length)) * 100}%`,
+                display: "flex",
+                gap: "10px",
+                flexWrap: "wrap",
+                marginBottom: "14px",
+              }}
+            >
+              <button onClick={() => setIndex((prev) => Math.max(1, prev - 1))} style={controlButton()}>
+                Previous
+              </button>
+
+              <button onClick={() => setIndex((prev) => Math.min(fullData.length, prev + 1))} style={controlButton()}>
+                Next
+              </button>
+
+              <button onClick={() => setIsPlaying(true)} style={controlButton("#0f3b26", "#22c55e")}>
+                Play
+              </button>
+
+              <button onClick={() => setIsPlaying(false)} style={controlButton("#3a1f23", "#ef4444")}>
+                Pause
+              </button>
+
+              <button onClick={resetReplay} style={controlButton()}>
+                Reset
+              </button>
+
+              <select
+                value={speed}
+                onChange={(e) => setSpeed(Number(e.target.value))}
+                style={selectStyle}
+              >
+                <option value={1200}>Slow</option>
+                <option value={600}>Normal</option>
+                <option value={250}>Fast</option>
+              </select>
+            </div>
+
+            <div
+              ref={chartContainerRef}
+              style={{
+                width: "100%",
+                minHeight: "620px",
+                borderRadius: "16px",
+                overflow: "hidden",
+                border: "1px solid rgba(148,163,184,0.14)",
+                background: "#0a1220",
               }}
             />
           </div>
-        </div>
 
-        <div style={styles.rightPanel}>
-          <div style={styles.sideCard}>
-            <h3 style={styles.sideTitle}>Watchlist</h3>
-            <SideRow name="SSP 500" value="5,124.75" change="+16.25" />
-            <SideRow name="NASDAQ 100" value="22,351.00" change="+38.75" />
-            <SideRow name="Dow Jones" value="39,687" change="+60" />
-            <SideRow name="Russell 2000" value="2,029.5" change="+17.2" />
-          </div>
+          <div
+            style={{
+              border: "1px solid rgba(148,163,184,0.14)",
+              borderRadius: "16px",
+              background: "rgba(12, 18, 30, 0.92)",
+              padding: "16px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+            }}
+          >
+            <div>
+              <div style={sectionTitle}>Trade Direction</div>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button onClick={() => setTradeDirection("long")} style={toggleButton(tradeDirection === "long")}>
+                  Long
+                </button>
+                <button onClick={() => setTradeDirection("short")} style={toggleButton(tradeDirection === "short")}>
+                  Short
+                </button>
+              </div>
+            </div>
 
-          <div style={styles.sideCard}>
-            <h3 style={styles.sideTitle}>Trade Info</h3>
-            <p style={styles.sideText}>Tool: {activeTool}</p>
-            <p style={styles.sideText}>Active Chart: {activeChart.toUpperCase()}</p>
-            <p style={styles.sideText}>Lines: {annotations[activeChart].lines.length}</p>
-            <p style={styles.sideText}>Longs: {annotations[activeChart].longs.length}</p>
-            <p style={styles.sideText}>Equilibriums: {annotations[activeChart].equilibriums.length}</p>
-          </div>
+            <div>
+              <div style={sectionTitle}>Trade Setup</div>
+              <button onClick={startTradeSetup} style={actionButton}>
+                Set Entry / Stop / Target
+              </button>
+              <button onClick={clearTrade} style={secondaryActionButton}>
+                Clear Trade
+              </button>
+              <div style={{ marginTop: "10px", color: "#cbd5e1", fontSize: "13px", lineHeight: 1.5 }}>
+                {tradeStatus}
+              </div>
+            </div>
 
-          <div style={styles.sideCard}>
-            <h3 style={styles.sideTitle}>Replay Stats</h3>
-            <p style={styles.sideText}>Visible Candles: {visibleCount}</p>
-            <p style={styles.sideText}>Speed: {speed}x</p>
-            <p style={styles.sideText}>Mode: Dual Sync</p>
-            <p style={styles.sideText}>Status: {isPlaying ? "Playing" : "Paused"}</p>
+            <div>
+              <div style={sectionTitle}>Trade Levels</div>
+              <div style={statRow}>
+                <span>Entry</span>
+                <strong>{entryPrice ?? "--"}</strong>
+              </div>
+              <div style={statRow}>
+                <span>Stop</span>
+                <strong>{stopPrice ?? "--"}</strong>
+              </div>
+              <div style={statRow}>
+                <span>Target</span>
+                <strong>{targetPrice ?? "--"}</strong>
+              </div>
+            </div>
+
+            <div>
+              <div style={sectionTitle}>Trade Stats</div>
+              <div style={statRow}>
+                <span>Status</span>
+                <strong>{tradeResult || "Open / Waiting"}</strong>
+              </div>
+              <div style={statRow}>
+                <span>Unrealized PnL</span>
+                <strong
+                  style={{
+                    color:
+                      unrealizedPnL == null
+                        ? "#fff"
+                        : unrealizedPnL >= 0
+                        ? "#22c55e"
+                        : "#ef4444",
+                  }}
+                >
+                  {unrealizedPnL == null ? "--" : unrealizedPnL}
+                </strong>
+              </div>
+              <div style={statRow}>
+                <span>Risk</span>
+                <strong>{risk ?? "--"}</strong>
+              </div>
+              <div style={statRow}>
+                <span>Reward</span>
+                <strong>{reward ?? "--"}</strong>
+              </div>
+              <div style={statRow}>
+                <span>R:R</span>
+                <strong>{rr ?? "--"}</strong>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -723,380 +569,108 @@ export default function Backtesting() {
   );
 }
 
-const styles = {
-  page: {
-    minHeight: "100vh",
-    background: "#b0b0b7",
-    color: "#111827",
-    boxSizing: "border-box",
-    fontFamily: "Inter, system-ui, sans-serif",
-  },
+const pillBlue = {
+  padding: "8px 12px",
+  borderRadius: "10px",
+  background: "rgba(59,130,246,0.12)",
+  border: "1px solid rgba(59,130,246,0.28)",
+  color: "#dbeafe",
+  fontSize: "13px",
+  fontWeight: 700,
+};
 
-  topBar: {
-    height: 58,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    padding: "0 12px",
-    background: "#f7f7f8",
-    borderBottom: "1px solid #d5d5db",
-  },
+const pillGray = {
+  padding: "8px 12px",
+  borderRadius: "10px",
+  background: "rgba(148,163,184,0.08)",
+  border: "1px solid rgba(148,163,184,0.14)",
+  color: "#cbd5e1",
+  fontSize: "13px",
+  fontWeight: 600,
+};
 
-  topLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    flexWrap: "wrap",
-  },
+const toolbarButton = (active = false) => ({
+  padding: "8px 12px",
+  borderRadius: "10px",
+  border: active
+    ? "1px solid rgba(59,130,246,0.55)"
+    : "1px solid rgba(148,163,184,0.14)",
+  background: active ? "rgba(59,130,246,0.18)" : "rgba(148,163,184,0.06)",
+  color: active ? "#dbeafe" : "#cbd5e1",
+  fontWeight: 700,
+  cursor: "pointer",
+});
 
-  topRight: {
-    display: "flex",
-    gap: 8,
-  },
+const controlButton = (bg = "rgba(148,163,184,0.08)", border = "#334155") => ({
+  padding: "10px 14px",
+  border: `1px solid ${border}`,
+  borderRadius: "10px",
+  background: bg,
+  color: "white",
+  cursor: "pointer",
+  fontWeight: 700,
+});
 
-  symbolChip: {
-    padding: "8px 12px",
-    borderRadius: 8,
-    background: "#ffffff",
-    border: "1px solid #d1d5db",
-    fontSize: 14,
-    fontWeight: 600,
-  },
+const toggleButton = (active = false) => ({
+  flex: 1,
+  padding: "10px 12px",
+  borderRadius: "10px",
+  border: active
+    ? "1px solid rgba(59,130,246,0.55)"
+    : "1px solid rgba(148,163,184,0.14)",
+  background: active ? "rgba(59,130,246,0.18)" : "rgba(148,163,184,0.06)",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: 700,
+});
 
-  topBtn: {
-    padding: "8px 12px",
-    borderRadius: 8,
-    background: "transparent",
-    border: "1px solid #d1d5db",
-    fontSize: 14,
-    cursor: "pointer",
-  },
+const actionButton = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: "10px",
+  border: "1px solid rgba(59,130,246,0.55)",
+  background: "rgba(59,130,246,0.18)",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: 700,
+  marginBottom: "10px",
+};
 
-  topBtnPrimary: {
-    background: "#e8eefc",
-    border: "1px solid #93c5fd",
-  },
+const secondaryActionButton = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: "10px",
+  border: "1px solid rgba(148,163,184,0.14)",
+  background: "rgba(148,163,184,0.06)",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: 700,
+};
 
-  topIconBtn: {
-    padding: "8px 12px",
-    borderRadius: 8,
-    background: "#ffffff",
-    border: "1px solid #d1d5db",
-    cursor: "pointer",
-    fontSize: 14,
-  },
+const sectionTitle = {
+  fontSize: "13px",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: "#94a3b8",
+  marginBottom: "10px",
+  fontWeight: 800,
+};
 
-  workspace: {
-    display: "grid",
-    gridTemplateColumns: "60px 1fr 300px",
-    gap: 10,
-    padding: 10,
-  },
+const statRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: "10px 0",
+  borderBottom: "1px solid rgba(148,163,184,0.10)",
+  fontSize: "14px",
+};
 
-  leftToolbar: {
-    background: "#f8fafc",
-    border: "1px solid #d1d5db",
-    borderRadius: 14,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 10,
-    padding: 10,
-  },
-
-  toolBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    border: "1px solid #d1d5db",
-    background: "#ffffff",
-    cursor: "pointer",
-    fontSize: 13,
-    fontWeight: 700,
-  },
-
-  toolBtnActive: {
-    background: "#dbeafe",
-    border: "1px solid #60a5fa",
-    color: "#1d4ed8",
-  },
-
-  center: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 10,
-  },
-
-  innerToolbar: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 10,
-    padding: 8,
-    borderRadius: 12,
-    background: "#f8fafc",
-    border: "1px solid #d1d5db",
-  },
-
-  innerToolbarGroup: {
-    display: "flex",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-
-  miniBtn: {
-    padding: "8px 10px",
-    borderRadius: 8,
-    border: "1px solid #d1d5db",
-    background: "#ffffff",
-    cursor: "pointer",
-    fontSize: 13,
-  },
-
-  chartsRow: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 0,
-    border: "1px solid #9ca3af",
-    borderRadius: 14,
-    overflow: "hidden",
-  },
-
-  chartPanel: {
-    background: "#b0b0b7",
-    display: "flex",
-    flexDirection: "column",
-    borderRight: "1px solid #9ca3af",
-  },
-
-  chartHeader: {
-    padding: "12px 14px 8px",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 10,
-  },
-
-  chartTitleLine: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-  },
-
-  chartSymbol: {
-    fontSize: 18,
-    fontWeight: 700,
-  },
-
-  chartTf: {
-    fontSize: 15,
-    color: "#374151",
-  },
-
-  chartSubtitle: {
-    marginTop: 8,
-    fontSize: 15,
-  },
-
-  chartOhlc: {
-    fontSize: 14,
-    color: "#047857",
-    fontWeight: 600,
-    marginTop: 2,
-    whiteSpace: "nowrap",
-  },
-
-  chartBodyWrap: {
-    display: "flex",
-    flexDirection: "column",
-  },
-
-  chartBody: {
-    position: "relative",
-    height: CHART_HEIGHT,
-    background: "#b0b0b7",
-    borderTop: "1px solid rgba(0,0,0,0.04)",
-    borderBottom: "1px solid rgba(0,0,0,0.08)",
-  },
-
-  hLine: {
-    position: "absolute",
-    left: 0,
-    right: PRICE_SCALE_WIDTH,
-    height: 1,
-    background: "rgba(0,0,0,0.05)",
-  },
-
-  vLine: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    width: 1,
-    background: "rgba(0,0,0,0.05)",
-  },
-
-  chartSvg: {
-    position: "absolute",
-    left: 0,
-    top: 0,
-    width: `calc(100% - ${PRICE_SCALE_WIDTH}px)`,
-    height: CHART_HEIGHT,
-    cursor: "crosshair",
-  },
-
-  priceScale: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    width: PRICE_SCALE_WIDTH,
-    height: "100%",
-    borderLeft: "1px solid rgba(0,0,0,0.12)",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-evenly",
-    alignItems: "center",
-    fontSize: 12,
-    color: "#111827",
-  },
-
-  priceLabel: {
-    whiteSpace: "nowrap",
-  },
-
-  timeAxis: {
-    height: TIME_AXIS_HEIGHT,
-    display: "flex",
-    justifyContent: "space-around",
-    alignItems: "center",
-    fontSize: 12,
-    color: "#111827",
-  },
-
-  timeLabel: {
-    minWidth: 48,
-    textAlign: "center",
-  },
-
-  bottomBar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 10,
-    padding: "10px 14px",
-    borderRadius: 12,
-    background: "#f8fafc",
-    border: "1px solid #d1d5db",
-  },
-
-  bottomLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-  },
-
-  bottomCenter: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-  },
-
-  bottomRight: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-  },
-
-  bottomText: {
-    fontSize: 14,
-  },
-
-  modePill: {
-    padding: "7px 12px",
-    borderRadius: 999,
-    background: "#e8eefc",
-    border: "1px solid #93c5fd",
-    fontSize: 14,
-  },
-
-  timeline: {
-    height: 52,
-    borderRadius: 12,
-    background: "#f8fafc",
-    border: "1px solid #d1d5db",
-    position: "relative",
-    overflow: "hidden",
-  },
-
-  timelineTrack: {
-    position: "absolute",
-    left: 10,
-    right: 10,
-    top: 18,
-    height: 16,
-    background:
-      "repeating-linear-gradient(90deg, rgba(0,0,0,0.16) 0px, rgba(0,0,0,0.16) 1px, transparent 1px, transparent 14px)",
-  },
-
-  timelineMarker: {
-    position: "absolute",
-    top: 10,
-    width: 3,
-    height: 32,
-    background: "#2563eb",
-    borderRadius: 999,
-    transform: "translateX(-50%)",
-  },
-
-  rightPanel: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 10,
-  },
-
-  sideCard: {
-    background: "#f8fafc",
-    border: "1px solid #d1d5db",
-    borderRadius: 14,
-    padding: 16,
-  },
-
-  sideTitle: {
-    margin: "0 0 14px 0",
-    fontSize: 17,
-  },
-
-  sideText: {
-    margin: "0 0 10px 0",
-    fontSize: 14,
-    color: "#111827",
-  },
-
-  sideRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 10,
-    padding: "10px 0",
-    borderTop: "1px solid rgba(0,0,0,0.08)",
-  },
-
-  sideName: {
-    fontSize: 15,
-  },
-
-  sideSub: {
-    fontSize: 12,
-    color: "#6b7280",
-    marginTop: 3,
-  },
-
-  sideValue: {
-    fontSize: 15,
-    color: "#047857",
-  },
-
-  sideChange: {
-    fontSize: 12,
-    color: "#047857",
-    marginTop: 3,
-  },
+const selectStyle = {
+  padding: "10px 12px",
+  borderRadius: "10px",
+  border: "1px solid rgba(148,163,184,0.14)",
+  background: "rgba(148,163,184,0.06)",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: 700,
 };

@@ -1,24 +1,28 @@
-export default function Dashboard() {
+export default function Dashboard({ setActivePage }) {
   const features = [
     {
       icon: "✍️",
       title: "Trade Journaling",
       text: "Log entries, exits, mistakes, and execution notes.",
+      page: "journal",
     },
     {
       icon: "📈",
       title: "Backtesting",
       text: "Review setups, replay market conditions, and refine your edge faster.",
+      page: "backtesting",
     },
     {
       icon: "📊",
       title: "Performance Analytics",
       text: "Track win rate, average R, profit factor, and strategy-specific performance.",
+      page: "pricing",
     },
     {
       icon: "🗂️",
       title: "Strategy Archive",
       text: "Save, organize, and revisit your best setups without losing what works.",
+      page: "journal",
     },
   ];
 
@@ -29,6 +33,7 @@ export default function Dashboard() {
       description: "Great for getting started and building consistency.",
       buttonText: "Start Free",
       highlighted: false,
+      page: "journal",
       features: [
         "Manual trade journaling",
         "Basic trade notes",
@@ -43,6 +48,7 @@ export default function Dashboard() {
       description: "Best for traders who want structure and deeper review.",
       buttonText: "Get Essential",
       highlighted: true,
+      page: "backtesting",
       features: [
         "Everything in Basic",
         "Advanced journaling",
@@ -59,6 +65,7 @@ export default function Dashboard() {
       description: "Built for serious traders who want full control.",
       buttonText: "Go Pro",
       highlighted: false,
+      page: "pricing",
       features: [
         "Everything in Essential",
         "Advanced replay tools",
@@ -172,8 +179,19 @@ export default function Dashboard() {
           </p>
 
           <div style={styles.buttonRow}>
-            <button style={styles.primaryButton}>Start Free</button>
-            <button style={styles.secondaryButton}>View Features</button>
+            <button
+              style={styles.primaryButton}
+              onClick={() => setActivePage("journal")}
+            >
+              Start Free
+            </button>
+
+            <button
+              style={styles.secondaryButton}
+              onClick={() => setActivePage("backtesting")}
+            >
+              View Features
+            </button>
           </div>
         </div>
 
@@ -216,11 +234,18 @@ export default function Dashboard() {
 
         <div style={styles.featuresGrid}>
           {features.map((feature, index) => (
-            <div key={index} style={styles.featureCard}>
-              <div style={styles.iconBox}>{feature.icon}</div>
-              <h3 style={styles.featureTitle}>{feature.title}</h3>
-              <p style={styles.featureText}>{feature.text}</p>
-            </div>
+            <button
+              key={index}
+              type="button"
+              onClick={() => setActivePage(feature.page)}
+              style={styles.featureCardButton}
+            >
+              <div style={styles.featureCard}>
+                <div style={styles.iconBox}>{feature.icon}</div>
+                <h3 style={styles.featureTitle}>{feature.title}</h3>
+                <p style={styles.featureText}>{feature.text}</p>
+              </div>
+            </button>
           ))}
         </div>
       </section>
@@ -255,6 +280,7 @@ export default function Dashboard() {
                   ...styles.planButton,
                   ...(plan.highlighted ? styles.planButtonHighlight : {}),
                 }}
+                onClick={() => setActivePage(plan.page)}
               >
                 {plan.buttonText}
               </button>
@@ -490,6 +516,15 @@ const styles = {
     width: "100%",
   },
 
+  featureCardButton: {
+    background: "transparent",
+    border: "none",
+    padding: 0,
+    textAlign: "left",
+    cursor: "pointer",
+    width: "100%",
+  },
+
   featureCard: {
     background:
       "linear-gradient(180deg, rgba(255,255,255,0.035), rgba(0,0,0,0.28))",
@@ -503,6 +538,7 @@ const styles = {
     textAlign: "center",
     justifyContent: "flex-start",
     backdropFilter: "blur(3px)",
+    transition: "transform 0.2s ease, border 0.2s ease",
   },
 
   iconBox: {
