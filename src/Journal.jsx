@@ -510,25 +510,16 @@ export default function Journal() {
     const stopNum = form.stop === "" ? null : Number(form.stop);
     const targetNum = form.target === "" ? null : Number(form.target);
 
-    const rMultiple = calculateRMultiple(form.side, entryNum, stopNum, targetNum);
-
     const tradeToInsert = {
       user_id: user.id,
       date: form.date,
       symbol: form.symbol,
-      setup: form.setup,
       side: form.side,
-      session: form.session,
-      grade: form.grade,
-      mistakes: form.mistakes,
-      result: pnlNumber > 0 ? "Win" : pnlNumber < 0 ? "Loss" : "Break-Even",
       pnl: pnlNumber,
       entry: entryNum,
       stop: stopNum,
       target: targetNum,
-      r_multiple: rMultiple,
       notes: form.notes,
-      screenshot: form.screenshot || "",
     };
 
     const { data, error } = await supabase
@@ -539,7 +530,7 @@ export default function Journal() {
 
     if (error) {
       console.error("Error saving trade:", error);
-      alert("Could not save trade.");
+      alert(`Could not save trade: ${error.message}`);
       return;
     }
 
@@ -547,19 +538,19 @@ export default function Journal() {
       id: data.id,
       date: data.date,
       symbol: data.symbol,
-      setup: data.setup,
+      setup: form.setup,
       side: data.side,
-      session: data.session,
-      grade: data.grade,
-      mistakes: data.mistakes,
-      result: data.result,
+      session: form.session,
+      grade: form.grade,
+      mistakes: form.mistakes,
+      result: pnlNumber > 0 ? "Win" : pnlNumber < 0 ? "Loss" : "Break-Even",
       pnl: Number(data.pnl || 0),
       entry: data.entry ?? "",
       stop: data.stop ?? "",
       target: data.target ?? "",
-      rMultiple: data.r_multiple ?? null,
+      rMultiple: null,
       notes: data.notes,
-      screenshot: data.screenshot || "",
+      screenshot: form.screenshot || "",
     };
 
     setTrades((prev) => [newTrade, ...prev]);
