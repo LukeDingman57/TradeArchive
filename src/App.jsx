@@ -1,10 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { loadStripe } from "@stripe/stripe-js";
 import { supabase } from "./lib/supabase";
 import Dashboard from "./components/Dashboard";
 import Backtesting from "./components/Backtesting";
 import Sidebar from "./components/Sidebar";
 import Journal from "./Journal";
 import "./App.css";
+
+const stripePromise = loadStripe(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.trim()
+);
 
 function AuthScreen() {
   const [mode, setMode] = useState("login");
@@ -20,15 +25,19 @@ function AuthScreen() {
 
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
         });
 
-        if (error) {
-          setMessage(error.message);
+        if (error) throw error;
+
+        if (data?.user && data?.session) {
+          setMessage("Account created and logged in.");
         } else {
-          setMessage("Account created. Check your email if confirmation is required.");
+          setMessage(
+            "Account created. Check your email if confirmation is required."
+          );
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -36,17 +45,16 @@ function AuthScreen() {
           password,
         });
 
-        if (error) {
-          setMessage(error.message);
-        } else {
-          setMessage("Logged in.");
-        }
+        if (error) throw error;
+
+        setMessage("Logged in.");
       }
     } catch (err) {
-      setMessage("Something went wrong.");
+      console.error("Auth error:", err);
+      setMessage(err?.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -131,7 +139,12 @@ function AuthScreen() {
   );
 }
 
-function PricingPage({ setActivePage }) {
+function PricingPage({
+  setActivePage,
+  onCheckout,
+  checkoutLoading,
+  billingError,
+}) {
   const plans = [
     {
       name: "Free",
@@ -139,7 +152,7 @@ function PricingPage({ setActivePage }) {
       sub: "Perfect for getting started",
       highlight: false,
       buttonText: "Start Free",
-      page: "journal",
+      action: "free",
       features: [
         "50 backtesting trades / week",
         "50 journal entries",
@@ -154,7 +167,7 @@ function PricingPage({ setActivePage }) {
       sub: "Best for traders building consistency",
       highlight: true,
       buttonText: "Get Essential",
-      page: "backtesting",
+      action: "essential",
       features: [
         "500 backtesting trades / month",
         "500 journal entries",
@@ -170,7 +183,7 @@ function PricingPage({ setActivePage }) {
       sub: "Built for serious traders",
       highlight: false,
       buttonText: "Go Pro",
-      page: "pricing",
+      action: "pro",
       features: [
         "Unlimited backtesting trades",
         "Unlimited journal entries",
@@ -182,6 +195,15 @@ function PricingPage({ setActivePage }) {
     },
   ];
 
+  const handlePlanClick = async (action) => {
+    if (action === "free") {
+      setActivePage("journal");
+      return;
+    }
+
+    await onCheckout(action);
+  };
+
   return (
     <div style={pricingStyles.page}>
       <div style={pricingStyles.glowOne} />
@@ -190,12 +212,30 @@ function PricingPage({ setActivePage }) {
       <div style={pricingStyles.inner}>
         <div style={pricingStyles.header}>
           <p style={pricingStyles.eyebrow}>PRICING</p>
-          <h1 style={pricingStyles.title}>Choose the plan that fits your trading</h1>
+          <h1 style={pricingStyles.title}>
+            Choose the plan that fits your trading
+          </h1>
           <p style={pricingStyles.subtitle}>
             Start free, then upgrade when you want deeper analytics,
             backtesting power, and a cleaner review process.
           </p>
         </div>
+
+        {billingError ? (
+          <div
+            style={{
+              margin: "0 auto 24px",
+              maxWidth: "760px",
+              borderRadius: "16px",
+              padding: "14px 16px",
+              background: "rgba(239,68,68,0.12)",
+              border: "1px solid rgba(239,68,68,0.25)",
+              color: "#fecaca",
+            }}
+          >
+            {billingError}
+          </div>
+        ) : null}
 
         <div style={pricingStyles.grid}>
           {plans.map((plan, index) => (
@@ -245,10 +285,16 @@ function PricingPage({ setActivePage }) {
                 style={{
                   ...pricingStyles.cta,
                   ...(plan.highlight ? pricingStyles.ctaHighlight : {}),
+                  ...(checkoutLoading
+                    ? { opacity: 0.7, cursor: "not-allowed" }
+                    : {}),
                 }}
-                onClick={() => setActivePage(plan.page)}
+                onClick={() => handlePlanClick(plan.action)}
+                disabled={checkoutLoading}
               >
-                {plan.buttonText}
+                {checkoutLoading && plan.action !== "free"
+                  ? "Opening Checkout..."
+                  : plan.buttonText}
               </button>
             </div>
           ))}
@@ -285,20 +331,40 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [activePage, setActivePage] = useState("dashboard");
   const [loadingSession, setLoadingSession] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [billingError, setBillingError] = useState("");
+
+  const priceMap = useMemo(
+    () => ({
+      essential: import.meta.env.VITE_STRIPE_PRICE_ESSENTIAL?.trim(),
+      pro: import.meta.env.VITE_STRIPE_PRICE_PRO?.trim(),
+    }),
+    []
+  );
 
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    const loadSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error("Session load error:", error);
+      }
+
       if (!mounted) return;
-      setSession(data.session);
+
+      setSession(data?.session ?? null);
       setLoadingSession(false);
-    });
+    };
+
+    loadSession();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      if (!mounted) return;
+      setSession(newSession);
       setLoadingSession(false);
     });
 
@@ -309,8 +375,81 @@ export default function App() {
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error("Logout error:", error);
+      return;
+    }
+
     setActivePage("dashboard");
+  };
+
+  const startCheckout = async (planKey) => {
+    setBillingError("");
+
+    try {
+      const publishableKey =
+        import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.trim();
+      const selectedPriceId = priceMap[planKey];
+
+      if (!publishableKey) {
+        throw new Error("Missing Stripe publishable key in .env");
+      }
+
+      if (!selectedPriceId) {
+        throw new Error(
+          `Missing Stripe price id for the ${planKey} plan in .env`
+        );
+      }
+
+      setCheckoutLoading(true);
+
+      const stripe = await stripePromise;
+
+      if (!stripe) {
+        throw new Error("Stripe failed to initialize");
+      }
+
+      const response = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          priceId: selectedPriceId,
+          plan: planKey,
+          customerEmail: session?.user?.email ?? "",
+          userId: session?.user?.id ?? "",
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error ||
+            `Unable to create checkout session (${response.status})`
+        );
+      }
+
+      const sessionId = result?.id;
+
+      if (!sessionId) {
+        throw new Error("No checkout session id returned");
+      }
+
+      const { error } = await stripe.redirectToCheckout({ sessionId });
+
+      if (error) {
+        throw error;
+      }
+    } catch (err) {
+      console.error("Stripe checkout error:", err);
+      setBillingError(err?.message || "Unable to start checkout.");
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
 
   const renderPage = () => {
@@ -327,7 +466,14 @@ export default function App() {
     }
 
     if (activePage === "pricing") {
-      return <PricingPage setActivePage={setActivePage} />;
+      return (
+        <PricingPage
+          setActivePage={setActivePage}
+          onCheckout={startCheckout}
+          checkoutLoading={checkoutLoading}
+          billingError={billingError}
+        />
+      );
     }
 
     return <Dashboard setActivePage={setActivePage} />;
