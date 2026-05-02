@@ -199,43 +199,43 @@ function PricingPage({
       buttonText: "Start Free",
       action: "free",
       features: [
-        "50 backtesting trades / week",
-        "50 journal entries",
+        "Track your trades",
+        "50 journal entries / week",
+        "Basic performance stats",
         "1 year lookback",
-        "Up to 3 indicators",
-        "Basic trade review tools",
+        "Simple trade review tools",
       ],
     },
     {
       name: "Essential",
-      price: "$9.99/mo",
-      sub: "Best for traders building consistency",
+      price: "$6.99/mo",
+      sub: "Founders Price for traders building consistency",
       highlight: true,
       buttonText: "Get Essential",
       action: "essential",
       features: [
-        "500 backtesting trades / month",
-        "500 journal entries",
-        "5 years lookback",
-        "Unlimited indicators",
-        "Advanced review workflow",
+        "500 journal entries / month",
+        "Setup tagging for A+, A, B, and C trades",
         "Performance analytics",
+        "Screenshot uploads",
+        "Clean structured journaling system",
+        "5 years lookback",
+        "Founders get future backtesting & replay included",
       ],
     },
     {
       name: "Pro",
-      price: "$19.99/mo",
-      sub: "Built for serious traders",
+      price: "$12.99/mo",
+      sub: "For traders who want more room to grow",
       highlight: false,
       buttonText: "Go Pro",
       action: "pro",
       features: [
-        "Unlimited backtesting trades",
         "Unlimited journal entries",
-        "Unlimited lookback",
-        "Unlimited indicators",
-        "Deep analytics",
+        "Advanced performance breakdowns",
+        "Deeper trade review workflow",
         "Priority feature access",
+        "Founders get upcoming advanced chart tools included",
       ],
     },
   ];
@@ -261,8 +261,9 @@ function PricingPage({
             Choose the plan that fits your trading
           </h1>
           <p style={pricingStyles.subtitle}>
-            Start free, then upgrade when you want deeper analytics,
-            backtesting power, and a cleaner review process.
+            Start free, then upgrade to track your trades, improve consistency,
+            and build a disciplined trading system. Founders get future
+            backtesting and replay tools included when released.
           </p>
         </div>
 
@@ -349,21 +350,21 @@ function PricingPage({
           <div style={pricingStyles.stripItem}>
             <div style={pricingStyles.stripLabel}>Built for traders</div>
             <div style={pricingStyles.stripText}>
-              Clean journaling, replay, and review in one place
+              Clean journaling, screenshots, stats, and trade review in one place
             </div>
           </div>
 
           <div style={pricingStyles.stripItem}>
             <div style={pricingStyles.stripLabel}>Upgrade anytime</div>
             <div style={pricingStyles.stripText}>
-              Start with Free and move up when you need more depth
+              Start free, then upgrade when you need more journal space
             </div>
           </div>
 
           <div style={pricingStyles.stripItem}>
             <div style={pricingStyles.stripLabel}>Simple pricing</div>
             <div style={pricingStyles.stripText}>
-              No clutter, no confusing tiers, just what matters
+              Early users lock in lower pricing before new features launch
             </div>
           </div>
         </div>
