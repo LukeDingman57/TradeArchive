@@ -1580,25 +1580,37 @@ function TradeForm({
 
         <div style={{ gridColumn: "span 2" }}>
           <label style={styles.label}>Trade Screenshot</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            style={styles.fileInput}
-          />
-          {form.screenshot ? (
-            <div style={styles.uploadPreviewWrap}>
-              <img
-                src={form.screenshot}
-                alt="Trade screenshot preview"
-                style={styles.uploadPreview}
-              />
-              <button type="button" style={styles.removeImageButton} onClick={removeScreenshot}>
-                Remove Screenshot
-              </button>
+          {userPlan === "free" ? (
+            <div style={styles.lockedFeatureBox}>
+              Screenshot uploads are available on Essential.
             </div>
           ) : (
-            <div style={styles.uploadHint}>Upload a chart screenshot for this trade.</div>
+            <>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                style={styles.fileInput}
+              />
+              {form.screenshot ? (
+                <div style={styles.uploadPreviewWrap}>
+                  <img
+                    src={form.screenshot}
+                    alt="Trade screenshot preview"
+                    style={styles.uploadPreview}
+                  />
+                  <button
+                    type="button"
+                    style={styles.removeImageButton}
+                    onClick={removeScreenshot}
+                  >
+                    Remove Screenshot
+                  </button>
+                </div>
+              ) : (
+                <div style={styles.uploadHint}>Upload a chart screenshot for this trade.</div>
+              )}
+            </>
           )}
         </div>
 
