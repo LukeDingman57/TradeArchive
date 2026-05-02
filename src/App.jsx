@@ -1,15 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { loadStripe } from "@stripe/stripe-js";
 import { supabase } from "./lib/supabase";
 import Dashboard from "./components/Dashboard";
-import Backtesting from "./components/Backtesting";
 import Sidebar from "./components/Sidebar";
 import Journal from "./Journal";
 import "./App.css";
-
-const stripePromise = loadStripe(
-  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.trim()
-);
 
 function AuthScreen() {
   const [mode, setMode] = useState("login");
@@ -133,6 +127,57 @@ function AuthScreen() {
           {mode === "signup"
             ? "Already have an account? Login"
             : "Need an account? Sign up"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+function BacktestingComingSoon({ setActivePage }) {
+  return (
+    <div style={comingSoonStyles.page}>
+      <div style={comingSoonStyles.glowOne} />
+      <div style={comingSoonStyles.glowTwo} />
+
+      <div style={comingSoonStyles.card}>
+        <div style={comingSoonStyles.badge}>Coming Soon</div>
+
+        <h1 style={comingSoonStyles.title}>Backtesting & Replay</h1>
+
+        <p style={comingSoonStyles.subtitle}>
+          Advanced chart replay and backtesting tools are currently in
+          development.
+        </p>
+
+        <p style={comingSoonStyles.text}>
+          For now, use TradeArchive to journal your trades, track your setups,
+          upload screenshots, and review your performance so you can build more
+          consistency before replay launches.
+        </p>
+
+        <div style={comingSoonStyles.featureGrid}>
+          <div style={comingSoonStyles.featureBox}>
+            <div style={comingSoonStyles.featureTitle}>Journal Now</div>
+            <div style={comingSoonStyles.featureText}>
+              Track entries, exits, setups, screenshots, and notes.
+            </div>
+          </div>
+
+          <div style={comingSoonStyles.featureBox}>
+            <div style={comingSoonStyles.featureTitle}>Replay Later</div>
+            <div style={comingSoonStyles.featureText}>
+              Backtesting and advanced chart replay are planned for a future
+              update.
+            </div>
+          </div>
+        </div>
+
+        <button
+          style={comingSoonStyles.button}
+          onClick={() => setActivePage("journal")}
+        >
+          Go to Journal
         </button>
       </div>
     </div>
@@ -389,13 +434,7 @@ export default function App() {
     setBillingError("");
 
     try {
-      const publishableKey =
-        import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.trim();
       const selectedPriceId = priceMap[planKey];
-
-      if (!publishableKey) {
-        throw new Error("Missing Stripe publishable key in .env");
-      }
 
       if (!selectedPriceId) {
         throw new Error(
@@ -404,12 +443,6 @@ export default function App() {
       }
 
       setCheckoutLoading(true);
-
-      const stripe = await stripePromise;
-
-      if (!stripe) {
-        throw new Error("Stripe failed to initialize");
-      }
 
       const response = await fetch("/api/create-checkout-session", {
         method: "POST",
@@ -433,17 +466,11 @@ export default function App() {
         );
       }
 
-      const sessionId = result?.id;
-
-      if (!sessionId) {
-        throw new Error("No checkout session id returned");
+      if (!result?.url) {
+        throw new Error("No checkout URL returned from server.");
       }
 
-      const { error } = await stripe.redirectToCheckout({ sessionId });
-
-      if (error) {
-        throw error;
-      }
+      window.location.href = result.url;
     } catch (err) {
       console.error("Stripe checkout error:", err);
       setBillingError(err?.message || "Unable to start checkout.");
@@ -462,7 +489,7 @@ export default function App() {
     }
 
     if (activePage === "backtesting") {
-      return <Backtesting setActivePage={setActivePage} />;
+      return <BacktestingComingSoon setActivePage={setActivePage} />;
     }
 
     if (activePage === "pricing") {
@@ -590,6 +617,141 @@ const logoutButton = {
   color: "white",
   cursor: "pointer",
   fontWeight: 700,
+};
+
+
+const comingSoonStyles = {
+  page: {
+    minHeight: "calc(100vh - 72px)",
+    position: "relative",
+    overflow: "hidden",
+    background:
+      "linear-gradient(180deg, #07101d 0%, #08111f 45%, #050b14 100%)",
+    padding: "42px 32px",
+    color: "white",
+    display: "grid",
+    placeItems: "center",
+  },
+
+  glowOne: {
+    position: "absolute",
+    top: "-120px",
+    left: "-120px",
+    width: "360px",
+    height: "360px",
+    borderRadius: "999px",
+    background: "rgba(59,130,246,0.14)",
+    filter: "blur(90px)",
+    pointerEvents: "none",
+  },
+
+  glowTwo: {
+    position: "absolute",
+    bottom: "-130px",
+    right: "-90px",
+    width: "340px",
+    height: "340px",
+    borderRadius: "999px",
+    background: "rgba(96,165,250,0.12)",
+    filter: "blur(90px)",
+    pointerEvents: "none",
+  },
+
+  card: {
+    position: "relative",
+    zIndex: 2,
+    width: "100%",
+    maxWidth: "820px",
+    textAlign: "center",
+    background:
+      "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.025))",
+    border: "1px solid rgba(255,255,255,0.10)",
+    borderRadius: "30px",
+    padding: "46px 34px",
+    boxShadow: "0 22px 60px rgba(0,0,0,0.35)",
+    backdropFilter: "blur(10px)",
+  },
+
+  badge: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: "18px",
+    padding: "8px 14px",
+    borderRadius: "999px",
+    background: "rgba(96,165,250,0.18)",
+    border: "1px solid rgba(96,165,250,0.35)",
+    color: "#bfdbfe",
+    fontSize: "13px",
+    fontWeight: 800,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+  },
+
+  title: {
+    margin: "0 0 14px 0",
+    fontSize: "48px",
+    lineHeight: 1.05,
+    fontWeight: 900,
+    letterSpacing: "-0.04em",
+  },
+
+  subtitle: {
+    margin: "0 auto 18px",
+    maxWidth: "650px",
+    color: "rgba(255,255,255,0.78)",
+    fontSize: "20px",
+    lineHeight: 1.6,
+  },
+
+  text: {
+    margin: "0 auto 30px",
+    maxWidth: "680px",
+    color: "rgba(255,255,255,0.62)",
+    fontSize: "16px",
+    lineHeight: 1.75,
+  },
+
+  featureGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: "16px",
+    margin: "0 auto 28px",
+    maxWidth: "680px",
+  },
+
+  featureBox: {
+    textAlign: "left",
+    background: "rgba(255,255,255,0.04)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: "20px",
+    padding: "18px",
+  },
+
+  featureTitle: {
+    color: "#bfdbfe",
+    fontSize: "15px",
+    fontWeight: 800,
+    marginBottom: "8px",
+  },
+
+  featureText: {
+    color: "rgba(255,255,255,0.68)",
+    fontSize: "14px",
+    lineHeight: 1.6,
+  },
+
+  button: {
+    borderRadius: "16px",
+    border: "1px solid rgba(96,165,250,0.45)",
+    background: "linear-gradient(180deg, #3b82f6 0%, #2563eb 100%)",
+    color: "white",
+    padding: "15px 22px",
+    fontSize: "16px",
+    fontWeight: 800,
+    cursor: "pointer",
+    boxShadow: "0 14px 28px rgba(37,99,235,0.28)",
+  },
 };
 
 const pricingStyles = {

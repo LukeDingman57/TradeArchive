@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       cancel_url: `${origin}?checkout=cancel`,
     });
 
-    return res.status(200).json({ id: session.id });
+    return res.status(200).json({ url: session.url });
   } catch (err) {
     console.error("Stripe session error:", err);
     return res.status(500).json({
