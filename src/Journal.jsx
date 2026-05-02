@@ -124,6 +124,7 @@ export default function Journal() {
   });
   const [selectedCalendarDate, setSelectedCalendarDate] = useState("");
   const [loadingTrades, setLoadingTrades] = useState(true);
+  const [userPlan, setUserPlan] = useState("free");
 
   useEffect(() => {
     let isMounted = true;
@@ -138,9 +139,29 @@ export default function Journal() {
       if (!user) {
         if (isMounted) {
           setTrades([]);
+          setUserPlan("free");
           setLoadingTrades(false);
         }
         return;
+      }
+
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("plan, subscription_status")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError && profileError.code !== "PGRST116") {
+        console.error("Error loading profile:", profileError);
+      }
+
+      const activePlan =
+        profileData?.subscription_status === "active"
+          ? profileData?.plan || "free"
+          : "free";
+
+      if (isMounted) {
+        setUserPlan(activePlan);
       }
 
       const { data, error } = await supabase
@@ -502,6 +523,11 @@ export default function Journal() {
 
     if (!user) {
       alert("You must be logged in.");
+      return;
+    }
+
+    if (userPlan === "free" && trades.length >= 50) {
+      alert("Free plan limit reached. Upgrade to Essential for unlimited journal entries.");
       return;
     }
 
@@ -1199,6 +1225,7 @@ export default function Journal() {
 
             <TradeForm
               form={form}
+              userPlan={userPlan}
               handleChange={handleChange}
               handleFileChange={handleFileChange}
               removeScreenshot={removeScreenshot}
@@ -1222,6 +1249,7 @@ export default function Journal() {
 
             <TradeForm
               form={form}
+              userPlan={userPlan}
               handleChange={handleChange}
               handleFileChange={handleFileChange}
               removeScreenshot={removeScreenshot}
@@ -1369,6 +1397,7 @@ export default function Journal() {
 
 function TradeForm({
   form,
+  userPlan,
   handleChange,
   handleFileChange,
   removeScreenshot,
@@ -1463,22 +1492,28 @@ function TradeForm({
 
         <div>
           <label style={styles.label}>Grade</label>
-          <select
-            value={form.grade}
-            onChange={(e) => handleChange("grade", e.target.value)}
-            style={{
-              ...styles.input,
-              appearance: "none",
-              WebkitAppearance: "none",
-              backgroundColor: "#162334",
-              color: "#ffffff",
-            }}
-          >
-            <option style={{ background: "#162334", color: "#ffffff" }}>A+</option>
-            <option style={{ background: "#162334", color: "#ffffff" }}>A</option>
-            <option style={{ background: "#162334", color: "#ffffff" }}>B</option>
-            <option style={{ background: "#162334", color: "#ffffff" }}>C</option>
-          </select>
+          {userPlan === "free" ? (
+            <div style={styles.lockedFeatureBox}>
+              Setup grading is available on Essential.
+            </div>
+          ) : (
+            <select
+              value={form.grade}
+              onChange={(e) => handleChange("grade", e.target.value)}
+              style={{
+                ...styles.input,
+                appearance: "none",
+                WebkitAppearance: "none",
+                backgroundColor: "#162334",
+                color: "#ffffff",
+              }}
+            >
+              <option style={{ background: "#162334", color: "#ffffff" }}>A+</option>
+              <option style={{ background: "#162334", color: "#ffffff" }}>A</option>
+              <option style={{ background: "#162334", color: "#ffffff" }}>B</option>
+              <option style={{ background: "#162334", color: "#ffffff" }}>C</option>
+            </select>
+          )}
         </div>
 
         <div style={{ gridColumn: "span 2" }}>
@@ -2284,6 +2319,17 @@ const styles = {
     justifyContent: "flex-end",
     gap: "12px",
     marginTop: "24px",
+  },
+  lockedFeatureBox: {
+    width: "100%",
+    padding: "14px 14px",
+    borderRadius: "12px",
+    border: "1px solid rgba(96,165,250,0.18)",
+    background: "rgba(96,165,250,0.08)",
+    color: "#93c5fd",
+    fontSize: "14px",
+    fontWeight: 700,
+    boxSizing: "border-box",
   },
   cancelButton: {
     background: "rgba(255,255,255,0.06)",
