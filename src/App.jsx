@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Analytics } from "@vercel/analytics/react";
 import { supabase } from "./lib/supabase";
 import Dashboard from "./components/Dashboard";
 import Sidebar from "./components/Sidebar";
@@ -570,6 +571,8 @@ export default function App() {
 
         {renderPage()}
       </div>
+
+      <Analytics />
     </div>
   );
 }
