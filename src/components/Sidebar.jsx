@@ -95,26 +95,6 @@ export default function Sidebar({ activePage, setActivePage }) {
           })}
         </div>
       </div>
-
-      <div style={styles.priceCard}>
-        <p style={styles.priceLabel}>ESSENTIAL PLAN</p>
-
-        <div style={styles.priceHeaderRow}>
-          <h3 style={styles.priceTitle}>Upgrade</h3>
-          <div style={styles.priceBadge}>$9.99</div>
-        </div>
-
-        <p style={styles.priceText}>
-          Unlock deeper analytics, backtesting tools, and structured reviews.
-        </p>
-
-        <button
-          style={styles.priceButton}
-          onClick={() => setActivePage("pricing")}
-        >
-          View Pricing
-        </button>
-      </div>
     </div>
   );
 }
@@ -237,67 +217,5 @@ const styles = {
 
   activeNavArrow: {
     color: "#0f172a",
-  },
-
-  priceCard: {
-    marginTop: "18px",
-    background:
-      "linear-gradient(180deg, rgba(9,15,28,0.96), rgba(5,10,20,0.98))",
-    border: "1px solid rgba(255,255,255,0.1)",
-    borderRadius: "24px",
-    padding: "18px",
-    boxShadow: "0 12px 28px rgba(0,0,0,0.22)",
-  },
-
-  priceLabel: {
-    margin: "0 0 10px 0",
-    fontSize: "11px",
-    letterSpacing: "0.12em",
-    color: "rgba(255,255,255,0.58)",
-  },
-
-  priceHeaderRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "10px",
-    marginBottom: "12px",
-  },
-
-  priceTitle: {
-    margin: 0,
-    fontSize: "18px",
-    color: "#ffffff",
-  },
-
-  priceBadge: {
-    background: "rgba(37,99,235,0.18)",
-    color: "#93c5fd",
-    border: "1px solid rgba(59,130,246,0.25)",
-    borderRadius: "999px",
-    padding: "6px 10px",
-    fontSize: "12px",
-    fontWeight: "700",
-    whiteSpace: "nowrap",
-  },
-
-  priceText: {
-    margin: "0 0 16px 0",
-    fontSize: "13px",
-    lineHeight: "1.6",
-    color: "rgba(255,255,255,0.72)",
-  },
-
-  priceButton: {
-    width: "100%",
-    border: "1px solid rgba(59,130,246,0.22)",
-    borderRadius: "14px",
-    background: "linear-gradient(180deg, #16345f 0%, #0f2747 100%)",
-    color: "#ffffff",
-    padding: "12px 14px",
-    fontSize: "14px",
-    fontWeight: "700",
-    cursor: "pointer",
-    boxShadow: "0 10px 22px rgba(37,99,235,0.2)",
   },
 };
