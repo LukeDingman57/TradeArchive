@@ -523,6 +523,8 @@ const styles = {
     textAlign: "left",
     cursor: "pointer",
     width: "100%",
+    color: "#f8fafc",
+    fontFamily: "inherit",
   },
 
   featureCard: {
@@ -556,12 +558,14 @@ const styles = {
   featureTitle: {
     fontSize: "24px",
     lineHeight: "1.2",
-    fontWeight: "700",
+    fontWeight: "800",
     margin: "0 0 14px 0",
+    color: "#f8fafc",
+    textShadow: "0 1px 12px rgba(0,0,0,0.45)",
   },
 
   featureText: {
-    color: "rgba(255,255,255,0.72)",
+    color: "rgba(248,250,252,0.78)",
     fontSize: "17px",
     lineHeight: "1.6",
     margin: 0,
