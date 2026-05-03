@@ -10,6 +10,7 @@ function AuthScreen() {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -94,14 +95,36 @@ function AuthScreen() {
             style={inputStyle}
           />
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={inputStyle}
-          />
+          <div style={{ position: "relative" }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              style={{
+                ...inputStyle,
+                paddingRight: "60px",
+              }}
+            />
+
+            <span
+              onClick={() => setShowPassword((prev) => !prev)}
+              style={{
+                position: "absolute",
+                right: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                cursor: "pointer",
+                fontSize: "13px",
+                color: "#94a3b8",
+                fontWeight: 600,
+                userSelect: "none",
+              }}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </span>
+          </div>
 
           <button type="submit" disabled={loading} style={primaryButton}>
             {loading
