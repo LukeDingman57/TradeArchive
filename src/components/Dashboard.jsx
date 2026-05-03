@@ -48,7 +48,7 @@ export default function Dashboard({ setActivePage }) {
       description: "Best for traders who want structure and deeper review.",
       buttonText: "Get Essential",
       highlighted: true,
-      page: "backtesting",
+      page: "pricing",
       features: [
         "Everything in Free",
         "Advanced journaling",
