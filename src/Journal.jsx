@@ -659,6 +659,25 @@ export default function Journal() {
     resetForm();
   };
 
+  const mapSupabaseTrade = (trade) => ({
+    id: trade.id,
+    date: trade.date,
+    symbol: trade.symbol || "NQ",
+    setup: trade.setup || "",
+    side: trade.side || "Long",
+    session: trade.session || "NY Open",
+    grade: trade.grade || "A",
+    mistakes: trade.mistakes || "",
+    result: trade.result || "Break-Even",
+    pnl: Number(trade.pnl || 0),
+    entry: trade.entry ?? "",
+    stop: trade.stop ?? "",
+    target: trade.target ?? "",
+    rMultiple: trade.r_multiple ?? null,
+    notes: trade.notes || "",
+    screenshot: trade.screenshot || "",
+  });
+
   const handleDeleteTrade = async (id) => {
     const confirmed = window.confirm("Delete this trade?");
     if (!confirmed) return;
@@ -672,11 +691,12 @@ export default function Journal() {
       return;
     }
 
-    const { error } = await supabase
+    const { data: deletedRows, error } = await supabase
       .from("trades")
       .delete()
       .eq("id", id)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .select("id");
 
     if (error) {
       console.error("Error deleting trade:", error);
@@ -684,7 +704,22 @@ export default function Journal() {
       return;
     }
 
-    setTrades((prev) => prev.filter((trade) => trade.id !== id));
+    if (!deletedRows || deletedRows.length === 0) {
+      alert("Trade was not deleted from the database. Refreshing trades.");
+    }
+
+    const { data: refreshedTrades, error: refreshError } = await supabase
+      .from("trades")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("date", { ascending: false });
+
+    if (refreshError) {
+      console.error("Error refreshing trades after delete:", refreshError);
+      setTrades((prev) => prev.filter((trade) => trade.id !== id));
+    } else {
+      setTrades((refreshedTrades || []).map(mapSupabaseTrade));
+    }
 
     if (selectedTrade && selectedTrade.id === id) {
       setShowViewModal(false);
