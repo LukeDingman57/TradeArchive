@@ -1,3 +1,4 @@
+```js
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
@@ -16,11 +17,9 @@ const supabase = createClient(
 
 async function buffer(readable) {
   const chunks = [];
-
   for await (const chunk of readable) {
     chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
   }
-
   return Buffer.concat(chunks);
 }
 
@@ -47,12 +46,12 @@ export default async function handler(req, res) {
       process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
-    console.error("Webhook signature verification failed:", err.message);
+    console.error("❌ Webhook signature verification failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   try {
-    // ✅ Payment completed / new subscription
+    // ✅ PAYMENT SUCCESS
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
 
@@ -61,7 +60,10 @@ export default async function handler(req, res) {
 
       const subscriptionId = session.subscription;
       const customerId = session.customer;
-      const priceId = session.metadata?.priceId;
+
+      // 🔥 ALWAYS pull real price from Stripe (more reliable than metadata)
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+      const priceId = subscription.items.data[0].price.id;
 
       const plan = getPlanFromPriceId(priceId);
 
@@ -75,25 +77,24 @@ export default async function handler(req, res) {
           plan,
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
-          subscription_status: "active",
+          subscription_status: subscription.status,
           updated_at: new Date().toISOString(),
         })
         .eq("email", customerEmail);
 
       if (error) {
-        console.error("Supabase checkout update error:", error);
+        console.error("❌ Supabase checkout update error:", error);
         return res.status(500).json({ error: "Supabase checkout update failed" });
       }
 
-      console.log(`User upgraded: ${customerEmail} → ${plan}`);
+      console.log(`✅ User upgraded: ${customerEmail} → ${plan}`);
     }
 
-    // ✅ Subscription updated / plan changed / payment status changed
+    // ✅ SUBSCRIPTION UPDATED (renewals, pauses, plan changes)
     if (event.type === "customer.subscription.updated") {
       const subscription = event.data.object;
 
       const subscriptionId = subscription.id;
-      const customerId = subscription.customer;
       const status = subscription.status;
 
       const priceId = subscription.items?.data?.[0]?.price?.id;
@@ -109,14 +110,14 @@ export default async function handler(req, res) {
         .eq("stripe_subscription_id", subscriptionId);
 
       if (error) {
-        console.error("Supabase subscription update error:", error);
+        console.error("❌ Supabase subscription update error:", error);
         return res.status(500).json({ error: "Supabase subscription update failed" });
       }
 
-      console.log(`Subscription updated: ${subscriptionId} → ${plan} / ${status}`);
+      console.log(`🔄 Subscription updated: ${subscriptionId} → ${plan} / ${status}`);
     }
 
-    // ✅ Subscription canceled / deleted
+    // ✅ SUBSCRIPTION CANCELED
     if (event.type === "customer.subscription.deleted") {
       const subscription = event.data.object;
 
@@ -133,16 +134,17 @@ export default async function handler(req, res) {
         .eq("stripe_subscription_id", subscriptionId);
 
       if (error) {
-        console.error("Supabase cancel update error:", error);
+        console.error("❌ Supabase cancel update error:", error);
         return res.status(500).json({ error: "Supabase cancel update failed" });
       }
 
-      console.log(`Subscription canceled: ${subscriptionId} → free`);
+      console.log(`❌ Subscription canceled: ${subscriptionId} → free`);
     }
 
     return res.status(200).json({ received: true });
   } catch (err) {
-    console.error("Webhook handler error:", err);
+    console.error("❌ Webhook handler error:", err);
     return res.status(500).json({ error: "Webhook failed" });
   }
 }
+```
