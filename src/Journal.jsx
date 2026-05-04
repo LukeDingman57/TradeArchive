@@ -155,9 +155,14 @@ export default function Journal() {
         console.error("Error loading profile:", profileError);
       }
 
+      const normalizedPlan = String(profileData?.plan || "free").toLowerCase();
+      const normalizedStatus = String(profileData?.subscription_status || "").toLowerCase();
+
       const activePlan =
-        profileData?.subscription_status === "active"
-          ? profileData?.plan || "free"
+        normalizedPlan === "essential" || normalizedPlan === "pro"
+          ? normalizedPlan
+          : normalizedStatus === "active"
+          ? normalizedPlan || "free"
           : "free";
 
       if (isMounted) {
@@ -526,7 +531,7 @@ export default function Journal() {
       return;
     }
 
-    if (userPlan === "free" && trades.length >= 50) {
+    if (userPlan !== "essential" && userPlan !== "pro" && trades.length >= 50) {
       alert("Free plan limit reached. Upgrade to Essential for unlimited journal entries.");
       return;
     }
@@ -1527,7 +1532,7 @@ function TradeForm({
 
         <div>
           <label style={styles.label}>Grade</label>
-          {userPlan === "free" ? (
+          {userPlan !== "essential" && userPlan !== "pro" ? (
             <div style={styles.lockedFeatureBox}>
               Setup grading is available on Essential.
             </div>
@@ -1615,7 +1620,7 @@ function TradeForm({
 
         <div style={{ gridColumn: "span 2" }}>
           <label style={styles.label}>Trade Screenshot</label>
-          {userPlan === "free" ? (
+          {userPlan !== "essential" && userPlan !== "pro" ? (
             <div style={styles.lockedFeatureBox}>
               Screenshot uploads are available on Essential.
             </div>
