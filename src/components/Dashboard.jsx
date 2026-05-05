@@ -297,6 +297,42 @@ export default function Dashboard({ setActivePage }) {
           ))}
         </div>
       </section>
+
+      <section style={styles.supportSection}>
+        <div style={styles.supportCard}>
+          <div>
+            <div style={styles.supportLabel}>SUPPORT & FEEDBACK</div>
+            <h2 style={styles.supportTitle}>
+              Need help or have a feature suggestion?
+            </h2>
+            <p style={styles.supportText}>
+              Found a bug, have an idea, or need account help? Reach out anytime
+              and help improve TradeArchive.
+            </p>
+          </div>
+
+          <div style={styles.supportActions}>
+            <a
+              href="mailto:support@tradearchive.net"
+              style={styles.supportButton}
+            >
+              Contact Support
+            </a>
+
+            <a
+              href="mailto:suggestions@tradearchive.net?subject=TradeArchive%20Suggestion"
+              style={styles.supportSecondaryButton}
+            >
+              Send Suggestion
+            </a>
+          </div>
+
+          <div style={styles.supportEmail}>
+            support@tradearchive.net
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }
@@ -702,6 +738,89 @@ const styles = {
     color: "rgba(255,255,255,0.82)",
     fontSize: "16px",
     lineHeight: "1.5",
+  },
+
+
+  supportSection: {
+    position: "relative",
+    zIndex: 2,
+    marginTop: "32px",
+    marginBottom: "10px",
+  },
+
+  supportCard: {
+    background:
+      "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.30))",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: "28px",
+    padding: "34px 28px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px",
+    backdropFilter: "blur(4px)",
+  },
+
+  supportLabel: {
+    color: "rgba(255,255,255,0.62)",
+    fontSize: "13px",
+    letterSpacing: "0.12em",
+    marginBottom: "10px",
+  },
+
+  supportTitle: {
+    margin: "0 0 12px 0",
+    fontSize: "38px",
+    lineHeight: "1.1",
+    fontWeight: "800",
+    letterSpacing: "-0.04em",
+  },
+
+  supportText: {
+    margin: 0,
+    maxWidth: "760px",
+    color: "rgba(255,255,255,0.72)",
+    fontSize: "18px",
+    lineHeight: "1.7",
+  },
+
+  supportActions: {
+    display: "flex",
+    gap: "14px",
+    flexWrap: "wrap",
+  },
+
+  supportButton: {
+    background: "#ffffff",
+    color: "#0f172a",
+    border: "none",
+    borderRadius: "14px",
+    padding: "15px 22px",
+    fontSize: "16px",
+    fontWeight: "700",
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  supportSecondaryButton: {
+    background: "rgba(255,255,255,0.06)",
+    color: "#ffffff",
+    border: "1px solid rgba(255,255,255,0.15)",
+    borderRadius: "14px",
+    padding: "15px 22px",
+    fontSize: "16px",
+    fontWeight: "700",
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  supportEmail: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: "15px",
+    fontWeight: "600",
   },
 
   checkIcon: {
