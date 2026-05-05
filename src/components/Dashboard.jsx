@@ -320,7 +320,7 @@ export default function Dashboard({ setActivePage }) {
             </a>
 
             <a
-              href="mailto:suggestions@tradearchive.net?subject=TradeArchive%20Suggestion"
+              href="mailto:support@tradearchive.net?subject=TradeArchive%20Suggestion"
               style={styles.supportSecondaryButton}
             >
               Send Suggestion
