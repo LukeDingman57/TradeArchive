@@ -111,6 +111,7 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
+    flexShrink: 0,
   },
 
   logoButton: {

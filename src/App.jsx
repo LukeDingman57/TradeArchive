@@ -397,12 +397,77 @@ function PricingPage({
   );
 }
 
+
+function useIsMobile() {
+  const getIsMobile = () =>
+    typeof window !== "undefined" ? window.innerWidth <= 768 : false;
+
+  const [isMobile, setIsMobile] = useState(getIsMobile);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(getIsMobile());
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return isMobile;
+}
+
+function MobileNav({ activePage, setActivePage }) {
+  const navItems = [
+    { label: "Home", page: "dashboard", icon: "▦" },
+    { label: "Replay", page: "backtesting", icon: "↻" },
+    { label: "Journal", page: "journal", icon: "↗" },
+    { label: "Pricing", page: "pricing", icon: "◈" },
+  ];
+
+  return (
+    <>
+      <div style={mobileNavStyles.topBar}>
+        <button
+          type="button"
+          onClick={() => setActivePage("dashboard")}
+          style={mobileNavStyles.brandButton}
+        >
+          <span style={{ color: "#ffffff" }}>Trade</span>
+          <span style={{ color: "#60a5fa" }}>Archive</span>
+        </button>
+      </div>
+
+      <div style={mobileNavStyles.bottomBar}>
+        {navItems.map((item) => {
+          const isActive = activePage === item.page;
+
+          return (
+            <button
+              key={item.page}
+              type="button"
+              onClick={() => setActivePage(item.page)}
+              style={{
+                ...mobileNavStyles.navButton,
+                ...(isActive ? mobileNavStyles.activeNavButton : {}),
+              }}
+            >
+              <span style={mobileNavStyles.navIcon}>{item.icon}</span>
+              <span style={mobileNavStyles.navLabel}>{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 export default function App() {
   const [session, setSession] = useState(null);
   const [activePage, setActivePage] = useState("dashboard");
   const [loadingSession, setLoadingSession] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [billingError, setBillingError] = useState("");
+  const isMobile = useIsMobile();
 
   const priceMap = useMemo(
     () => ({
@@ -554,10 +619,32 @@ export default function App() {
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#08111f" }}>
-      <Sidebar activePage={activePage} setActivePage={setActivePage} />
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        background: "#08111f",
+        overflowX: "hidden",
+      }}
+    >
+      {!isMobile && (
+        <Sidebar activePage={activePage} setActivePage={setActivePage} />
+      )}
 
-      <div style={{ flex: 1, minWidth: 0 }}>
+      {isMobile && (
+        <MobileNav activePage={activePage} setActivePage={setActivePage} />
+      )}
+
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          width: "100%",
+          paddingTop: isMobile ? "64px" : 0,
+          paddingBottom: isMobile ? "86px" : 0,
+          overflowX: "hidden",
+        }}
+      >
         {renderPage()}
       </div>
 
@@ -565,6 +652,81 @@ export default function App() {
     </div>
   );
 }
+
+
+const mobileNavStyles = {
+  topBar: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "64px",
+    background: "rgba(8, 15, 28, 0.96)",
+    borderBottom: "1px solid rgba(148,163,184,0.14)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 100,
+    backdropFilter: "blur(12px)",
+  },
+
+  brandButton: {
+    border: "none",
+    background: "transparent",
+    color: "#ffffff",
+    fontSize: "22px",
+    fontWeight: 900,
+    letterSpacing: "-0.04em",
+    cursor: "pointer",
+  },
+
+  bottomBar: {
+    position: "fixed",
+    left: "12px",
+    right: "12px",
+    bottom: "12px",
+    height: "66px",
+    background: "rgba(8, 15, 28, 0.96)",
+    border: "1px solid rgba(148,163,184,0.16)",
+    borderRadius: "22px",
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: "6px",
+    padding: "8px",
+    zIndex: 100,
+    boxShadow: "0 18px 45px rgba(0,0,0,0.35)",
+    backdropFilter: "blur(14px)",
+  },
+
+  navButton: {
+    border: "none",
+    borderRadius: "16px",
+    background: "transparent",
+    color: "rgba(255,255,255,0.62)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "3px",
+    fontFamily: "inherit",
+    cursor: "pointer",
+  },
+
+  activeNavButton: {
+    background: "rgba(59,130,246,0.18)",
+    color: "#ffffff",
+  },
+
+  navIcon: {
+    fontSize: "18px",
+    lineHeight: 1,
+  },
+
+  navLabel: {
+    fontSize: "11px",
+    fontWeight: 800,
+  },
+};
 
 const inputStyle = {
   width: "100%",
