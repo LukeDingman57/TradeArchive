@@ -558,40 +558,6 @@ export default function App() {
       <Sidebar activePage={activePage} setActivePage={setActivePage} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            height: "72px",
-            borderBottom: "1px solid rgba(148,163,184,0.12)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0 24px",
-            color: "white",
-            background: "rgba(8, 15, 28, 0.88)",
-            position: "sticky",
-            top: 0,
-            zIndex: 20,
-            backdropFilter: "blur(10px)",
-          }}
-        >
-          <div
-            style={{ fontSize: "20px", fontWeight: 800, cursor: "pointer" }}
-            onClick={() => setActivePage("dashboard")}
-          >
-            Trade<span style={{ color: "#60a5fa" }}>Archive</span>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-            <span style={{ color: "#cbd5e1", fontSize: "14px" }}>
-              {session?.user?.email}
-            </span>
-
-            <button onClick={handleLogout} style={logoutButton}>
-              Logout
-            </button>
-          </div>
-        </div>
-
         {renderPage()}
       </div>
 
@@ -649,7 +615,7 @@ const logoutButton = {
 
 const comingSoonStyles = {
   page: {
-    minHeight: "calc(100vh - 72px)",
+    minHeight: "100vh",
     position: "relative",
     overflow: "hidden",
     background:
@@ -783,7 +749,7 @@ const comingSoonStyles = {
 
 const pricingStyles = {
   page: {
-    minHeight: "calc(100vh - 72px)",
+    minHeight: "100vh",
     position: "relative",
     overflow: "hidden",
     background:

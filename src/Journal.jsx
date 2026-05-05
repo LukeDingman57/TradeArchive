@@ -109,7 +109,7 @@ const monthNames = [
   "December",
 ];
 
-export default function Journal() {
+export default function Journal({ setActivePage }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -937,16 +937,42 @@ export default function Journal() {
   return (
     <div style={styles.page}>
       <div style={styles.topbar}>
-        <div style={styles.topLogo}>
+        <div
+          style={styles.topLogo}
+          onClick={() => setActivePage?.("dashboard")}
+        >
           <span style={{ color: "#f8fafc" }}>Trade</span>
           <span style={{ color: "#60a5fa" }}>Archive</span>
         </div>
 
         <div style={styles.topNav}>
-          <span style={styles.topNavItem}>Dashboard</span>
-          <span style={{ ...styles.topNavItem, ...styles.activeTopNav }}>Journal</span>
-          <span style={styles.topNavItem}>Backtest</span>
-          <span style={styles.topNavItem}>Pricing</span>
+          <button
+            type="button"
+            style={styles.topNavButton}
+            onClick={() => setActivePage?.("dashboard")}
+          >
+            Dashboard
+          </button>
+          <button
+            type="button"
+            style={{ ...styles.topNavButton, ...styles.activeTopNav }}
+          >
+            Journal
+          </button>
+          <button
+            type="button"
+            style={styles.topNavButton}
+            onClick={() => setActivePage?.("backtesting")}
+          >
+            Backtest
+          </button>
+          <button
+            type="button"
+            style={styles.topNavButton}
+            onClick={() => setActivePage?.("pricing")}
+          >
+            Pricing
+          </button>
         </div>
 
         <div style={styles.topRight}>
@@ -1951,15 +1977,20 @@ const styles = {
   topLogo: {
     fontSize: "22px",
     fontWeight: 800,
+    cursor: "pointer",
   },
   topNav: {
     display: "flex",
     gap: "34px",
   },
-  topNavItem: {
+  topNavButton: {
     color: "rgba(255,255,255,0.82)",
     fontSize: "18px",
-    paddingBottom: "6px",
+    padding: "0 0 6px 0",
+    border: "none",
+    background: "transparent",
+    cursor: "pointer",
+    font: "inherit",
   },
   activeTopNav: {
     borderBottom: "2px solid #60a5fa",
