@@ -213,6 +213,7 @@ function PricingPage({
   onCheckout,
   checkoutLoading,
   billingError,
+  isMobile = false,
 }) {
   const plans = [
     {
@@ -274,17 +275,17 @@ function PricingPage({
   };
 
   return (
-    <div style={pricingStyles.page}>
+    <div style={{ ...pricingStyles.page, ...(isMobile ? pricingStyles.pageMobile : {}) }}>
       <div style={pricingStyles.glowOne} />
       <div style={pricingStyles.glowTwo} />
 
-      <div style={pricingStyles.inner}>
-        <div style={pricingStyles.header}>
-          <p style={pricingStyles.eyebrow}>PRICING</p>
-          <h1 style={pricingStyles.title}>
+      <div style={{ ...pricingStyles.inner, ...(isMobile ? pricingStyles.innerMobile : {}) }}>
+        <div style={{ ...pricingStyles.header, ...(isMobile ? pricingStyles.headerMobile : {}) }}>
+          <p style={{ ...pricingStyles.eyebrow, ...(isMobile ? pricingStyles.eyebrowMobile : {}) }}>PRICING</p>
+          <h1 style={{ ...pricingStyles.title, ...(isMobile ? pricingStyles.titleMobile : {}) }}>
             Choose the plan that fits your trading
           </h1>
-          <p style={pricingStyles.subtitle}>
+          <p style={{ ...pricingStyles.subtitle, ...(isMobile ? pricingStyles.subtitleMobile : {}) }}>
             Start free, then upgrade to track your trades, improve consistency,
             and build a disciplined trading system. Founders get future
             backtesting and replay tools included when released.
@@ -307,37 +308,40 @@ function PricingPage({
           </div>
         ) : null}
 
-        <div style={pricingStyles.grid}>
+        <div style={{ ...pricingStyles.grid, ...(isMobile ? pricingStyles.gridMobile : {}) }}>
           {plans.map((plan, index) => (
             <div
               key={index}
               style={{
                 ...pricingStyles.card,
+                ...(isMobile ? pricingStyles.cardMobile : {}),
                 ...(plan.highlight ? pricingStyles.cardHighlight : {}),
+                ...(isMobile && plan.highlight ? pricingStyles.cardHighlightMobile : {}),
               }}
             >
               {plan.highlight && (
-                <div style={pricingStyles.badge}>Most Popular</div>
+                <div style={{ ...pricingStyles.badge, ...(isMobile ? pricingStyles.badgeMobile : {}) }}>Most Popular</div>
               )}
 
-              <div style={pricingStyles.cardTop}>
-                <h2 style={pricingStyles.planName}>{plan.name}</h2>
+              <div style={{ ...pricingStyles.cardTop, ...(isMobile ? pricingStyles.cardTopMobile : {}) }}>
+                <h2 style={{ ...pricingStyles.planName, ...(isMobile ? pricingStyles.planNameMobile : {}) }}>{plan.name}</h2>
                 <div
                   style={{
                     ...pricingStyles.price,
+                    ...(isMobile ? pricingStyles.priceMobile : {}),
                     ...(plan.highlight ? pricingStyles.priceHighlight : {}),
                   }}
                 >
                   {plan.price}
                 </div>
-                <p style={pricingStyles.planSub}>{plan.sub}</p>
+                <p style={{ ...pricingStyles.planSub, ...(isMobile ? pricingStyles.planSubMobile : {}) }}>{plan.sub}</p>
               </div>
 
               <div style={pricingStyles.divider} />
 
-              <div style={pricingStyles.featureList}>
+              <div style={{ ...pricingStyles.featureList, ...(isMobile ? pricingStyles.featureListMobile : {}) }}>
                 {plan.features.map((feature, i) => (
-                  <div key={i} style={pricingStyles.featureRow}>
+                  <div key={i} style={{ ...pricingStyles.featureRow, ...(isMobile ? pricingStyles.featureRowMobile : {}) }}>
                     <div
                       style={{
                         ...pricingStyles.check,
@@ -354,6 +358,7 @@ function PricingPage({
               <button
                 style={{
                   ...pricingStyles.cta,
+                  ...(isMobile ? pricingStyles.ctaMobile : {}),
                   ...(plan.highlight ? pricingStyles.ctaHighlight : {}),
                   ...(checkoutLoading
                     ? { opacity: 0.7, cursor: "not-allowed" }
@@ -370,22 +375,22 @@ function PricingPage({
           ))}
         </div>
 
-        <div style={pricingStyles.bottomStrip}>
-          <div style={pricingStyles.stripItem}>
+        <div style={{ ...pricingStyles.bottomStrip, ...(isMobile ? pricingStyles.bottomStripMobile : {}) }}>
+          <div style={{ ...pricingStyles.stripItem, ...(isMobile ? pricingStyles.stripItemMobile : {}) }}>
             <div style={pricingStyles.stripLabel}>Built for traders</div>
             <div style={pricingStyles.stripText}>
               Clean journaling, screenshots, stats, and trade review in one place
             </div>
           </div>
 
-          <div style={pricingStyles.stripItem}>
+          <div style={{ ...pricingStyles.stripItem, ...(isMobile ? pricingStyles.stripItemMobile : {}) }}>
             <div style={pricingStyles.stripLabel}>Upgrade anytime</div>
             <div style={pricingStyles.stripText}>
               Start free, then upgrade when you need more journal space
             </div>
           </div>
 
-          <div style={pricingStyles.stripItem}>
+          <div style={{ ...pricingStyles.stripItem, ...(isMobile ? pricingStyles.stripItemMobile : {}) }}>
             <div style={pricingStyles.stripLabel}>Simple pricing</div>
             <div style={pricingStyles.stripText}>
               Early users lock in lower pricing before new features launch
@@ -589,6 +594,7 @@ export default function App() {
           onCheckout={startCheckout}
           checkoutLoading={checkoutLoading}
           billingError={billingError}
+          isMobile={isMobile}
         />
       );
     }
@@ -1141,4 +1147,100 @@ const pricingStyles = {
     fontSize: "15px",
     lineHeight: 1.6,
   },
+  pageMobile: {
+    overflowX: "hidden",
+    padding: "28px 16px 118px",
+  },
+
+  innerMobile: {
+    maxWidth: "100%",
+  },
+
+  headerMobile: {
+    marginBottom: "24px",
+  },
+
+  eyebrowMobile: {
+    fontSize: "12px",
+    marginBottom: "10px",
+  },
+
+  titleMobile: {
+    fontSize: "38px",
+    lineHeight: 1.04,
+    letterSpacing: "-0.04em",
+  },
+
+  subtitleMobile: {
+    fontSize: "16px",
+    lineHeight: 1.55,
+    maxWidth: "100%",
+  },
+
+  gridMobile: {
+    gridTemplateColumns: "1fr",
+    gap: "18px",
+    marginTop: "24px",
+  },
+
+  cardMobile: {
+    minHeight: "auto",
+    padding: "24px",
+    borderRadius: "24px",
+    transform: "none",
+  },
+
+  cardHighlightMobile: {
+    transform: "none",
+  },
+
+  badgeMobile: {
+    position: "static",
+    alignSelf: "flex-start",
+    marginBottom: "14px",
+    display: "inline-flex",
+  },
+
+  cardTopMobile: {
+    marginBottom: "14px",
+  },
+
+  planNameMobile: {
+    fontSize: "26px",
+  },
+
+  priceMobile: {
+    fontSize: "38px",
+    whiteSpace: "normal",
+  },
+
+  planSubMobile: {
+    fontSize: "15px",
+  },
+
+  featureListMobile: {
+    gap: "12px",
+    marginBottom: "22px",
+  },
+
+  featureRowMobile: {
+    fontSize: "15px",
+    alignItems: "flex-start",
+  },
+
+  ctaMobile: {
+    padding: "14px 16px",
+  },
+
+  bottomStripMobile: {
+    gridTemplateColumns: "1fr",
+    gap: "14px",
+    marginTop: "22px",
+  },
+
+  stripItemMobile: {
+    padding: "18px 16px",
+    borderRadius: "18px",
+  },
+
 };
