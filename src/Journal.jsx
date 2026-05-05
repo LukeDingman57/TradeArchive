@@ -922,7 +922,7 @@ export default function Journal() {
             </div>
           </div>
 
-          <div style={{ overflowX: "auto" }}>
+          <div style={styles.tableScroll}>
             <table style={styles.analyticsTable}>
               <thead>
                 <tr>
@@ -1044,7 +1044,7 @@ export default function Journal() {
             </div>
           )}
 
-          <div style={{ overflowX: "auto" }}>
+          <div style={styles.tableScroll}>
             <table style={styles.table}>
               <thead>
                 <tr>
@@ -2466,5 +2466,11 @@ const styles = {
     fontSize: "15px",
     fontWeight: 700,
     cursor: "pointer",
+  },
+
+  tableScroll: {
+    maxHeight: "400px",
+    overflowY: "auto",
+    overflowX: "auto",
   },
 };
