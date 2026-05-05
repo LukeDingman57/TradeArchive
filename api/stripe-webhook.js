@@ -16,11 +16,9 @@ const supabase = createClient(
 
 async function buffer(readable) {
   const chunks = [];
-
   for await (const chunk of readable) {
     chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
   }
-
   return Buffer.concat(chunks);
 }
 
@@ -47,11 +45,12 @@ export default async function handler(req, res) {
       process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
-    console.error("Webhook signature verification failed:", err.message);
+    console.error("❌ Webhook signature failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   try {
+    // ✅ PAYMENT SUCCESS
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
 
@@ -61,19 +60,13 @@ export default async function handler(req, res) {
       const subscriptionId = session.subscription;
       const customerId = session.customer;
 
+      // 🔥 Using metadata (safe)
+      const priceId = session.metadata?.priceId;
+      const plan = getPlanFromPriceId(priceId);
+
       if (!customerEmail) {
-        console.error("Missing customer email on checkout session");
         return res.status(400).json({ error: "Missing customer email" });
       }
-
-      if (!subscriptionId) {
-        console.error("Missing subscription ID on checkout session");
-        return res.status(400).json({ error: "Missing subscription ID" });
-      }
-
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-      const priceId = subscription.items?.data?.[0]?.price?.id;
-      const plan = getPlanFromPriceId(priceId);
 
       const { error } = await supabase
         .from("profiles")
@@ -81,24 +74,26 @@ export default async function handler(req, res) {
           plan,
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
-          subscription_status: subscription.status,
+          subscription_status: "active",
           updated_at: new Date().toISOString(),
         })
         .eq("email", customerEmail);
 
       if (error) {
-        console.error("Supabase checkout update error:", error);
-        return res.status(500).json({ error: "Supabase checkout update failed" });
+        console.error("❌ Supabase checkout error:", error);
+        return res.status(500).json({ error: "Checkout update failed" });
       }
 
-      console.log(`User upgraded: ${customerEmail} -> ${plan}`);
+      console.log(`✅ User upgraded: ${customerEmail} → ${plan}`);
     }
 
+    // ✅ SUBSCRIPTION UPDATED
     if (event.type === "customer.subscription.updated") {
       const subscription = event.data.object;
 
       const subscriptionId = subscription.id;
       const status = subscription.status;
+
       const priceId = subscription.items?.data?.[0]?.price?.id;
       const plan = status === "active" ? getPlanFromPriceId(priceId) : "free";
 
@@ -112,13 +107,14 @@ export default async function handler(req, res) {
         .eq("stripe_subscription_id", subscriptionId);
 
       if (error) {
-        console.error("Supabase subscription update error:", error);
-        return res.status(500).json({ error: "Supabase subscription update failed" });
+        console.error("❌ Supabase update error:", error);
+        return res.status(500).json({ error: "Subscription update failed" });
       }
 
-      console.log(`Subscription updated: ${subscriptionId} -> ${plan} / ${status}`);
+      console.log(`🔄 Subscription updated: ${subscriptionId} → ${plan}`);
     }
 
+    // ✅ SUBSCRIPTION CANCELED
     if (event.type === "customer.subscription.deleted") {
       const subscription = event.data.object;
       const subscriptionId = subscription.id;
@@ -134,16 +130,16 @@ export default async function handler(req, res) {
         .eq("stripe_subscription_id", subscriptionId);
 
       if (error) {
-        console.error("Supabase cancel update error:", error);
-        return res.status(500).json({ error: "Supabase cancel update failed" });
+        console.error("❌ Supabase cancel error:", error);
+        return res.status(500).json({ error: "Cancel update failed" });
       }
 
-      console.log(`Subscription canceled: ${subscriptionId} -> free`);
+      console.log(`❌ Subscription canceled: ${subscriptionId} → free`);
     }
 
     return res.status(200).json({ received: true });
   } catch (err) {
-    console.error("Webhook handler error:", err);
+    console.error("❌ Webhook error:", err);
     return res.status(500).json({ error: "Webhook failed" });
   }
 }
