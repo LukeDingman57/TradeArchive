@@ -1,4 +1,26 @@
+import React from "react";
+
+function useIsMobileDashboard() {
+  const getIsMobile = () =>
+    typeof window !== "undefined" ? window.innerWidth <= 768 : false;
+
+  const [isMobile, setIsMobile] = React.useState(getIsMobile);
+
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(getIsMobile());
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return isMobile;
+}
+
 export default function Dashboard({ setActivePage }) {
+  const isMobile = useIsMobileDashboard();
+
   const features = [
     {
       icon: "✍️",
@@ -126,7 +148,7 @@ export default function Dashboard({ setActivePage }) {
   ];
 
   return (
-    <div style={styles.page}>
+    <div style={{ ...styles.page, ...(isMobile ? styles.pageMobile : {}) }}>
       <div style={styles.chartBackground}>
         <div style={styles.gridOverlay}></div>
         <div style={styles.verticalFade}></div>
@@ -161,33 +183,33 @@ export default function Dashboard({ setActivePage }) {
         </svg>
       </div>
 
-      <div style={styles.brandMark}>
+      <div style={{ ...styles.brandMark, ...(isMobile ? styles.brandMarkMobile : {}) }}>
         <span style={styles.brandTrade}>Trade</span>
         <span style={styles.brandArchive}>Archive</span>
       </div>
 
-      <section style={styles.hero}>
-        <div style={styles.heroLeft}>
-          <p style={styles.smallText}>TRADE SMARTER. REVIEW BETTER.</p>
+      <section style={{ ...styles.hero, ...(isMobile ? styles.heroMobile : {}) }}>
+        <div style={{ ...styles.heroLeft, ...(isMobile ? styles.heroLeftMobile : {}) }}>
+          <p style={{ ...styles.smallText, ...(isMobile ? styles.smallTextMobile : {}) }}>TRADE SMARTER. REVIEW BETTER.</p>
 
-          <h1 style={styles.title}>Everything you need to refine your trading</h1>
+          <h1 style={{ ...styles.title, ...(isMobile ? styles.titleMobile : {}) }}>Everything you need to refine your trading</h1>
 
-          <p style={styles.subtitle}>
+          <p style={{ ...styles.subtitle, ...(isMobile ? styles.subtitleMobile : {}) }}>
             TradeArchive gives you a clean way to log trades, review mistakes,
             track performance, and build a repeatable process that actually
             improves over time.
           </p>
 
-          <div style={styles.buttonRow}>
+          <div style={{ ...styles.buttonRow, ...(isMobile ? styles.buttonRowMobile : {}) }}>
             <button
-              style={styles.primaryButton}
+              style={{ ...styles.primaryButton, ...(isMobile ? styles.mobileFullButton : {}) }}
               onClick={() => setActivePage("journal")}
             >
               Start Free
             </button>
 
             <button
-              style={styles.secondaryButton}
+              style={{ ...styles.secondaryButton, ...(isMobile ? styles.mobileFullButton : {}) }}
               onClick={() => setActivePage("backtesting")}
             >
               View Features
@@ -195,8 +217,8 @@ export default function Dashboard({ setActivePage }) {
           </div>
         </div>
 
-        <div style={styles.heroRight}>
-          <div style={styles.snapshotCard}>
+        <div style={{ ...styles.heroRight, ...(isMobile ? styles.heroRightMobile : {}) }}>
+          <div style={{ ...styles.snapshotCard, ...(isMobile ? styles.snapshotCardMobile : {}) }}>
             <h3 style={styles.snapshotTitle}>Performance Snapshot</h3>
 
             <div style={styles.statRow}>
@@ -222,17 +244,17 @@ export default function Dashboard({ setActivePage }) {
         </div>
       </section>
 
-      <section style={styles.featuresSection}>
+      <section style={{ ...styles.featuresSection, ...(isMobile ? styles.sectionMobile : {}) }}>
         <p style={styles.featuresLabel}>CORE FEATURES</p>
-        <h2 style={styles.featuresTitle}>
+        <h2 style={{ ...styles.featuresTitle, ...(isMobile ? styles.sectionTitleMobile : {}) }}>
           Everything you need to refine your trading
         </h2>
-        <p style={styles.featuresSubtitle}>
+        <p style={{ ...styles.featuresSubtitle, ...(isMobile ? styles.sectionSubtitleMobile : {}) }}>
           Built to help you organize your process, review your execution, and
           spot what is actually making or losing you money.
         </p>
 
-        <div style={styles.featuresGrid}>
+        <div style={{ ...styles.featuresGrid, ...(isMobile ? styles.featuresGridMobile : {}) }}>
           {features.map((feature, index) => (
             <button
               key={index}
@@ -240,7 +262,7 @@ export default function Dashboard({ setActivePage }) {
               onClick={() => setActivePage(feature.page)}
               style={styles.featureCardButton}
             >
-              <div style={styles.featureCard}>
+              <div style={{ ...styles.featureCard, ...(isMobile ? styles.featureCardMobile : {}) }}>
                 <div style={styles.iconBox}>{feature.icon}</div>
                 <h3 style={styles.featureTitle}>{feature.title}</h3>
                 <p style={styles.featureText}>{feature.text}</p>
@@ -250,21 +272,23 @@ export default function Dashboard({ setActivePage }) {
         </div>
       </section>
 
-      <section style={styles.pricingSection}>
+      <section style={{ ...styles.pricingSection, ...(isMobile ? styles.sectionMobile : {}) }}>
         <p style={styles.pricingLabel}>PRICING</p>
-        <h2 style={styles.pricingTitle}>Simple plans for every trader</h2>
-        <p style={styles.pricingSubtitle}>
+        <h2 style={{ ...styles.pricingTitle, ...(isMobile ? styles.sectionTitleMobile : {}) }}>Simple plans for every trader</h2>
+        <p style={{ ...styles.pricingSubtitle, ...(isMobile ? styles.sectionSubtitleMobile : {}) }}>
           Start free, then upgrade when you want deeper analytics,
           backtesting, and better review tools.
         </p>
 
-        <div style={styles.pricingGrid}>
+        <div style={{ ...styles.pricingGrid, ...(isMobile ? styles.pricingGridMobile : {}) }}>
           {pricingPlans.map((plan, index) => (
             <div
               key={index}
               style={{
                 ...styles.pricingCard,
+                ...(isMobile ? styles.pricingCardMobile : {}),
                 ...(plan.highlighted ? styles.pricingCardHighlight : {}),
+                ...(isMobile && plan.highlighted ? styles.pricingCardHighlightMobile : {}),
               }}
             >
               {plan.highlighted && (
@@ -298,30 +322,30 @@ export default function Dashboard({ setActivePage }) {
         </div>
       </section>
 
-      <section style={styles.supportSection}>
-        <div style={styles.supportCard}>
+      <section style={{ ...styles.supportSection, ...(isMobile ? styles.supportSectionMobile : {}) }}>
+        <div style={{ ...styles.supportCard, ...(isMobile ? styles.supportCardMobile : {}) }}>
           <div>
             <div style={styles.supportLabel}>SUPPORT & FEEDBACK</div>
-            <h2 style={styles.supportTitle}>
+            <h2 style={{ ...styles.supportTitle, ...(isMobile ? styles.supportTitleMobile : {}) }}>
               Need help or have a feature suggestion?
             </h2>
-            <p style={styles.supportText}>
+            <p style={{ ...styles.supportText, ...(isMobile ? styles.supportTextMobile : {}) }}>
               Found a bug, have an idea, or need account help? Reach out anytime
               and help improve TradeArchive.
             </p>
           </div>
 
-          <div style={styles.supportActions}>
+          <div style={{ ...styles.supportActions, ...(isMobile ? styles.supportActionsMobile : {}) }}>
             <a
               href="mailto:support@tradearchive.net"
-              style={styles.supportButton}
+              style={{ ...styles.supportButton, ...(isMobile ? styles.supportButtonMobile : {}) }}
             >
               Contact Support
             </a>
 
             <a
               href="mailto:support@tradearchive.net?subject=TradeArchive%20Suggestion"
-              style={styles.supportSecondaryButton}
+              style={{ ...styles.supportSecondaryButton, ...(isMobile ? styles.supportButtonMobile : {}) }}
             >
               Send Suggestion
             </a>
@@ -822,6 +846,134 @@ const styles = {
     fontSize: "15px",
     fontWeight: "600",
   },
+
+
+  pageMobile: {
+    overflowX: "hidden",
+    padding: "20px 16px 110px",
+  },
+
+  brandMarkMobile: {
+    display: "none",
+  },
+
+  heroMobile: {
+    gridTemplateColumns: "1fr",
+    gap: "24px",
+    marginBottom: "28px",
+    textAlign: "center",
+  },
+
+  heroLeftMobile: {
+    maxWidth: "100%",
+  },
+
+  smallTextMobile: {
+    fontSize: "12px",
+    marginBottom: "10px",
+  },
+
+  titleMobile: {
+    fontSize: "42px",
+    lineHeight: "1.02",
+    letterSpacing: "-0.04em",
+  },
+
+  subtitleMobile: {
+    fontSize: "17px",
+    lineHeight: "1.55",
+    maxWidth: "100%",
+    marginBottom: "22px",
+  },
+
+  buttonRowMobile: {
+    flexDirection: "column",
+    width: "100%",
+  },
+
+  mobileFullButton: {
+    width: "100%",
+    fontSize: "16px",
+    padding: "15px 18px",
+  },
+
+  heroRightMobile: {
+    width: "100%",
+  },
+
+  snapshotCardMobile: {
+    maxWidth: "100%",
+    padding: "22px",
+  },
+
+  sectionMobile: {
+    padding: "28px 18px 24px",
+    borderRadius: "24px",
+    marginTop: "22px",
+  },
+
+  sectionTitleMobile: {
+    fontSize: "34px",
+    lineHeight: "1.1",
+  },
+
+  sectionSubtitleMobile: {
+    fontSize: "17px",
+    lineHeight: "1.55",
+    marginBottom: "24px",
+  },
+
+  featuresGridMobile: {
+    gridTemplateColumns: "1fr",
+    gap: "14px",
+  },
+
+  featureCardMobile: {
+    minHeight: "auto",
+    padding: "24px 18px",
+  },
+
+  pricingGridMobile: {
+    gridTemplateColumns: "1fr",
+    gap: "18px",
+  },
+
+  pricingCardMobile: {
+    minHeight: "auto",
+    transform: "none",
+    padding: "26px 22px",
+  },
+
+  pricingCardHighlightMobile: {
+    transform: "none",
+  },
+
+  supportSectionMobile: {
+    marginTop: "22px",
+  },
+
+  supportCardMobile: {
+    padding: "26px 20px",
+    borderRadius: "24px",
+  },
+
+  supportTitleMobile: {
+    fontSize: "30px",
+  },
+
+  supportTextMobile: {
+    fontSize: "16px",
+  },
+
+  supportActionsMobile: {
+    flexDirection: "column",
+  },
+
+  supportButtonMobile: {
+    width: "100%",
+    boxSizing: "border-box",
+  },
+
 
   checkIcon: {
     color: "#60a5fa",

@@ -125,6 +125,18 @@ export default function Journal({ setActivePage }) {
   const [selectedCalendarDate, setSelectedCalendarDate] = useState("");
   const [loadingTrades, setLoadingTrades] = useState(true);
   const [userPlan, setUserPlan] = useState("free");
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -935,17 +947,17 @@ export default function Journal({ setActivePage }) {
   }
 
   return (
-    <div style={styles.page}>
-      <div style={styles.topbar}>
+    <div style={{ ...styles.page, ...(isMobile ? styles.pageMobile : {}) }}>
+      <div style={{ ...styles.topbar, ...(isMobile ? styles.topbarMobile : {}) }}>
         <div
-          style={styles.topLogo}
+          style={{ ...styles.topLogo, ...(isMobile ? styles.topLogoMobile : {}) }}
           onClick={() => setActivePage?.("dashboard")}
         >
           <span style={{ color: "#f8fafc" }}>Trade</span>
           <span style={{ color: "#60a5fa" }}>Archive</span>
         </div>
 
-        <div style={styles.topNav}>
+        <div style={{ ...styles.topNav, ...(isMobile ? styles.topNavMobile : {}) }}>
           <button
             type="button"
             style={styles.topNavButton}
@@ -975,7 +987,7 @@ export default function Journal({ setActivePage }) {
           </button>
         </div>
 
-        <div style={styles.topRight}>
+        <div style={{ ...styles.topRight, ...(isMobile ? styles.topRightMobile : {}) }}>
           <span style={styles.topRightText}>Settings</span>
           <span style={styles.divider}>|</span>
           <span style={styles.topRightText}>Logout</span>
@@ -983,26 +995,26 @@ export default function Journal({ setActivePage }) {
         </div>
       </div>
 
-      <div style={styles.content}>
-        <div style={styles.headingRow}>
-          <h1 style={styles.heading}>Journal</h1>
-          <button style={styles.quickAddButton} onClick={openAddModal}>
+      <div style={{ ...styles.content, ...(isMobile ? styles.contentMobile : {}) }}>
+        <div style={{ ...styles.headingRow, ...(isMobile ? styles.headingRowMobile : {}) }}>
+          <h1 style={{ ...styles.heading, ...(isMobile ? styles.headingMobile : {}) }}>Journal</h1>
+          <button style={{ ...styles.quickAddButton, ...(isMobile ? styles.quickAddButtonMobile : {}) }} onClick={openAddModal}>
             + Add Trade
           </button>
         </div>
 
-        <div style={styles.statsGrid}>
-          <div style={styles.statCard}>
+        <div style={{ ...styles.statsGrid, ...(isMobile ? styles.statsGridMobile : {}) }}>
+          <div style={{ ...styles.statCard, ...(isMobile ? styles.statCardMobile : {}) }}>
             <div style={styles.statLabel}>Total Trades</div>
             <div style={styles.statValue}>{stats.totalTrades}</div>
           </div>
 
-          <div style={styles.statCard}>
+          <div style={{ ...styles.statCard, ...(isMobile ? styles.statCardMobile : {}) }}>
             <div style={styles.statLabel}>Win Rate</div>
             <div style={{ ...styles.statValue, color: "#4ade80" }}>{stats.winRate}%</div>
           </div>
 
-          <div style={styles.statCard}>
+          <div style={{ ...styles.statCard, ...(isMobile ? styles.statCardMobile : {}) }}>
             <div style={styles.statLabel}>Wins / Losses</div>
             <div style={styles.statValue}>
               <span style={{ color: "#4ade80" }}>{stats.wins}</span>
@@ -1011,12 +1023,12 @@ export default function Journal({ setActivePage }) {
             </div>
           </div>
 
-          <div style={styles.statCard}>
+          <div style={{ ...styles.statCard, ...(isMobile ? styles.statCardMobile : {}) }}>
             <div style={styles.statLabel}>Break-Evens</div>
             <div style={{ ...styles.statValue, color: "#facc15" }}>{stats.breakeven}</div>
           </div>
 
-          <div style={styles.statCard}>
+          <div style={{ ...styles.statCard, ...(isMobile ? styles.statCardMobile : {}) }}>
             <div style={styles.statLabel}>Net P/L</div>
             <div
               style={{
@@ -1030,7 +1042,7 @@ export default function Journal({ setActivePage }) {
             </div>
           </div>
 
-          <div style={styles.statCard}>
+          <div style={{ ...styles.statCard, ...(isMobile ? styles.statCardMobile : {}) }}>
             <div style={styles.statLabel}>Avg R</div>
             <div
               style={{
@@ -1043,11 +1055,11 @@ export default function Journal({ setActivePage }) {
           </div>
         </div>
 
-        <div style={styles.analyticsCard}>
-          <div style={styles.analyticsHeader}>
+        <div style={{ ...styles.analyticsCard, ...(isMobile ? styles.cardMobile : {}) }}>
+          <div style={{ ...styles.analyticsHeader, ...(isMobile ? styles.sectionHeaderMobile : {}) }}>
             <div>
-              <div style={styles.analyticsTitle}>Setup Analytics</div>
-              <div style={styles.analyticsSubtext}>
+              <div style={{ ...styles.analyticsTitle, ...(isMobile ? styles.sectionTitleMobile : {}) }}>Setup Analytics</div>
+              <div style={{ ...styles.analyticsSubtext, ...(isMobile ? styles.sectionSubtextMobile : {}) }}>
                 See which setups actually make money and which ones need to be cut
               </div>
             </div>
@@ -1113,18 +1125,18 @@ export default function Journal({ setActivePage }) {
           </div>
         </div>
 
-        <div style={styles.insightsCard}>
-          <div style={styles.insightsHeader}>
+        <div style={{ ...styles.insightsCard, ...(isMobile ? styles.cardMobile : {}) }}>
+          <div style={{ ...styles.insightsHeader, ...(isMobile ? styles.sectionHeaderMobile : {}) }}>
             <div>
-              <div style={styles.insightsTitle}>Behavior Insights</div>
-              <div style={styles.insightsSubtext}>
+              <div style={{ ...styles.insightsTitle, ...(isMobile ? styles.sectionTitleMobile : {}) }}>Behavior Insights</div>
+              <div style={{ ...styles.insightsSubtext, ...(isMobile ? styles.sectionSubtextMobile : {}) }}>
                 Descriptive summaries based only on your logged journal data.
               </div>
             </div>
           </div>
 
-          <div style={styles.insightsGrid}>
-            <div style={styles.insightBox}>
+          <div style={{ ...styles.insightsGrid, ...(isMobile ? styles.insightsGridMobile : {}) }}>
+            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
               <div style={styles.insightLabel}>Most Logged Mistake</div>
               <div style={styles.insightValue}>{behaviorInsights.mostCommonMistake}</div>
               <div style={styles.insightMeta}>
@@ -1136,7 +1148,7 @@ export default function Journal({ setActivePage }) {
               </div>
             </div>
 
-            <div style={styles.insightBox}>
+            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
               <div style={styles.insightLabel}>Lowest P/L Setup</div>
               <div style={styles.insightValue}>{behaviorInsights.lowestPnlSetup}</div>
               <div
@@ -1150,7 +1162,7 @@ export default function Journal({ setActivePage }) {
               </div>
             </div>
 
-            <div style={styles.insightBox}>
+            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
               <div style={styles.insightLabel}>Best Logged Session</div>
               <div style={styles.insightValue}>{behaviorInsights.bestLoggedSession}</div>
               <div style={styles.insightMeta}>
@@ -1158,7 +1170,7 @@ export default function Journal({ setActivePage }) {
               </div>
             </div>
 
-            <div style={styles.insightBox}>
+            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
               <div style={styles.insightLabel}>Average Win / Loss</div>
               <div style={styles.insightValue}>
                 <span style={{ color: "#4ade80" }}>
@@ -1172,7 +1184,7 @@ export default function Journal({ setActivePage }) {
               <div style={styles.insightMeta}>Based on closed logged trades</div>
             </div>
 
-            <div style={styles.insightBox}>
+            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
               <div style={styles.insightLabel}>Largest Win</div>
               <div style={{ ...styles.insightValue, color: "#4ade80" }}>
                 {formatPnl(behaviorInsights.largestWin)}
@@ -1180,7 +1192,7 @@ export default function Journal({ setActivePage }) {
               <div style={styles.insightMeta}>Highest positive P/L entry</div>
             </div>
 
-            <div style={styles.insightBox}>
+            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
               <div style={styles.insightLabel}>Largest Loss</div>
               <div style={{ ...styles.insightValue, color: "#f87171" }}>
                 {formatPnl(behaviorInsights.largestLoss)}
@@ -1190,25 +1202,25 @@ export default function Journal({ setActivePage }) {
           </div>
         </div>
 
-        <div style={styles.card}>
-          <div style={styles.tableHeader}>
+        <div style={{ ...styles.card, ...(isMobile ? styles.cardMobile : {}) }}>
+          <div style={{ ...styles.tableHeader, ...(isMobile ? styles.tableHeaderMobile : {}) }}>
             <div>
-              <div style={styles.tableTitle}>Trade Journal</div>
-              <div style={styles.tableSubtext}>
+              <div style={{ ...styles.tableTitle, ...(isMobile ? styles.sectionTitleMobile : {}) }}>Trade Journal</div>
+              <div style={{ ...styles.tableSubtext, ...(isMobile ? styles.sectionSubtextMobile : {}) }}>
                 Track setups, execution, and what is actually working
               </div>
             </div>
 
-            <div style={styles.headerRight}>
+            <div style={{ ...styles.headerRight, ...(isMobile ? styles.headerRightMobile : {}) }}>
               <input
                 type="text"
                 placeholder="Search symbol, setup, notes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                style={styles.searchInput}
+                style={{ ...styles.searchInput, ...(isMobile ? styles.searchInputMobile : {}) }}
               />
 
-              <div style={styles.filterWrap}>
+              <div style={{ ...styles.filterWrap, ...(isMobile ? styles.filterWrapMobile : {}) }}>
                 <button
                   style={filterButton(filter === "all")}
                   onClick={() => setFilter("all")}
@@ -1235,7 +1247,7 @@ export default function Journal({ setActivePage }) {
                 </button>
               </div>
 
-              <button style={styles.addButton} onClick={openAddModal}>
+              <button style={{ ...styles.addButton, ...(isMobile ? styles.addButtonMobile : {}) }} onClick={openAddModal}>
                 + Add Trade
               </button>
             </div>
@@ -1350,16 +1362,16 @@ export default function Journal({ setActivePage }) {
           </div>
         </div>
 
-        <div style={styles.calendarCard}>
-          <div style={styles.calendarHeader}>
+        <div style={{ ...styles.calendarCard, ...(isMobile ? styles.cardMobile : {}) }}>
+          <div style={{ ...styles.calendarHeader, ...(isMobile ? styles.calendarHeaderMobile : {}) }}>
             <div>
-              <div style={styles.calendarTitle}>Performance Calendar</div>
-              <div style={styles.calendarSubtext}>
+              <div style={{ ...styles.calendarTitle, ...(isMobile ? styles.sectionTitleMobile : {}) }}>Performance Calendar</div>
+              <div style={{ ...styles.calendarSubtext, ...(isMobile ? styles.sectionSubtextMobile : {}) }}>
                 See your green and red days across the month
               </div>
             </div>
 
-            <div style={styles.calendarHeaderActions}>
+            <div style={{ ...styles.calendarHeaderActions, ...(isMobile ? styles.calendarHeaderActionsMobile : {}) }}>
               <button style={styles.monthNavButton} onClick={goToPreviousMonth}>
                 ‹
               </button>
@@ -1373,8 +1385,8 @@ export default function Journal({ setActivePage }) {
             </div>
           </div>
 
-          <div style={styles.calendarStatsRow}>
-            <div style={styles.calendarStatCard}>
+          <div style={{ ...styles.calendarStatsRow, ...(isMobile ? styles.calendarStatsRowMobile : {}) }}>
+            <div style={{ ...styles.calendarStatCard, ...(isMobile ? styles.calendarStatCardMobile : {}) }}>
               <div style={styles.calendarStatLabel}>Monthly P/L</div>
               <div
                 style={{
@@ -1386,24 +1398,24 @@ export default function Journal({ setActivePage }) {
               </div>
             </div>
 
-            <div style={styles.calendarStatCard}>
+            <div style={{ ...styles.calendarStatCard, ...(isMobile ? styles.calendarStatCardMobile : {}) }}>
               <div style={styles.calendarStatLabel}>Trades</div>
               <div style={styles.calendarStatValue}>{calendarData.monthlyTrades}</div>
             </div>
 
-            <div style={styles.calendarStatCard}>
+            <div style={{ ...styles.calendarStatCard, ...(isMobile ? styles.calendarStatCardMobile : {}) }}>
               <div style={styles.calendarStatLabel}>Win Rate</div>
               <div style={styles.calendarStatValue}>{calendarData.monthlyWinRate}%</div>
             </div>
 
-            <div style={styles.calendarStatCard}>
+            <div style={{ ...styles.calendarStatCard, ...(isMobile ? styles.calendarStatCardMobile : {}) }}>
               <div style={styles.calendarStatLabel}>Green Days</div>
               <div style={{ ...styles.calendarStatValue, color: "#4ade80" }}>
                 {calendarData.greenDays}
               </div>
             </div>
 
-            <div style={styles.calendarStatCard}>
+            <div style={{ ...styles.calendarStatCard, ...(isMobile ? styles.calendarStatCardMobile : {}) }}>
               <div style={styles.calendarStatLabel}>Red Days</div>
               <div style={{ ...styles.calendarStatValue, color: "#f87171" }}>
                 {calendarData.redDays}
@@ -1411,7 +1423,7 @@ export default function Journal({ setActivePage }) {
             </div>
           </div>
 
-          <div style={styles.calendarGridWrap}>
+          <div style={{ ...styles.calendarGridWrap, ...(isMobile ? styles.calendarGridWrapMobile : {}) }}>
             <div style={styles.calendarWeekHeader}>
               {dayNames.map((day) => (
                 <div key={day} style={styles.calendarWeekDay}>
@@ -1420,7 +1432,7 @@ export default function Journal({ setActivePage }) {
               ))}
             </div>
 
-            <div style={styles.calendarGrid}>
+            <div style={{ ...styles.calendarGrid, ...(isMobile ? styles.calendarGridMobile : {}) }}>
               {calendarData.days.map((day) => {
                 const pnl = day.tradeData?.pnl ?? 0;
                 const hasTrades = Boolean(day.tradeData?.trades);
@@ -1439,6 +1451,7 @@ export default function Journal({ setActivePage }) {
                     }
                     style={{
                       ...styles.calendarDay,
+                      ...(isMobile ? styles.calendarDayMobile : {}),
                       ...(day.isCurrentMonth
                         ? {}
                         : styles.calendarDayOutsideMonth),
@@ -1493,14 +1506,14 @@ export default function Journal({ setActivePage }) {
           </div>
         </div>
 
-        <div style={styles.proCard}>
+        <div style={{ ...styles.proCard, ...(isMobile ? styles.proCardMobile : {}) }}>
           <div style={styles.proLeft}>
             <div style={styles.proTitle}>
               Upgrade to <span style={{ color: "#60a5fa" }}>PRO</span>
             </div>
             <div style={styles.proText}>Unlock advanced features and analytics</div>
           </div>
-          <button style={styles.proButton}>Get Pro</button>
+          <button style={{ ...styles.proButton, ...(isMobile ? styles.proButtonMobile : {}) }}>Get Pro</button>
         </div>
       </div>
 
@@ -2757,4 +2770,123 @@ const styles = {
     fontWeight: 700,
     cursor: "pointer",
   },
+  pageMobile: {
+    overflowX: "hidden",
+  },
+  topbarMobile: {
+    display: "none",
+  },
+  topLogoMobile: {
+    fontSize: "20px",
+  },
+  topNavMobile: {
+    display: "none",
+  },
+  topRightMobile: {
+    display: "none",
+  },
+  contentMobile: {
+    padding: "22px 16px 112px",
+  },
+  headingRowMobile: {
+    alignItems: "stretch",
+    marginBottom: "18px",
+  },
+  headingMobile: {
+    fontSize: "42px",
+    lineHeight: 1,
+  },
+  quickAddButtonMobile: {
+    width: "100%",
+    padding: "15px 18px",
+    fontSize: "16px",
+  },
+  statsGridMobile: {
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: "12px",
+  },
+  statCardMobile: {
+    padding: "16px",
+    minHeight: "96px",
+  },
+  cardMobile: {
+    borderRadius: "18px",
+    marginBottom: "18px",
+  },
+  sectionHeaderMobile: {
+    padding: "16px",
+  },
+  sectionTitleMobile: {
+    fontSize: "26px",
+    lineHeight: 1.15,
+  },
+  sectionSubtextMobile: {
+    fontSize: "14px",
+    lineHeight: 1.45,
+  },
+  insightsGridMobile: {
+    gridTemplateColumns: "1fr",
+    padding: "14px",
+  },
+  insightBoxMobile: {
+    padding: "15px",
+  },
+  tableHeaderMobile: {
+    alignItems: "stretch",
+    padding: "16px",
+  },
+  headerRightMobile: {
+    width: "100%",
+    alignItems: "stretch",
+    flexDirection: "column",
+  },
+  searchInputMobile: {
+    width: "100%",
+    minWidth: 0,
+    boxSizing: "border-box",
+  },
+  filterWrapMobile: {
+    width: "100%",
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  },
+  addButtonMobile: {
+    width: "100%",
+  },
+  calendarHeaderMobile: {
+    padding: "16px",
+    alignItems: "stretch",
+  },
+  calendarHeaderActionsMobile: {
+    width: "100%",
+    justifyContent: "space-between",
+  },
+  calendarStatsRowMobile: {
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    padding: "14px 14px 0 14px",
+  },
+  calendarStatCardMobile: {
+    padding: "13px",
+  },
+  calendarGridWrapMobile: {
+    padding: "14px",
+    overflowX: "auto",
+  },
+  calendarGridMobile: {
+    minWidth: "620px",
+  },
+  calendarDayMobile: {
+    minHeight: "94px",
+    padding: "9px",
+  },
+  proCardMobile: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: "16px",
+    padding: "20px",
+  },
+  proButtonMobile: {
+    width: "100%",
+  },
+
 };
