@@ -958,7 +958,12 @@ export default function Journal() {
       </div>
 
       <div style={styles.content}>
-        <h1 style={styles.heading}>Journal</h1>
+        <div style={styles.headingRow}>
+          <h1 style={styles.heading}>Journal</h1>
+          <button style={styles.quickAddButton} onClick={openAddModal}>
+            + Add Trade
+          </button>
+        </div>
 
         <div style={styles.statsGrid}>
           <div style={styles.statCard}>
@@ -1980,10 +1985,29 @@ const styles = {
   content: {
     padding: "36px 32px",
   },
+  headingRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "18px",
+    marginBottom: "24px",
+    flexWrap: "wrap",
+  },
   heading: {
     fontSize: "56px",
-    margin: "0 0 24px 0",
+    margin: 0,
     fontWeight: 800,
+  },
+  quickAddButton: {
+    background: "linear-gradient(180deg,#3b82f6,#2563eb)",
+    color: "#fff",
+    border: "1px solid rgba(96,165,250,0.3)",
+    padding: "14px 24px",
+    borderRadius: "14px",
+    fontSize: "17px",
+    fontWeight: 800,
+    cursor: "pointer",
+    boxShadow: "0 10px 22px rgba(37,99,235,0.28)",
   },
   statsGrid: {
     display: "grid",
