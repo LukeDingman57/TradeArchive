@@ -285,6 +285,106 @@ export default function Journal() {
       .sort((a, b) => b.totalPnl - a.totalPnl);
   }, [trades]);
 
+
+  const behaviorInsights = useMemo(() => {
+    const totalTrades = trades.length;
+
+    const emptyInsights = {
+      totalTrades: 0,
+      mostCommonMistake: "No data yet",
+      mostCommonMistakeCount: 0,
+      lowestPnlSetup: "No data yet",
+      lowestPnlSetupValue: 0,
+      bestLoggedSession: "No data yet",
+      bestLoggedSessionWinRate: "0.0",
+      avgWinningTrade: 0,
+      avgLosingTrade: 0,
+      largestWin: 0,
+      largestLoss: 0,
+    };
+
+    if (!totalTrades) return emptyInsights;
+
+    const mistakeCounts = {};
+    const setupPnl = {};
+    const sessionStats = {};
+    const winningTrades = [];
+    const losingTrades = [];
+
+    trades.forEach((trade) => {
+      const mistakeText = String(trade.mistakes || "").trim();
+      const setupKey = String(trade.setup || "Uncategorized").trim() || "Uncategorized";
+      const sessionKey = String(trade.session || "Uncategorized").trim() || "Uncategorized";
+      const pnl = Number(trade.pnl || 0);
+
+      if (mistakeText) {
+        mistakeText
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .forEach((mistake) => {
+            mistakeCounts[mistake] = (mistakeCounts[mistake] || 0) + 1;
+          });
+      }
+
+      if (!setupPnl[setupKey]) {
+        setupPnl[setupKey] = 0;
+      }
+      setupPnl[setupKey] += pnl;
+
+      if (!sessionStats[sessionKey]) {
+        sessionStats[sessionKey] = {
+          session: sessionKey,
+          trades: 0,
+          wins: 0,
+        };
+      }
+
+      sessionStats[sessionKey].trades += 1;
+      if (pnl > 0) sessionStats[sessionKey].wins += 1;
+
+      if (pnl > 0) winningTrades.push(pnl);
+      if (pnl < 0) losingTrades.push(pnl);
+    });
+
+    const mostCommonMistakeEntry = Object.entries(mistakeCounts).sort(
+      (a, b) => b[1] - a[1]
+    )[0];
+
+    const lowestPnlSetupEntry = Object.entries(setupPnl).sort(
+      (a, b) => a[1] - b[1]
+    )[0];
+
+    const bestSessionEntry = Object.values(sessionStats)
+      .map((item) => ({
+        ...item,
+        winRate: item.trades ? (item.wins / item.trades) * 100 : 0,
+      }))
+      .sort((a, b) => b.winRate - a.winRate || b.trades - a.trades)[0];
+
+    const avgWinningTrade = winningTrades.length
+      ? winningTrades.reduce((sum, value) => sum + value, 0) / winningTrades.length
+      : 0;
+
+    const avgLosingTrade = losingTrades.length
+      ? losingTrades.reduce((sum, value) => sum + value, 0) / losingTrades.length
+      : 0;
+
+    return {
+      totalTrades,
+      mostCommonMistake: mostCommonMistakeEntry ? mostCommonMistakeEntry[0] : "No mistakes logged",
+      mostCommonMistakeCount: mostCommonMistakeEntry ? mostCommonMistakeEntry[1] : 0,
+      lowestPnlSetup: lowestPnlSetupEntry ? lowestPnlSetupEntry[0] : "No setup data",
+      lowestPnlSetupValue: lowestPnlSetupEntry ? lowestPnlSetupEntry[1] : 0,
+      bestLoggedSession: bestSessionEntry ? bestSessionEntry.session : "No session data",
+      bestLoggedSessionWinRate: bestSessionEntry ? bestSessionEntry.winRate.toFixed(1) : "0.0",
+      avgWinningTrade,
+      avgLosingTrade,
+      largestWin: winningTrades.length ? Math.max(...winningTrades) : 0,
+      largestLoss: losingTrades.length ? Math.min(...losingTrades) : 0,
+    };
+  }, [trades]);
+
   const dailyTradeMap = useMemo(() => {
     const grouped = {};
 
@@ -979,6 +1079,83 @@ export default function Journal() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <div style={styles.insightsCard}>
+          <div style={styles.insightsHeader}>
+            <div>
+              <div style={styles.insightsTitle}>Behavior Insights</div>
+              <div style={styles.insightsSubtext}>
+                Descriptive summaries based only on your logged journal data.
+              </div>
+            </div>
+          </div>
+
+          <div style={styles.insightsGrid}>
+            <div style={styles.insightBox}>
+              <div style={styles.insightLabel}>Most Logged Mistake</div>
+              <div style={styles.insightValue}>{behaviorInsights.mostCommonMistake}</div>
+              <div style={styles.insightMeta}>
+                {behaviorInsights.mostCommonMistakeCount > 0
+                  ? `${behaviorInsights.mostCommonMistakeCount} logged time${
+                      behaviorInsights.mostCommonMistakeCount === 1 ? "" : "s"
+                    }`
+                  : "No mistake tags yet"}
+              </div>
+            </div>
+
+            <div style={styles.insightBox}>
+              <div style={styles.insightLabel}>Lowest P/L Setup</div>
+              <div style={styles.insightValue}>{behaviorInsights.lowestPnlSetup}</div>
+              <div
+                style={{
+                  ...styles.insightMeta,
+                  color:
+                    behaviorInsights.lowestPnlSetupValue >= 0 ? "#4ade80" : "#f87171",
+                }}
+              >
+                {formatPnl(behaviorInsights.lowestPnlSetupValue)}
+              </div>
+            </div>
+
+            <div style={styles.insightBox}>
+              <div style={styles.insightLabel}>Best Logged Session</div>
+              <div style={styles.insightValue}>{behaviorInsights.bestLoggedSession}</div>
+              <div style={styles.insightMeta}>
+                {behaviorInsights.bestLoggedSessionWinRate}% win rate
+              </div>
+            </div>
+
+            <div style={styles.insightBox}>
+              <div style={styles.insightLabel}>Average Win / Loss</div>
+              <div style={styles.insightValue}>
+                <span style={{ color: "#4ade80" }}>
+                  {formatPnl(Math.round(behaviorInsights.avgWinningTrade))}
+                </span>
+                <span style={{ color: "rgba(255,255,255,0.4)" }}> / </span>
+                <span style={{ color: "#f87171" }}>
+                  {formatPnl(Math.round(behaviorInsights.avgLosingTrade))}
+                </span>
+              </div>
+              <div style={styles.insightMeta}>Based on closed logged trades</div>
+            </div>
+
+            <div style={styles.insightBox}>
+              <div style={styles.insightLabel}>Largest Win</div>
+              <div style={{ ...styles.insightValue, color: "#4ade80" }}>
+                {formatPnl(behaviorInsights.largestWin)}
+              </div>
+              <div style={styles.insightMeta}>Highest positive P/L entry</div>
+            </div>
+
+            <div style={styles.insightBox}>
+              <div style={styles.insightLabel}>Largest Loss</div>
+              <div style={{ ...styles.insightValue, color: "#f87171" }}>
+                {formatPnl(behaviorInsights.largestLoss)}
+              </div>
+              <div style={styles.insightMeta}>Lowest negative P/L entry</div>
+            </div>
           </div>
         </div>
 
@@ -1856,6 +2033,59 @@ const styles = {
     borderCollapse: "collapse",
     minWidth: "700px",
   },
+  insightsCard: {
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "linear-gradient(180deg, rgba(96,165,250,0.08), rgba(255,255,255,0.02))",
+    borderRadius: "14px",
+    overflow: "hidden",
+    boxShadow: "0 10px 28px rgba(0,0,0,0.22)",
+    marginBottom: "20px",
+  },
+  insightsHeader: {
+    padding: "18px 20px",
+    borderBottom: "1px solid rgba(255,255,255,0.1)",
+  },
+  insightsTitle: {
+    fontSize: "28px",
+    fontWeight: 700,
+  },
+  insightsSubtext: {
+    marginTop: "6px",
+    color: "rgba(255,255,255,0.64)",
+    fontSize: "15px",
+  },
+  insightsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gap: "14px",
+    padding: "18px 20px",
+  },
+  insightBox: {
+    border: "1px solid rgba(255,255,255,0.09)",
+    background: "rgba(10,18,30,0.52)",
+    borderRadius: "14px",
+    padding: "16px",
+  },
+  insightLabel: {
+    color: "rgba(255,255,255,0.58)",
+    fontSize: "13px",
+    fontWeight: 700,
+    textTransform: "uppercase",
+    letterSpacing: "0.04em",
+    marginBottom: "8px",
+  },
+  insightValue: {
+    color: "#f8fafc",
+    fontSize: "22px",
+    fontWeight: 800,
+    lineHeight: 1.2,
+  },
+  insightMeta: {
+    marginTop: "8px",
+    color: "rgba(255,255,255,0.62)",
+    fontSize: "14px",
+    fontWeight: 600,
+  },
   card: {
     border: "1px solid rgba(255,255,255,0.12)",
     background: "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))",
@@ -1937,6 +2167,11 @@ const styles = {
     fontSize: "14px",
     fontWeight: 700,
     cursor: "pointer",
+  },
+  tableScroll: {
+    maxHeight: "400px",
+    overflowY: "auto",
+    overflowX: "auto",
   },
   table: {
     width: "100%",
@@ -2466,11 +2701,5 @@ const styles = {
     fontSize: "15px",
     fontWeight: 700,
     cursor: "pointer",
-  },
-
-  tableScroll: {
-    maxHeight: "400px",
-    overflowY: "auto",
-    overflowX: "auto",
   },
 };
