@@ -689,44 +689,87 @@ export default function Journal() {
 
     const {
       data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
+
+    if (userError) {
+      console.error("Error getting user before delete:", userError);
+      alert(`Could not check your login: ${userError.message}`);
+      return;
+    }
 
     if (!user) {
       alert("You must be logged in.");
       return;
     }
 
-    const { data: deletedRows, error } = await supabase
-      .from("trades")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", user.id)
-      .select("id");
+    const tradeId = String(id);
 
-    if (error) {
-      console.error("Error deleting trade:", error);
-      alert(`Could not delete trade: ${error.message}`);
+    const { data: existingTrade, error: findError } = await supabase
+      .from("trades")
+      .select("id, user_id")
+      .eq("id", tradeId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (findError) {
+      console.error("Error finding trade before delete:", findError);
+      alert(`Could not find trade before delete: ${findError.message}`);
       return;
     }
 
-    if (!deletedRows || deletedRows.length === 0) {
-      alert("Trade was not deleted from the database. Refreshing trades.");
+    if (!existingTrade) {
+      console.warn("Trade not found for this user:", { tradeId, userId: user.id });
+      setTrades((prev) => prev.filter((trade) => String(trade.id) !== tradeId));
+
+      if (selectedTrade && String(selectedTrade.id) === tradeId) {
+        setShowViewModal(false);
+        setSelectedTrade(null);
+      }
+
+      alert("That trade was not found for your account. I removed it from the screen.");
+      return;
     }
 
-    const { data: refreshedTrades, error: refreshError } = await supabase
+    const { error: deleteError } = await supabase
       .from("trades")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("date", { ascending: false });
+      .delete()
+      .eq("id", tradeId)
+      .eq("user_id", user.id);
 
-    if (refreshError) {
-      console.error("Error refreshing trades after delete:", refreshError);
-      setTrades((prev) => prev.filter((trade) => trade.id !== id));
-    } else {
-      setTrades((refreshedTrades || []).map(mapSupabaseTrade));
+    if (deleteError) {
+      console.error("Error deleting trade:", deleteError);
+      alert(`Could not delete trade: ${deleteError.message}`);
+      return;
     }
 
-    if (selectedTrade && selectedTrade.id === id) {
+    const { data: checkTrade, error: checkError } = await supabase
+      .from("trades")
+      .select("id")
+      .eq("id", tradeId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error("Error checking trade after delete:", checkError);
+      alert(`Trade delete check failed: ${checkError.message}`);
+      return;
+    }
+
+    if (checkTrade) {
+      console.warn("Delete ran, but row still exists. Check Supabase delete RLS policy.", {
+        tradeId,
+        userId: user.id,
+      });
+      alert(
+        "Trade still exists in Supabase. Add a DELETE policy on the trades table: auth.uid() = user_id"
+      );
+      return;
+    }
+
+    setTrades((prev) => prev.filter((trade) => String(trade.id) !== tradeId));
+
+    if (selectedTrade && String(selectedTrade.id) === tradeId) {
       setShowViewModal(false);
       setSelectedTrade(null);
     }
