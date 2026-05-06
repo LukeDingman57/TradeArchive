@@ -4,6 +4,7 @@ import { supabase } from "./lib/supabase";
 import Dashboard from "./components/Dashboard";
 import Sidebar from "./components/Sidebar";
 import Journal from "./Journal";
+import ComingSoon from "./ComingSoon";
 import "./App.css";
 
 function AuthScreen() {
@@ -431,6 +432,7 @@ function MobileNav({
     { label: "Replay", page: "backtesting", icon: "↻" },
     { label: "Journal", page: "journal", icon: "↗" },
     { label: "Pricing", page: "pricing", icon: "◈" },
+    { label: "Soon", page: "comingsoon", icon: "✦" },
   ];
 
   return (
@@ -623,6 +625,10 @@ export default function App() {
       );
     }
 
+    if (activePage === "comingsoon") {
+      return <ComingSoon setActivePage={setActivePage} />;
+    }
+
     return <Dashboard setActivePage={setActivePage} />;
   };
 
@@ -773,7 +779,7 @@ const mobileNavStyles = {
     border: "1px solid rgba(148,163,184,0.16)",
     borderRadius: "22px",
     display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
+    gridTemplateColumns: "repeat(5, 1fr)",
     gap: "6px",
     padding: "8px",
     zIndex: 100,

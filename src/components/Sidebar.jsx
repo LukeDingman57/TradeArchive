@@ -24,6 +24,12 @@ export default function Sidebar({ activePage, setActivePage }) {
       icon: "◈",
       sub: "Plans and upgrades",
     },
+    {
+      label: "Coming Soon",
+      page: "comingsoon",
+      icon: "✦",
+      sub: "Upcoming features",
+    },
   ];
 
   return (
