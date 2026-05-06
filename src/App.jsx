@@ -421,7 +421,11 @@ function useIsMobile() {
   return isMobile;
 }
 
-function MobileNav({ activePage, setActivePage }) {
+function MobileNav({
+  activePage,
+  setActivePage,
+  handleLogout,
+}) {
   const navItems = [
     { label: "Home", page: "dashboard", icon: "▦" },
     { label: "Replay", page: "backtesting", icon: "↻" },
@@ -432,6 +436,26 @@ function MobileNav({ activePage, setActivePage }) {
   return (
     <>
       <div style={mobileNavStyles.topBar}>
+        <button
+          onClick={handleLogout}
+          style={{
+            position: "absolute",
+            right: "14px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            background: "rgba(255,255,255,0.06)",
+            color: "#ffffff",
+            borderRadius: "10px",
+            padding: "8px 12px",
+            fontSize: "13px",
+            fontWeight: "700",
+            cursor: "pointer",
+          }}
+        >
+          Logout
+        </button>
+
         <button
           type="button"
           onClick={() => setActivePage("dashboard")}
@@ -638,7 +662,11 @@ export default function App() {
       )}
 
       {isMobile && (
-        <MobileNav activePage={activePage} setActivePage={setActivePage} />
+        <MobileNav
+          activePage={activePage}
+          setActivePage={setActivePage}
+          handleLogout={handleLogout}
+        />
       )}
 
       {!isMobile && (
