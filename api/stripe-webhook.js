@@ -16,9 +16,11 @@ const supabase = createClient(
 
 async function buffer(readable) {
   const chunks = [];
+
   for await (const chunk of readable) {
     chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
   }
+
   return Buffer.concat(chunks);
 }
 
@@ -26,6 +28,37 @@ function getPlanFromPriceId(priceId) {
   if (priceId === process.env.STRIPE_ESSENTIAL_PRICE_ID) return "essential";
   if (priceId === process.env.STRIPE_PRO_PRICE_ID) return "pro";
   return "free";
+}
+
+async function upsertProfile({
+  userId,
+  email,
+  plan,
+  stripeCustomerId,
+  stripeSubscriptionId,
+  subscriptionStatus,
+}) {
+  if (!userId) {
+    throw new Error("Missing userId for profile upsert");
+  }
+
+  const payload = {
+    id: userId,
+    email: email || null,
+    plan: plan || "free",
+    stripe_customer_id: stripeCustomerId || null,
+    stripe_subscription_id: stripeSubscriptionId || null,
+    subscription_status: subscriptionStatus || null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase.from("profiles").upsert(payload, {
+    onConflict: "id",
+  });
+
+  if (error) {
+    throw error;
+  }
 }
 
 export default async function handler(req, res) {
@@ -50,88 +83,121 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ✅ PAYMENT SUCCESS
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
 
+      const userId = session.metadata?.userId;
+      const metadataPlan = session.metadata?.plan;
+      const metadataPriceId = session.metadata?.priceId;
+
       const customerEmail =
-        session.customer_details?.email || session.customer_email;
+        session.metadata?.customerEmail ||
+        session.customer_details?.email ||
+        session.customer_email ||
+        null;
 
-      const subscriptionId = session.subscription;
-      const customerId = session.customer;
+      const subscriptionId =
+        typeof session.subscription === "string"
+          ? session.subscription
+          : session.subscription?.id;
 
-      // 🔥 Using metadata (safe)
-      const priceId = session.metadata?.priceId;
-      const plan = getPlanFromPriceId(priceId);
+      const customerId =
+        typeof session.customer === "string"
+          ? session.customer
+          : session.customer?.id;
 
-      if (!customerEmail) {
-        return res.status(400).json({ error: "Missing customer email" });
-      }
+      let plan =
+        metadataPlan === "essential" || metadataPlan === "pro"
+          ? metadataPlan
+          : getPlanFromPriceId(metadataPriceId);
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          plan,
-          stripe_customer_id: customerId,
-          stripe_subscription_id: subscriptionId,
-          subscription_status: "active",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("email", customerEmail);
-
-      if (error) {
-        console.error("❌ Supabase checkout error:", error);
-        return res.status(500).json({ error: "Checkout update failed" });
-      }
+      await upsertProfile({
+        userId,
+        email: customerEmail,
+        plan,
+        stripeCustomerId: customerId,
+        stripeSubscriptionId: subscriptionId,
+        subscriptionStatus: "active",
+      });
 
       console.log(`✅ User upgraded: ${customerEmail} → ${plan}`);
     }
 
-    // ✅ SUBSCRIPTION UPDATED
     if (event.type === "customer.subscription.updated") {
       const subscription = event.data.object;
 
       const subscriptionId = subscription.id;
       const status = subscription.status;
 
-      const priceId = subscription.items?.data?.[0]?.price?.id;
-      const plan = status === "active" ? getPlanFromPriceId(priceId) : "free";
+      const userId = subscription.metadata?.userId;
+      const customerEmail = subscription.metadata?.customerEmail || null;
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({
+      const priceId =
+        subscription.metadata?.priceId ||
+        subscription.items?.data?.[0]?.price?.id;
+
+      const plan =
+        status === "active" || status === "trialing"
+          ? getPlanFromPriceId(priceId)
+          : "free";
+
+      if (userId) {
+        await upsertProfile({
+          userId,
+          email: customerEmail,
           plan,
-          subscription_status: status,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("stripe_subscription_id", subscriptionId);
+          stripeCustomerId:
+            typeof subscription.customer === "string"
+              ? subscription.customer
+              : subscription.customer?.id,
+          stripeSubscriptionId: subscriptionId,
+          subscriptionStatus: status,
+        });
+      } else {
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            plan,
+            subscription_status: status,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("stripe_subscription_id", subscriptionId);
 
-      if (error) {
-        console.error("❌ Supabase update error:", error);
-        return res.status(500).json({ error: "Subscription update failed" });
+        if (error) throw error;
       }
 
       console.log(`🔄 Subscription updated: ${subscriptionId} → ${plan}`);
     }
 
-    // ✅ SUBSCRIPTION CANCELED
     if (event.type === "customer.subscription.deleted") {
       const subscription = event.data.object;
       const subscriptionId = subscription.id;
+      const userId = subscription.metadata?.userId;
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          plan: "free",
-          subscription_status: "canceled",
-          stripe_subscription_id: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("stripe_subscription_id", subscriptionId);
+      if (userId) {
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            plan: "free",
+            subscription_status: "canceled",
+            stripe_subscription_id: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", userId);
 
-      if (error) {
-        console.error("❌ Supabase cancel error:", error);
-        return res.status(500).json({ error: "Cancel update failed" });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("profiles")
+          .update({
+            plan: "free",
+            subscription_status: "canceled",
+            stripe_subscription_id: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("stripe_subscription_id", subscriptionId);
+
+        if (error) throw error;
       }
 
       console.log(`❌ Subscription canceled: ${subscriptionId} → free`);
@@ -140,6 +206,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ received: true });
   } catch (err) {
     console.error("❌ Webhook error:", err);
-    return res.status(500).json({ error: "Webhook failed" });
+    return res.status(500).json({ error: err?.message || "Webhook failed" });
   }
 }

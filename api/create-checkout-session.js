@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { priceId, customerEmail } = req.body || {};
+    const { priceId, customerEmail, userId, plan } = req.body || {};
 
     if (!process.env.STRIPE_SECRET_KEY) {
       return res.status(500).json({ error: "Missing STRIPE_SECRET_KEY" });
@@ -16,6 +16,14 @@ export default async function handler(req, res) {
 
     if (!priceId) {
       return res.status(400).json({ error: "Missing priceId" });
+    }
+
+    if (!userId) {
+      return res.status(400).json({ error: "Missing userId" });
+    }
+
+    if (!plan) {
+      return res.status(400).json({ error: "Missing plan" });
     }
 
     const origin = req.headers.origin || `https://${req.headers.host}`;
@@ -29,7 +37,25 @@ export default async function handler(req, res) {
           quantity: 1,
         },
       ],
+
       ...(customerEmail ? { customer_email: customerEmail } : {}),
+
+      metadata: {
+        userId,
+        plan,
+        priceId,
+        customerEmail: customerEmail || "",
+      },
+
+      subscription_data: {
+        metadata: {
+          userId,
+          plan,
+          priceId,
+          customerEmail: customerEmail || "",
+        },
+      },
+
       success_url: `${origin}?checkout=success`,
       cancel_url: `${origin}?checkout=cancel`,
     });
