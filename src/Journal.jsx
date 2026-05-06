@@ -652,17 +652,25 @@ export default function Journal({ setActivePage }) {
     const entryNum = form.entry === "" ? null : Number(form.entry);
     const stopNum = form.stop === "" ? null : Number(form.stop);
     const targetNum = form.target === "" ? null : Number(form.target);
+    const rMultiple = calculateRMultiple(form.side, entryNum, stopNum, targetNum);
 
     const tradeToInsert = {
       user_id: user.id,
       date: form.date,
       symbol: form.symbol,
+      setup: form.setup,
       side: form.side,
+      session: form.session,
+      grade: form.grade,
+      mistakes: form.mistakes,
+      result: pnlNumber > 0 ? "Win" : pnlNumber < 0 ? "Loss" : "Break-Even",
       pnl: pnlNumber,
       entry: entryNum,
       stop: stopNum,
       target: targetNum,
+      r_multiple: rMultiple,
       notes: form.notes,
+      screenshot: form.screenshot || "",
     };
 
     const { data, error } = await supabase
@@ -677,24 +685,7 @@ export default function Journal({ setActivePage }) {
       return;
     }
 
-    const newTrade = {
-      id: data.id,
-      date: data.date,
-      symbol: data.symbol,
-      setup: form.setup,
-      side: data.side,
-      session: form.session,
-      grade: form.grade,
-      mistakes: form.mistakes,
-      result: pnlNumber > 0 ? "Win" : pnlNumber < 0 ? "Loss" : "Break-Even",
-      pnl: Number(data.pnl || 0),
-      entry: data.entry ?? "",
-      stop: data.stop ?? "",
-      target: data.target ?? "",
-      rMultiple: null,
-      notes: data.notes,
-      screenshot: form.screenshot || "",
-    };
+    const newTrade = mapSupabaseTrade(data);
 
     setTrades((prev) => [newTrade, ...prev]);
     setShowAddModal(false);
@@ -741,7 +732,7 @@ export default function Journal({ setActivePage }) {
 
     if (error) {
       console.error("Error updating trade:", error);
-      alert("Could not update trade.");
+      alert(`Could not update trade: ${error.message}`);
       return;
     }
 
