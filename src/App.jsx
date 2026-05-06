@@ -641,6 +641,55 @@ export default function App() {
         <MobileNav activePage={activePage} setActivePage={setActivePage} />
       )}
 
+      {!isMobile && (
+        <div
+          style={{
+            position: "fixed",
+            top: "18px",
+            right: "22px",
+            zIndex: 200,
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            background: "rgba(8,15,28,0.88)",
+            border: "1px solid rgba(148,163,184,0.14)",
+            padding: "10px 14px",
+            borderRadius: "14px",
+            backdropFilter: "blur(10px)",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.28)",
+          }}
+        >
+          <div
+            style={{
+              color: "rgba(255,255,255,0.72)",
+              fontSize: "14px",
+              fontWeight: "600",
+              maxWidth: "260px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {session?.user?.email}
+          </div>
+
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: "10px 14px",
+              borderRadius: "10px",
+              border: "1px solid rgba(255,255,255,0.12)",
+              background: "rgba(255,255,255,0.06)",
+              color: "#ffffff",
+              cursor: "pointer",
+              fontWeight: "700",
+            }}
+          >
+            Logout
+          </button>
+        </div>
+      )}
+
       <div
         style={{
           flex: 1,
