@@ -4,104 +4,101 @@ export default function Sidebar({ activePage, setActivePage }) {
       label: "Dashboard",
       page: "dashboard",
       icon: "▦",
-      sub: "Overview and stats",
+      sub: "Overview",
+    },
+    {
+      label: "Charts",
+      page: "charts",
+      icon: "▧",
+      sub: "Live charts",
     },
     {
       label: "Replay",
       page: "backtesting",
       icon: "↻",
-      sub: "Review market sessions",
+      sub: "Market replay",
     },
     {
       label: "Journal",
       page: "journal",
       icon: "↗",
-      sub: "Notes, trades, mistakes",
+      sub: "Trade notes",
     },
     {
       label: "Pricing",
       page: "pricing",
       icon: "◈",
-      sub: "Plans and upgrades",
+      sub: "Plans",
     },
     {
       label: "Coming Soon",
       page: "comingsoon",
       icon: "✦",
-      sub: "Upcoming features",
+      sub: "Upcoming",
     },
   ];
 
   return (
-    <div style={styles.sidebar}>
-      <div>
-        <button
-          type="button"
-          onClick={() => setActivePage("dashboard")}
-          style={styles.logoButton}
-        >
-          <h1 style={styles.logo}>
-            <span style={styles.logoWhite}>Trade</span>
-            <span style={styles.logoBlue}>Archive</span>
-          </h1>
-        </button>
+    <aside style={styles.sidebar}>
+      <button
+        type="button"
+        onClick={() => setActivePage("dashboard")}
+        style={styles.logoButton}
+      >
+        <h1 style={styles.logo}>
+          <span style={styles.logoWhite}>Trade</span>
+          <span style={styles.logoBlue}>Archive</span>
+        </h1>
+      </button>
 
-        <div style={styles.menuGroup}>
-          {navItems.map((item, index) => {
-            const isActive = activePage === item.page;
+      <nav style={styles.menuGroup}>
+        {navItems.map((item) => {
+          const isActive = activePage === item.page;
 
-            return (
-              <button
-                key={index}
-                onClick={() => setActivePage(item.page)}
+          return (
+            <button
+              key={item.page}
+              onClick={() => setActivePage(item.page)}
+              style={{
+                ...styles.navItem,
+                ...(isActive ? styles.activeNavItem : {}),
+              }}
+            >
+              <div
                 style={{
-                  ...styles.navCard,
-                  ...(isActive ? styles.activeNavCard : {}),
+                  ...styles.iconWrap,
+                  ...(isActive ? styles.activeIconWrap : {}),
                 }}
               >
+                {item.icon}
+              </div>
+
+              <div style={styles.textWrap}>
                 <div
                   style={{
-                    ...styles.iconWrap,
-                    ...(isActive ? styles.activeIconWrap : {}),
+                    ...styles.navTitle,
+                    ...(isActive ? styles.activeNavTitle : {}),
                   }}
                 >
-                  {item.icon}
-                </div>
-
-                <div style={styles.navTextWrap}>
-                  <div
-                    style={{
-                      ...styles.navTitle,
-                      ...(isActive ? styles.activeNavTitle : {}),
-                    }}
-                  >
-                    {item.label}
-                  </div>
-
-                  <div
-                    style={{
-                      ...styles.navSub,
-                      ...(isActive ? styles.activeNavSub : {}),
-                    }}
-                  >
-                    {item.sub}
-                  </div>
+                  {item.label}
                 </div>
 
                 <div
                   style={{
-                    ...styles.navArrow,
-                    ...(isActive ? styles.activeNavArrow : {}),
+                    ...styles.navSub,
+                    ...(isActive ? styles.activeNavSub : {}),
                   }}
                 >
-                  {isActive ? "•" : "−"}
+                  {item.sub}
                 </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+              </div>
+
+              {isActive && <div style={styles.activeDot} />}
+            </button>
+          );
+        })}
+      </nav>
+    </aside>
   );
 }
 
@@ -110,13 +107,10 @@ const styles = {
     width: "230px",
     minHeight: "100vh",
     background:
-      "linear-gradient(180deg, #020617 0%, #010817 55%, #000814 100%)",
+      "linear-gradient(180deg, #020617 0%, #020b1a 55%, #000814 100%)",
     borderRight: "1px solid rgba(255,255,255,0.08)",
-    padding: "22px 16px",
+    padding: "22px 14px",
     boxSizing: "border-box",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-between",
     flexShrink: 0,
   },
 
@@ -130,10 +124,10 @@ const styles = {
   },
 
   logo: {
-    margin: "0 0 26px 2px",
+    margin: "0 0 28px 4px",
     fontSize: "24px",
-    fontWeight: "800",
-    letterSpacing: "-0.03em",
+    fontWeight: "900",
+    letterSpacing: "-0.04em",
   },
 
   logoWhite: {
@@ -147,82 +141,83 @@ const styles = {
   menuGroup: {
     display: "flex",
     flexDirection: "column",
-    gap: "14px",
+    gap: "8px",
   },
 
-  navCard: {
+  navItem: {
     width: "100%",
-    border: "1px solid rgba(255,255,255,0.08)",
-    background:
-      "linear-gradient(135deg, rgba(18,28,52,0.92), rgba(7,12,24,0.95))",
-    borderRadius: "20px",
-    padding: "16px 14px",
+    minHeight: "62px",
+    border: "1px solid transparent",
+    background: "transparent",
+    borderRadius: "16px",
+    padding: "10px 12px",
     display: "flex",
     alignItems: "center",
     gap: "12px",
     textAlign: "left",
     cursor: "pointer",
-    boxShadow:
-      "inset 0 1px 0 rgba(255,255,255,0.03), 0 8px 24px rgba(0,0,0,0.18)",
+    position: "relative",
+    transition: "all 0.18s ease",
   },
 
-  activeNavCard: {
+  activeNavItem: {
     background:
-      "linear-gradient(135deg, rgba(248,250,252,0.96), rgba(226,232,240,0.94))",
-    border: "1px solid rgba(255,255,255,0.75)",
+      "linear-gradient(135deg, rgba(37,99,235,0.22), rgba(15,23,42,0.88))",
+    border: "1px solid rgba(96,165,250,0.24)",
+    boxShadow:
+      "inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 26px rgba(37,99,235,0.14)",
   },
 
   iconWrap: {
-    width: "40px",
-    height: "40px",
+    width: "36px",
+    height: "36px",
     borderRadius: "12px",
-    background: "rgba(37,99,235,0.14)",
-    color: "#93c5fd",
+    background: "rgba(148,163,184,0.08)",
+    color: "rgba(203,213,225,0.82)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "17px",
+    fontSize: "16px",
     flexShrink: 0,
   },
 
   activeIconWrap: {
-    background: "rgba(37,99,235,0.12)",
-    color: "#2563eb",
+    background: "rgba(59,130,246,0.22)",
+    color: "#93c5fd",
   },
 
-  navTextWrap: {
+  textWrap: {
     flex: 1,
     minWidth: 0,
   },
 
   navTitle: {
-    fontSize: "16px",
-    fontWeight: "700",
-    color: "#f8fafc",
-    marginBottom: "4px",
+    fontSize: "15px",
+    fontWeight: "800",
+    color: "rgba(248,250,252,0.84)",
+    marginBottom: "3px",
   },
 
   activeNavTitle: {
-    color: "#0f172a",
+    color: "#ffffff",
   },
 
   navSub: {
     fontSize: "12px",
-    lineHeight: "1.35",
-    color: "rgba(255,255,255,0.58)",
+    lineHeight: "1.25",
+    color: "rgba(148,163,184,0.72)",
   },
 
   activeNavSub: {
-    color: "rgba(15,23,42,0.7)",
+    color: "rgba(191,219,254,0.82)",
   },
 
-  navArrow: {
-    color: "rgba(255,255,255,0.26)",
-    fontSize: "18px",
+  activeDot: {
+    width: "6px",
+    height: "6px",
+    borderRadius: "999px",
+    background: "#60a5fa",
+    boxShadow: "0 0 14px rgba(96,165,250,0.9)",
     flexShrink: 0,
-  },
-
-  activeNavArrow: {
-    color: "#0f172a",
   },
 };

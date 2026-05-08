@@ -159,6 +159,90 @@ function AuthScreen() {
 }
 
 
+function TradingViewWidget() {
+  const containerRef = React.useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    containerRef.current.innerHTML = "";
+
+    const script = document.createElement("script");
+    script.src =
+      "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+    script.type = "text/javascript";
+    script.async = true;
+
+    script.innerHTML = JSON.stringify({
+      autosize: true,
+      symbol: "NASDAQ:AAPL",
+      interval: "D",
+      timezone: "Etc/UTC",
+      theme: "dark",
+      style: "1",
+      locale: "en",
+      allow_symbol_change: true,
+      save_image: true,
+      hide_side_toolbar: false,
+      hide_top_toolbar: false,
+      hide_legend: false,
+      hide_volume: false,
+      calendar: false,
+      support_host: "https://www.tradingview.com",
+    });
+
+    containerRef.current.appendChild(script);
+
+    return () => {
+      if (containerRef.current) {
+        containerRef.current.innerHTML = "";
+      }
+    };
+  }, []);
+
+  return (
+    <div style={chartStyles.widgetShell}>
+      <div
+        className="tradingview-widget-container"
+        ref={containerRef}
+        style={{ height: "100%", width: "100%" }}
+      >
+        <div
+          className="tradingview-widget-container__widget"
+          style={{ height: "100%", width: "100%" }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ChartsPage({ isMobile = false }) {
+  return (
+    <div style={{ ...chartStyles.page, ...(isMobile ? chartStyles.pageMobile : {}) }}>
+      <div style={chartStyles.glowOne} />
+      <div style={chartStyles.glowTwo} />
+
+      <div style={{ ...chartStyles.inner, ...(isMobile ? chartStyles.innerMobile : {}) }}>
+        <div style={{ ...chartStyles.header, ...(isMobile ? chartStyles.headerMobile : {}) }}>
+          <div style={chartStyles.badge}>Live Charts</div>
+
+          <h1 style={{ ...chartStyles.title, ...(isMobile ? chartStyles.titleMobile : {}) }}>
+            Market Charts
+          </h1>
+
+          <p style={{ ...chartStyles.subtitle, ...(isMobile ? chartStyles.subtitleMobile : {}) }}>
+            Use this chart tab to check symbols, mark levels, and review price
+            action while the advanced TradeArchive charting tools are being built.
+          </p>
+        </div>
+
+        <TradingViewWidget />
+      </div>
+    </div>
+  );
+}
+
+
 function BacktestingComingSoon({ setActivePage }) {
   return (
     <div style={comingSoonStyles.page}>
@@ -429,6 +513,7 @@ function MobileNav({
 }) {
   const navItems = [
     { label: "Home", page: "dashboard", icon: "▦" },
+    { label: "Charts", page: "charts", icon: "▧" },
     { label: "Replay", page: "backtesting", icon: "↻" },
     { label: "Journal", page: "journal", icon: "↗" },
     { label: "Pricing", page: "pricing", icon: "◈" },
@@ -605,6 +690,10 @@ export default function App() {
       return <Dashboard setActivePage={setActivePage} />;
     }
 
+    if (activePage === "charts") {
+      return <ChartsPage isMobile={isMobile} />;
+    }
+
     if (activePage === "journal") {
       return <Journal setActivePage={setActivePage} />;
     }
@@ -743,6 +832,121 @@ export default function App() {
 }
 
 
+
+const chartStyles = {
+  page: {
+    minHeight: "100vh",
+    position: "relative",
+    overflow: "hidden",
+    background:
+      "linear-gradient(180deg, #07101d 0%, #08111f 45%, #050b14 100%)",
+    padding: "42px 32px 56px",
+    color: "white",
+  },
+
+  glowOne: {
+    position: "absolute",
+    top: "-120px",
+    left: "-120px",
+    width: "380px",
+    height: "380px",
+    borderRadius: "999px",
+    background: "rgba(59,130,246,0.14)",
+    filter: "blur(90px)",
+    pointerEvents: "none",
+  },
+
+  glowTwo: {
+    position: "absolute",
+    bottom: "-140px",
+    right: "-100px",
+    width: "360px",
+    height: "360px",
+    borderRadius: "999px",
+    background: "rgba(96,165,250,0.12)",
+    filter: "blur(90px)",
+    pointerEvents: "none",
+  },
+
+  inner: {
+    position: "relative",
+    zIndex: 2,
+    width: "100%",
+    maxWidth: "1320px",
+    margin: "0 auto",
+  },
+
+  header: {
+    marginBottom: "24px",
+    maxWidth: "820px",
+  },
+
+  badge: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: "14px",
+    padding: "8px 14px",
+    borderRadius: "999px",
+    background: "rgba(96,165,250,0.18)",
+    border: "1px solid rgba(96,165,250,0.35)",
+    color: "#bfdbfe",
+    fontSize: "13px",
+    fontWeight: 800,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+  },
+
+  title: {
+    margin: "0 0 12px 0",
+    fontSize: "48px",
+    lineHeight: 1.05,
+    fontWeight: 900,
+    letterSpacing: "-0.04em",
+  },
+
+  subtitle: {
+    margin: 0,
+    maxWidth: "760px",
+    color: "rgba(255,255,255,0.70)",
+    fontSize: "18px",
+    lineHeight: 1.65,
+  },
+
+  widgetShell: {
+    width: "100%",
+    height: "calc(100vh - 230px)",
+    minHeight: "560px",
+    borderRadius: "28px",
+    overflow: "hidden",
+    background: "#050b14",
+    border: "1px solid rgba(255,255,255,0.10)",
+    boxShadow: "0 22px 60px rgba(0,0,0,0.36)",
+  },
+
+  pageMobile: {
+    padding: "28px 14px 112px",
+  },
+
+  innerMobile: {
+    maxWidth: "100%",
+  },
+
+  headerMobile: {
+    marginBottom: "18px",
+  },
+
+  titleMobile: {
+    fontSize: "36px",
+  },
+
+  subtitleMobile: {
+    fontSize: "15px",
+    lineHeight: 1.55,
+  },
+};
+
+
 const mobileNavStyles = {
   topBar: {
     position: "fixed",
@@ -779,7 +983,7 @@ const mobileNavStyles = {
     border: "1px solid rgba(148,163,184,0.16)",
     borderRadius: "22px",
     display: "grid",
-    gridTemplateColumns: "repeat(5, 1fr)",
+    gridTemplateColumns: "repeat(6, 1fr)",
     gap: "6px",
     padding: "8px",
     zIndex: 100,
@@ -1267,7 +1471,6 @@ const pricingStyles = {
   },
 
   cardMobile: {
-    minHeight: "auto",
     padding: "24px",
     borderRadius: "24px",
     transform: "none",
@@ -1325,5 +1528,4 @@ const pricingStyles = {
     padding: "18px 16px",
     borderRadius: "18px",
   },
-
 };
