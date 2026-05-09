@@ -219,25 +219,7 @@ function TradingViewWidget() {
 function ChartsPage({ isMobile = false }) {
   return (
     <div style={{ ...chartStyles.page, ...(isMobile ? chartStyles.pageMobile : {}) }}>
-      <div style={chartStyles.glowOne} />
-      <div style={chartStyles.glowTwo} />
-
-      <div style={{ ...chartStyles.inner, ...(isMobile ? chartStyles.innerMobile : {}) }}>
-        <div style={{ ...chartStyles.header, ...(isMobile ? chartStyles.headerMobile : {}) }}>
-          <div style={chartStyles.badge}>Live Charts</div>
-
-          <h1 style={{ ...chartStyles.title, ...(isMobile ? chartStyles.titleMobile : {}) }}>
-            Market Charts
-          </h1>
-
-          <p style={{ ...chartStyles.subtitle, ...(isMobile ? chartStyles.subtitleMobile : {}) }}>
-            Use this chart tab to check symbols, mark levels, and review price
-            action while the advanced TradeArchive charting tools are being built.
-          </p>
-        </div>
-
-        <TradingViewWidget />
-      </div>
+      <TradingViewWidget />
     </div>
   );
 }
@@ -764,7 +746,7 @@ export default function App() {
         />
       )}
 
-      {!isMobile && (
+      {!isMobile && activePage !== "charts" && (
         <div
           style={{
             position: "fixed",
@@ -820,7 +802,7 @@ export default function App() {
           width: "100%",
           paddingTop: isMobile ? "64px" : 0,
           paddingBottom: isMobile ? "86px" : 0,
-          overflowX: "hidden",
+          overflow: activePage === "charts" ? "hidden" : "auto",
         }}
       >
         {renderPage()}
@@ -835,89 +817,19 @@ export default function App() {
 
 const chartStyles = {
   page: {
-    minHeight: "100vh",
+    height: "100vh",
+    width: "100%",
     position: "relative",
     overflow: "hidden",
-    background:
-      "linear-gradient(180deg, #07101d 0%, #08111f 45%, #050b14 100%)",
-    padding: "42px 32px 56px",
-    color: "white",
-  },
-
-  glowOne: {
-    position: "absolute",
-    top: "-120px",
-    left: "-120px",
-    width: "380px",
-    height: "380px",
-    borderRadius: "999px",
-    background: "rgba(59,130,246,0.14)",
-    filter: "blur(90px)",
-    pointerEvents: "none",
-  },
-
-  glowTwo: {
-    position: "absolute",
-    bottom: "-140px",
-    right: "-100px",
-    width: "360px",
-    height: "360px",
-    borderRadius: "999px",
-    background: "rgba(96,165,250,0.12)",
-    filter: "blur(90px)",
-    pointerEvents: "none",
-  },
-
-  inner: {
-    position: "relative",
-    zIndex: 2,
-    width: "100%",
-    maxWidth: "1320px",
-    margin: "0 auto",
-  },
-
-  header: {
-    marginBottom: "24px",
-    maxWidth: "820px",
-  },
-
-  badge: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: "14px",
-    padding: "8px 14px",
-    borderRadius: "999px",
-    background: "rgba(96,165,250,0.18)",
-    border: "1px solid rgba(96,165,250,0.35)",
-    color: "#bfdbfe",
-    fontSize: "13px",
-    fontWeight: 800,
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
-  },
-
-  title: {
-    margin: "0 0 12px 0",
-    fontSize: "48px",
-    lineHeight: 1.05,
-    fontWeight: 900,
-    letterSpacing: "-0.04em",
-  },
-
-  subtitle: {
-    margin: 0,
-    maxWidth: "760px",
-    color: "rgba(255,255,255,0.70)",
-    fontSize: "18px",
-    lineHeight: 1.65,
+    background: "#050b14",
+    padding: "8px",
+    boxSizing: "border-box",
   },
 
   widgetShell: {
     width: "100%",
-    height: "calc(100vh - 230px)",
-    minHeight: "560px",
-    borderRadius: "28px",
+    height: "100%",
+    borderRadius: "18px",
     overflow: "hidden",
     background: "#050b14",
     border: "1px solid rgba(255,255,255,0.10)",
@@ -925,27 +837,10 @@ const chartStyles = {
   },
 
   pageMobile: {
-    padding: "28px 14px 112px",
-  },
-
-  innerMobile: {
-    maxWidth: "100%",
-  },
-
-  headerMobile: {
-    marginBottom: "18px",
-  },
-
-  titleMobile: {
-    fontSize: "36px",
-  },
-
-  subtitleMobile: {
-    fontSize: "15px",
-    lineHeight: 1.55,
+    height: "calc(100vh - 150px)",
+    padding: "8px",
   },
 };
-
 
 const mobileNavStyles = {
   topBar: {
