@@ -7,13 +7,17 @@ import Journal from "./Journal";
 import ComingSoon from "./ComingSoon";
 import "./App.css";
 
-function AuthScreen() {
-  const [mode, setMode] = useState("login");
+function AuthScreen({ initialMode = "login", onBack }) {
+  const [mode, setMode] = useState(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -78,6 +82,26 @@ function AuthScreen() {
           boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
         }}
       >
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            style={{
+              marginBottom: "18px",
+              border: "1px solid rgba(148,163,184,0.14)",
+              background: "rgba(148,163,184,0.06)",
+              color: "#cbd5e1",
+              borderRadius: "999px",
+              padding: "9px 13px",
+              fontSize: "13px",
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
+          >
+            ← Back to demo
+          </button>
+        )}
+
         <h1 style={{ fontSize: "38px", marginBottom: "8px", fontWeight: 800 }}>
           Trade<span style={{ color: "#60a5fa" }}>Archive</span>
         </h1>
@@ -158,6 +182,34 @@ function AuthScreen() {
   );
 }
 
+
+
+function AuthRequiredPage({ title = "Create a free account to continue", text, onLogin, onSignup }) {
+  return (
+    <div style={authRequiredStyles.page}>
+      <div style={authRequiredStyles.glowOne} />
+      <div style={authRequiredStyles.glowTwo} />
+
+      <div style={authRequiredStyles.card}>
+        <div style={authRequiredStyles.badge}>Free demo mode</div>
+        <h1 style={authRequiredStyles.title}>{title}</h1>
+        <p style={authRequiredStyles.text}>
+          {text ||
+            "You can explore TradeArchive first. Create a free account when you’re ready to save trades, use the journal, or upgrade your plan."}
+        </p>
+
+        <div style={authRequiredStyles.actions}>
+          <button style={authRequiredStyles.primary} onClick={onSignup}>
+            Create Free Account
+          </button>
+          <button style={authRequiredStyles.secondary} onClick={onLogin}>
+            Login
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function TradingViewWidget() {
   const containerRef = React.useRef(null);
@@ -281,6 +333,8 @@ function PricingPage({
   checkoutLoading,
   billingError,
   isMobile = false,
+  isAuthed = false,
+  onRequireAuth,
 }) {
   const plans = [
     {
@@ -334,6 +388,11 @@ function PricingPage({
 
   const handlePlanClick = async (action) => {
     if (action === "free") {
+      if (!isAuthed) {
+        onRequireAuth?.("signup");
+        return;
+      }
+
       setActivePage("journal");
       return;
     }
@@ -492,6 +551,8 @@ function MobileNav({
   activePage,
   setActivePage,
   handleLogout,
+  session,
+  openAuth,
 }) {
   const navItems = [
     { label: "Home", page: "dashboard", icon: "▦" },
@@ -506,7 +567,7 @@ function MobileNav({
     <>
       <div style={mobileNavStyles.topBar}>
         <button
-          onClick={handleLogout}
+          onClick={session ? handleLogout : () => openAuth("login")}
           style={{
             position: "absolute",
             right: "14px",
@@ -522,7 +583,7 @@ function MobileNav({
             cursor: "pointer",
           }}
         >
-          Logout
+          {session ? "Logout" : "Login"}
         </button>
 
         <button
@@ -565,7 +626,14 @@ export default function App() {
   const [loadingSession, setLoadingSession] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [billingError, setBillingError] = useState("");
+  const [authMode, setAuthMode] = useState("login");
   const isMobile = useIsMobile();
+
+  const openAuth = (mode = "login") => {
+    setAuthMode(mode);
+    setBillingError("");
+    setActivePage("auth");
+  };
 
   const priceMap = useMemo(
     () => ({
@@ -599,6 +667,12 @@ export default function App() {
       if (!mounted) return;
       setSession(newSession);
       setLoadingSession(false);
+
+      if (newSession) {
+        setActivePage((currentPage) =>
+          currentPage === "auth" ? "dashboard" : currentPage
+        );
+      }
     });
 
     return () => {
@@ -620,6 +694,12 @@ export default function App() {
 
   const startCheckout = async (planKey) => {
     setBillingError("");
+
+    if (!session) {
+      setBillingError("Create a free account or log in before upgrading.");
+      openAuth("signup");
+      return;
+    }
 
     try {
       const selectedPriceId = priceMap[planKey];
@@ -668,6 +748,15 @@ export default function App() {
   };
 
   const renderPage = () => {
+    if (activePage === "auth") {
+      return (
+        <AuthScreen
+          initialMode={authMode}
+          onBack={() => setActivePage("dashboard")}
+        />
+      );
+    }
+
     if (activePage === "dashboard") {
       return <Dashboard setActivePage={setActivePage} />;
     }
@@ -677,6 +766,17 @@ export default function App() {
     }
 
     if (activePage === "journal") {
+      if (!session) {
+        return (
+          <AuthRequiredPage
+            title="Create a free account to use the journal"
+            text="Visitors can explore the demo dashboard first, but saving trades and journal entries requires an account so your data stays connected to you."
+            onLogin={() => openAuth("login")}
+            onSignup={() => openAuth("signup")}
+          />
+        );
+      }
+
       return <Journal setActivePage={setActivePage} />;
     }
 
@@ -692,6 +792,8 @@ export default function App() {
           checkoutLoading={checkoutLoading}
           billingError={billingError}
           isMobile={isMobile}
+          isAuthed={!!session}
+          onRequireAuth={openAuth}
         />
       );
     }
@@ -721,9 +823,6 @@ export default function App() {
     );
   }
 
-  if (!session) {
-    return <AuthScreen />;
-  }
 
   return (
     <div
@@ -743,6 +842,8 @@ export default function App() {
           activePage={activePage}
           setActivePage={setActivePage}
           handleLogout={handleLogout}
+          session={session}
+          openAuth={openAuth}
         />
       )}
 
@@ -764,34 +865,70 @@ export default function App() {
             boxShadow: "0 10px 30px rgba(0,0,0,0.28)",
           }}
         >
-          <div
-            style={{
-              color: "rgba(255,255,255,0.72)",
-              fontSize: "14px",
-              fontWeight: "600",
-              maxWidth: "260px",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {session?.user?.email}
-          </div>
+          {session ? (
+            <>
+              <div
+                style={{
+                  color: "rgba(255,255,255,0.72)",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  maxWidth: "260px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {session?.user?.email}
+              </div>
 
-          <button
-            onClick={handleLogout}
-            style={{
-              padding: "10px 14px",
-              borderRadius: "10px",
-              border: "1px solid rgba(255,255,255,0.12)",
-              background: "rgba(255,255,255,0.06)",
-              color: "#ffffff",
-              cursor: "pointer",
-              fontWeight: "700",
-            }}
-          >
-            Logout
-          </button>
+              <button
+                onClick={handleLogout}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: "10px",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: "rgba(255,255,255,0.06)",
+                  color: "#ffffff",
+                  cursor: "pointer",
+                  fontWeight: "700",
+                }}
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => openAuth("login")}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: "10px",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  background: "rgba(255,255,255,0.06)",
+                  color: "#ffffff",
+                  cursor: "pointer",
+                  fontWeight: "700",
+                }}
+              >
+                Login
+              </button>
+
+              <button
+                onClick={() => openAuth("signup")}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: "10px",
+                  border: "1px solid rgba(96,165,250,0.45)",
+                  background: "linear-gradient(180deg, #3b82f6 0%, #2563eb 100%)",
+                  color: "#ffffff",
+                  cursor: "pointer",
+                  fontWeight: "800",
+                }}
+              >
+                Sign Up
+              </button>
+            </>
+          )}
         </div>
       )}
 
@@ -814,6 +951,121 @@ export default function App() {
 }
 
 
+
+const authRequiredStyles = {
+  page: {
+    minHeight: "100vh",
+    position: "relative",
+    overflow: "hidden",
+    background:
+      "linear-gradient(180deg, #07101d 0%, #08111f 45%, #050b14 100%)",
+    color: "white",
+    display: "grid",
+    placeItems: "center",
+    padding: "42px 24px",
+  },
+
+  glowOne: {
+    position: "absolute",
+    top: "-120px",
+    left: "-120px",
+    width: "360px",
+    height: "360px",
+    borderRadius: "999px",
+    background: "rgba(59,130,246,0.14)",
+    filter: "blur(90px)",
+    pointerEvents: "none",
+  },
+
+  glowTwo: {
+    position: "absolute",
+    bottom: "-130px",
+    right: "-90px",
+    width: "340px",
+    height: "340px",
+    borderRadius: "999px",
+    background: "rgba(96,165,250,0.12)",
+    filter: "blur(90px)",
+    pointerEvents: "none",
+  },
+
+  card: {
+    position: "relative",
+    zIndex: 2,
+    width: "100%",
+    maxWidth: "620px",
+    textAlign: "center",
+    background:
+      "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.025))",
+    border: "1px solid rgba(255,255,255,0.10)",
+    borderRadius: "28px",
+    padding: "40px 28px",
+    boxShadow: "0 22px 60px rgba(0,0,0,0.35)",
+    backdropFilter: "blur(10px)",
+  },
+
+  badge: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: "16px",
+    padding: "8px 14px",
+    borderRadius: "999px",
+    background: "rgba(96,165,250,0.18)",
+    border: "1px solid rgba(96,165,250,0.35)",
+    color: "#bfdbfe",
+    fontSize: "13px",
+    fontWeight: 800,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+  },
+
+  title: {
+    margin: "0 0 14px 0",
+    fontSize: "38px",
+    lineHeight: 1.08,
+    fontWeight: 900,
+    letterSpacing: "-0.04em",
+  },
+
+  text: {
+    margin: "0 auto 26px",
+    maxWidth: "500px",
+    color: "rgba(255,255,255,0.72)",
+    fontSize: "16px",
+    lineHeight: 1.7,
+  },
+
+  actions: {
+    display: "flex",
+    justifyContent: "center",
+    gap: "12px",
+    flexWrap: "wrap",
+  },
+
+  primary: {
+    borderRadius: "14px",
+    border: "1px solid rgba(96,165,250,0.45)",
+    background: "linear-gradient(180deg, #3b82f6 0%, #2563eb 100%)",
+    color: "white",
+    padding: "13px 18px",
+    fontSize: "15px",
+    fontWeight: 800,
+    cursor: "pointer",
+    boxShadow: "0 14px 28px rgba(37,99,235,0.28)",
+  },
+
+  secondary: {
+    borderRadius: "14px",
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.06)",
+    color: "white",
+    padding: "13px 18px",
+    fontSize: "15px",
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+};
 
 const chartStyles = {
   page: {
