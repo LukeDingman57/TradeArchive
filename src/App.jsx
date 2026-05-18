@@ -184,6 +184,75 @@ function AuthScreen({ initialMode = "login", onBack }) {
 
 
 
+function GuestJournalWrapper({ children, onLogin, onSignup }) {
+  const [showPrompt, setShowPrompt] = useState(false);
+
+  const requireAccount = (event) => {
+    const target = event.target;
+    const actionElement = target?.closest?.(
+      "button, input, textarea, select, [role='button'], label"
+    );
+
+    if (!actionElement) return;
+
+    const text = (actionElement.innerText || actionElement.value || "").toLowerCase();
+    const isNavigationOnly =
+      text.includes("view") ||
+      text.includes("filter") ||
+      text.includes("search") ||
+      text.includes("close") ||
+      text.includes("cancel");
+
+    if (isNavigationOnly) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    setShowPrompt(true);
+  };
+
+  return (
+    <div style={{ position: "relative" }}>
+      <div
+        onClickCapture={requireAccount}
+        onSubmitCapture={requireAccount}
+        onChangeCapture={requireAccount}
+      >
+        {children}
+      </div>
+
+      {showPrompt && (
+        <div style={demoLockStyles.overlay}>
+          <div style={demoLockStyles.card}>
+            <div style={demoLockStyles.badge}>Free demo mode</div>
+            <h2 style={demoLockStyles.title}>Create a free account to save trades</h2>
+            <p style={demoLockStyles.text}>
+              You can look around the journal in demo mode, but adding, editing,
+              deleting, or saving trades requires an account so your data stays
+              connected to you.
+            </p>
+
+            <div style={demoLockStyles.actions}>
+              <button style={demoLockStyles.primary} onClick={onSignup}>
+                Create Free Account
+              </button>
+              <button style={demoLockStyles.secondary} onClick={onLogin}>
+                Login
+              </button>
+              <button
+                style={demoLockStyles.ghost}
+                onClick={() => setShowPrompt(false)}
+              >
+                Keep Browsing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function AuthRequiredPage({ title = "Create a free account to continue", text, onLogin, onSignup }) {
   return (
     <div style={authRequiredStyles.page}>
@@ -768,16 +837,20 @@ export default function App() {
     if (activePage === "journal") {
       if (!session) {
         return (
-          <AuthRequiredPage
-            title="Create a free account to use the journal"
-            text="Visitors can explore the demo dashboard first, but saving trades and journal entries requires an account so your data stays connected to you."
+          <GuestJournalWrapper
             onLogin={() => openAuth("login")}
             onSignup={() => openAuth("signup")}
-          />
+          >
+            <Journal
+              setActivePage={setActivePage}
+              isDemoMode={true}
+              onRequireAuth={() => openAuth("signup")}
+            />
+          </GuestJournalWrapper>
         );
       }
 
-      return <Journal setActivePage={setActivePage} />;
+      return <Journal setActivePage={setActivePage} isDemoMode={false} />;
     }
 
     if (activePage === "backtesting") {
@@ -950,6 +1023,103 @@ export default function App() {
   );
 }
 
+
+
+const demoLockStyles = {
+  overlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 500,
+    display: "grid",
+    placeItems: "center",
+    padding: "22px",
+    background: "rgba(3, 7, 18, 0.72)",
+    backdropFilter: "blur(10px)",
+  },
+
+  card: {
+    width: "100%",
+    maxWidth: "520px",
+    textAlign: "center",
+    color: "white",
+    background:
+      "linear-gradient(180deg, rgba(15,23,42,0.98), rgba(8,15,28,0.98))",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: "24px",
+    padding: "28px 24px",
+    boxShadow: "0 24px 70px rgba(0,0,0,0.45)",
+  },
+
+  badge: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: "14px",
+    padding: "7px 12px",
+    borderRadius: "999px",
+    background: "rgba(96,165,250,0.18)",
+    border: "1px solid rgba(96,165,250,0.35)",
+    color: "#bfdbfe",
+    fontSize: "12px",
+    fontWeight: 900,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+  },
+
+  title: {
+    margin: "0 0 10px",
+    fontSize: "30px",
+    lineHeight: 1.08,
+    fontWeight: 900,
+    letterSpacing: "-0.04em",
+  },
+
+  text: {
+    margin: "0 auto 22px",
+    maxWidth: "430px",
+    color: "rgba(255,255,255,0.72)",
+    fontSize: "15px",
+    lineHeight: 1.65,
+  },
+
+  actions: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: "10px",
+  },
+
+  primary: {
+    borderRadius: "14px",
+    border: "1px solid rgba(96,165,250,0.45)",
+    background: "linear-gradient(180deg, #3b82f6 0%, #2563eb 100%)",
+    color: "white",
+    padding: "13px 18px",
+    fontSize: "15px",
+    fontWeight: 900,
+    cursor: "pointer",
+  },
+
+  secondary: {
+    borderRadius: "14px",
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.06)",
+    color: "white",
+    padding: "13px 18px",
+    fontSize: "15px",
+    fontWeight: 900,
+    cursor: "pointer",
+  },
+
+  ghost: {
+    border: "none",
+    background: "transparent",
+    color: "rgba(255,255,255,0.62)",
+    padding: "8px",
+    fontSize: "14px",
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+};
 
 
 const authRequiredStyles = {
