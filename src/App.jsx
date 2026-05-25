@@ -598,6 +598,75 @@ function PricingPage({
 }
 
 
+function TrialBanner({ isMobile = false, session, activePage, setActivePage, openAuth }) {
+  const shouldShow = activePage !== "auth" && activePage !== "charts";
+
+  if (!shouldShow) return null;
+
+  const handleStartTrial = () => {
+    if (!session) {
+      openAuth("signup");
+      return;
+    }
+
+    setActivePage("pricing");
+  };
+
+  return (
+    <div
+      style={{
+        ...trialBannerStyles.wrap,
+        ...(isMobile ? trialBannerStyles.wrapMobile : {}),
+      }}
+    >
+      <div
+        style={{
+          ...trialBannerStyles.card,
+          ...(isMobile ? trialBannerStyles.cardMobile : {}),
+        }}
+      >
+        <div
+          style={{
+            ...trialBannerStyles.copy,
+            ...(isMobile ? trialBannerStyles.copyMobile : {}),
+          }}
+        >
+          <div style={trialBannerStyles.badge}>Limited early-user offer</div>
+          <div
+            style={{
+              ...trialBannerStyles.title,
+              ...(isMobile ? trialBannerStyles.titleMobile : {}),
+            }}
+          >
+            Try Essential free for 30 days
+          </div>
+          <div
+            style={{
+              ...trialBannerStyles.text,
+              ...(isMobile ? trialBannerStyles.textMobile : {}),
+            }}
+          >
+            Unlock more journal entries, screenshots, and performance insights. Use code{" "}
+            <span style={trialBannerStyles.code}>FIRSTMONTH</span> at checkout.
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleStartTrial}
+          style={{
+            ...trialBannerStyles.button,
+            ...(isMobile ? trialBannerStyles.buttonMobile : {}),
+          }}
+        >
+          Start Free Trial
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
 function useIsMobile() {
   const getIsMobile = () =>
     typeof window !== "undefined" ? window.innerWidth <= 768 : false;
@@ -1015,6 +1084,13 @@ export default function App() {
           overflow: activePage === "charts" ? "hidden" : "auto",
         }}
       >
+        <TrialBanner
+          isMobile={isMobile}
+          session={session}
+          activePage={activePage}
+          setActivePage={setActivePage}
+          openAuth={openAuth}
+        />
         {renderPage()}
       </div>
 
@@ -1023,6 +1099,120 @@ export default function App() {
   );
 }
 
+
+
+const trialBannerStyles = {
+  wrap: {
+    width: "100%",
+    padding: "18px 28px 0",
+    boxSizing: "border-box",
+    position: "relative",
+    zIndex: 40,
+  },
+
+  wrapMobile: {
+    padding: "12px 12px 0",
+  },
+
+  card: {
+    width: "100%",
+    maxWidth: "1180px",
+    margin: "0 auto",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "18px",
+    padding: "18px 20px",
+    borderRadius: "22px",
+    background:
+      "linear-gradient(135deg, rgba(37,99,235,0.22), rgba(8,15,28,0.94) 48%, rgba(96,165,250,0.16))",
+    border: "1px solid rgba(96,165,250,0.30)",
+    boxShadow: "0 18px 45px rgba(0,0,0,0.26)",
+    backdropFilter: "blur(12px)",
+  },
+
+  cardMobile: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: "14px",
+    padding: "16px",
+    borderRadius: "20px",
+  },
+
+  copy: {
+    minWidth: 0,
+  },
+
+  copyMobile: {
+    textAlign: "left",
+  },
+
+  badge: {
+    display: "inline-flex",
+    alignItems: "center",
+    marginBottom: "8px",
+    padding: "6px 10px",
+    borderRadius: "999px",
+    background: "rgba(96,165,250,0.18)",
+    border: "1px solid rgba(147,197,253,0.30)",
+    color: "#bfdbfe",
+    fontSize: "11px",
+    fontWeight: 900,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+  },
+
+  title: {
+    color: "#ffffff",
+    fontSize: "24px",
+    lineHeight: 1.08,
+    fontWeight: 950,
+    letterSpacing: "-0.035em",
+    marginBottom: "5px",
+  },
+
+  titleMobile: {
+    fontSize: "22px",
+  },
+
+  text: {
+    color: "rgba(255,255,255,0.74)",
+    fontSize: "15px",
+    lineHeight: 1.55,
+  },
+
+  textMobile: {
+    fontSize: "14px",
+  },
+
+  code: {
+    color: "#ffffff",
+    fontWeight: 900,
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: "8px",
+    padding: "2px 7px",
+    whiteSpace: "nowrap",
+  },
+
+  button: {
+    flexShrink: 0,
+    borderRadius: "15px",
+    border: "1px solid rgba(147,197,253,0.55)",
+    background: "linear-gradient(180deg, #60a5fa 0%, #2563eb 100%)",
+    color: "white",
+    padding: "14px 18px",
+    fontSize: "15px",
+    fontWeight: 950,
+    cursor: "pointer",
+    boxShadow: "0 14px 28px rgba(37,99,235,0.30)",
+  },
+
+  buttonMobile: {
+    width: "100%",
+    padding: "14px 16px",
+  },
+};
 
 
 const demoLockStyles = {
