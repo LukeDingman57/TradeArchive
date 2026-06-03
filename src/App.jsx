@@ -2,64 +2,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { supabase } from "./lib/supabase";
 import Dashboard from "./components/Dashboard";
+import Sidebar from "./components/Sidebar";
 import Journal from "./Journal";
+import ComingSoon from "./ComingSoon";
 import "./App.css";
-
-
-function AppSidebar({ activePage, setActivePage }) {
-  const navItems = [
-    { label: "Dashboard", sub: "Overview", page: "dashboard", icon: "▦" },
-    { label: "Journal", sub: "Trade notes", page: "journal", icon: "↗" },
-    { label: "Pricing", sub: "Plans", page: "pricing", icon: "◈" },
-  ];
-
-  return (
-    <aside style={sidebarStyles.sidebar}>
-      <button
-        type="button"
-        onClick={() => setActivePage("dashboard")}
-        style={sidebarStyles.brandButton}
-      >
-        <span style={{ color: "#ffffff" }}>Trade</span>
-        <span style={{ color: "#60a5fa" }}>Archive</span>
-      </button>
-
-      <nav style={sidebarStyles.nav}>
-        {navItems.map((item) => {
-          const isActive = activePage === item.page;
-
-          return (
-            <button
-              key={item.page}
-              type="button"
-              onClick={() => setActivePage(item.page)}
-              style={{
-                ...sidebarStyles.navItem,
-                ...(isActive ? sidebarStyles.navItemActive : {}),
-              }}
-            >
-              <span
-                style={{
-                  ...sidebarStyles.iconWrap,
-                  ...(isActive ? sidebarStyles.iconWrapActive : {}),
-                }}
-              >
-                {item.icon}
-              </span>
-
-              <span style={sidebarStyles.navText}>
-                <span style={sidebarStyles.navLabel}>{item.label}</span>
-                <span style={sidebarStyles.navSub}>{item.sub}</span>
-              </span>
-
-              {isActive && <span style={sidebarStyles.activeDot} />}
-            </button>
-          );
-        })}
-      </nav>
-    </aside>
-  );
-}
 
 function AuthScreen({ initialMode = "login", onBack }) {
   const [mode, setMode] = useState(initialMode);
@@ -334,6 +280,122 @@ function AuthRequiredPage({ title = "Create a free account to continue", text, o
   );
 }
 
+function TradingViewWidget() {
+  const containerRef = React.useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    containerRef.current.innerHTML = "";
+
+    const script = document.createElement("script");
+    script.src =
+      "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+    script.type = "text/javascript";
+    script.async = true;
+
+    script.innerHTML = JSON.stringify({
+      autosize: true,
+      symbol: "NASDAQ:AAPL",
+      interval: "D",
+      timezone: "Etc/UTC",
+      theme: "dark",
+      style: "1",
+      locale: "en",
+      allow_symbol_change: true,
+      save_image: true,
+      hide_side_toolbar: false,
+      hide_top_toolbar: false,
+      hide_legend: false,
+      hide_volume: false,
+      calendar: false,
+      support_host: "https://www.tradingview.com",
+    });
+
+    containerRef.current.appendChild(script);
+
+    return () => {
+      if (containerRef.current) {
+        containerRef.current.innerHTML = "";
+      }
+    };
+  }, []);
+
+  return (
+    <div style={chartStyles.widgetShell}>
+      <div
+        className="tradingview-widget-container"
+        ref={containerRef}
+        style={{ height: "100%", width: "100%" }}
+      >
+        <div
+          className="tradingview-widget-container__widget"
+          style={{ height: "100%", width: "100%" }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ChartsPage({ isMobile = false }) {
+  return (
+    <div style={{ ...chartStyles.page, ...(isMobile ? chartStyles.pageMobile : {}) }}>
+      <TradingViewWidget />
+    </div>
+  );
+}
+
+
+function BacktestingComingSoon({ setActivePage }) {
+  return (
+    <div style={comingSoonStyles.page}>
+      <div style={comingSoonStyles.glowOne} />
+      <div style={comingSoonStyles.glowTwo} />
+
+      <div style={comingSoonStyles.card}>
+        <div style={comingSoonStyles.badge}>Coming Soon</div>
+
+        <h1 style={comingSoonStyles.title}>Backtesting & Replay</h1>
+
+        <p style={comingSoonStyles.subtitle}>
+          Advanced chart replay and backtesting tools are currently in
+          development.
+        </p>
+
+        <p style={comingSoonStyles.text}>
+          For now, use TradeArchive to journal your trades, track your setups,
+          upload screenshots, and review your performance so you can build more
+          consistency before replay launches.
+        </p>
+
+        <div style={comingSoonStyles.featureGrid}>
+          <div style={comingSoonStyles.featureBox}>
+            <div style={comingSoonStyles.featureTitle}>Journal Now</div>
+            <div style={comingSoonStyles.featureText}>
+              Track entries, exits, setups, screenshots, and notes.
+            </div>
+          </div>
+
+          <div style={comingSoonStyles.featureBox}>
+            <div style={comingSoonStyles.featureTitle}>Replay Later</div>
+            <div style={comingSoonStyles.featureText}>
+              Backtesting and advanced chart replay are planned for a future
+              update.
+            </div>
+          </div>
+        </div>
+
+        <button
+          style={comingSoonStyles.button}
+          onClick={() => setActivePage("journal")}
+        >
+          Go to Journal
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function PricingPage({
   setActivePage,
   onCheckout,
@@ -347,48 +409,48 @@ function PricingPage({
     {
       name: "Free",
       price: "$0",
-      sub: "Try TradeArchive before upgrading",
+      sub: "Perfect for getting started",
       highlight: false,
       buttonText: "Start Free",
       action: "free",
       features: [
-        "50 journal entries",
+        "Track your trades",
+        "50 journal entries / week",
         "Basic performance stats",
+        "1 year lookback",
         "Simple trade review tools",
-        "Track setups, notes, and results",
       ],
     },
     {
       name: "Essential",
-      price: "$3.99/mo",
-      sub: "For traders building consistency",
+      price: "$6.99/mo",
+      sub: "Founders Price for traders building consistency",
       highlight: true,
-      buttonText: "Get Essential Monthly",
+      buttonText: "Get Essential",
       action: "essential",
       features: [
-        "Unlimited journal entries",
-        "Screenshot uploads",
-        "Mistake tracking",
+        "500 journal entries / month",
         "Setup tagging for A+, A, B, and C trades",
         "Performance analytics",
+        "Screenshot uploads",
         "Clean structured journaling system",
-        "Pre-trade checklist ready for the next update",
+        "5 years lookback",
+        "Founders get future backtesting & replay included",
       ],
     },
     {
-      name: "Essential Yearly",
-      price: "$39.99/yr",
-      sub: "Save with yearly billing",
+      name: "Pro",
+      price: "$12.99/mo",
+      sub: "For traders who want more room to grow",
       highlight: false,
-      buttonText: "Get Essential Yearly",
-      action: "essential_yearly",
+      buttonText: "Go Pro",
+      action: "pro",
       features: [
-        "Everything in Essential",
         "Unlimited journal entries",
-        "Screenshot uploads",
-        "Mistake tracking",
-        "Performance analytics",
-        "Lower effective monthly price",
+        "Advanced performance breakdowns",
+        "Deeper trade review workflow",
+        "Priority feature access",
+        "Founders get upcoming advanced chart tools included",
       ],
     },
   ];
@@ -419,8 +481,9 @@ function PricingPage({
             Choose the plan that fits your trading
           </h1>
           <p style={{ ...pricingStyles.subtitle, ...(isMobile ? pricingStyles.subtitleMobile : {}) }}>
-            Start free, then upgrade when you need unlimited journaling,
-            screenshots, mistake tracking, and better review tools.
+            Start free, then upgrade to track your trades, improve consistency,
+            and build a disciplined trading system. Founders get future
+            backtesting and replay tools included when released.
           </p>
         </div>
 
@@ -525,7 +588,7 @@ function PricingPage({
           <div style={{ ...pricingStyles.stripItem, ...(isMobile ? pricingStyles.stripItemMobile : {}) }}>
             <div style={pricingStyles.stripLabel}>Simple pricing</div>
             <div style={pricingStyles.stripText}>
-              Free to start, then one simple paid plan when you need more
+              Early users lock in lower pricing before new features launch
             </div>
           </div>
         </div>
@@ -536,7 +599,7 @@ function PricingPage({
 
 
 function TrialBanner({ isMobile = false, session, activePage, setActivePage, openAuth }) {
-  const shouldShow = activePage !== "auth";
+  const shouldShow = activePage !== "auth" && activePage !== "charts";
 
   if (!shouldShow) return null;
 
@@ -583,7 +646,7 @@ function TrialBanner({ isMobile = false, session, activePage, setActivePage, ope
               ...(isMobile ? trialBannerStyles.textMobile : {}),
             }}
           >
-            Unlock unlimited journal entries, screenshots, mistake tracking, and performance insights. Use code{" "}
+            Unlock more journal entries, screenshots, and performance insights. Use code{" "}
             <span style={trialBannerStyles.code}>FIRSTMONTH</span> at checkout.
           </div>
         </div>
@@ -631,8 +694,11 @@ function MobileNav({
 }) {
   const navItems = [
     { label: "Home", page: "dashboard", icon: "▦" },
+    { label: "Charts", page: "charts", icon: "▧" },
+    { label: "Replay", page: "backtesting", icon: "↻" },
     { label: "Journal", page: "journal", icon: "↗" },
     { label: "Pricing", page: "pricing", icon: "◈" },
+    { label: "Soon", page: "comingsoon", icon: "✦" },
   ];
 
   return (
@@ -710,7 +776,7 @@ export default function App() {
   const priceMap = useMemo(
     () => ({
       essential: import.meta.env.VITE_STRIPE_PRICE_ESSENTIAL?.trim(),
-      essential_yearly: import.meta.env.VITE_STRIPE_PRICE_ESSENTIAL_YEARLY?.trim(),
+      pro: import.meta.env.VITE_STRIPE_PRICE_PRO?.trim(),
     }),
     []
   );
@@ -833,6 +899,10 @@ export default function App() {
       return <Dashboard setActivePage={setActivePage} />;
     }
 
+    if (activePage === "charts") {
+      return <ChartsPage isMobile={isMobile} />;
+    }
+
     if (activePage === "journal") {
       if (!session) {
         return (
@@ -852,6 +922,10 @@ export default function App() {
       return <Journal setActivePage={setActivePage} isDemoMode={false} />;
     }
 
+    if (activePage === "backtesting") {
+      return <BacktestingComingSoon setActivePage={setActivePage} />;
+    }
+
     if (activePage === "pricing") {
       return (
         <PricingPage
@@ -864,6 +938,10 @@ export default function App() {
           onRequireAuth={openAuth}
         />
       );
+    }
+
+    if (activePage === "comingsoon") {
+      return <ComingSoon setActivePage={setActivePage} />;
     }
 
     return <Dashboard setActivePage={setActivePage} />;
@@ -898,7 +976,7 @@ export default function App() {
       }}
     >
       {!isMobile && (
-        <AppSidebar activePage={activePage} setActivePage={setActivePage} />
+        <Sidebar activePage={activePage} setActivePage={setActivePage} />
       )}
 
       {isMobile && (
@@ -911,7 +989,7 @@ export default function App() {
         />
       )}
 
-      {!isMobile && (
+      {!isMobile && activePage !== "charts" && (
         <div
           style={{
             position: "fixed",
@@ -1003,7 +1081,7 @@ export default function App() {
           width: "100%",
           paddingTop: isMobile ? "64px" : 0,
           paddingBottom: isMobile ? "86px" : 0,
-          overflow: "auto",
+          overflow: activePage === "charts" ? "hidden" : "auto",
         }}
       >
         <TrialBanner
@@ -1023,108 +1101,10 @@ export default function App() {
 
 
 
-
-const sidebarStyles = {
-  sidebar: {
-    width: "300px",
-    minHeight: "100vh",
-    flexShrink: 0,
-    background:
-      "linear-gradient(180deg, rgba(15,23,42,0.96), rgba(8,15,28,0.98))",
-    borderRight: "1px solid rgba(148,163,184,0.14)",
-    padding: "30px 22px",
-    boxSizing: "border-box",
-    position: "sticky",
-    top: 0,
-  },
-
-  brandButton: {
-    border: "none",
-    background: "transparent",
-    color: "#ffffff",
-    fontSize: "28px",
-    fontWeight: 950,
-    letterSpacing: "-0.05em",
-    cursor: "pointer",
-    marginBottom: "34px",
-    padding: 0,
-  },
-
-  nav: {
-    display: "grid",
-    gap: "14px",
-  },
-
-  navItem: {
-    position: "relative",
-    width: "100%",
-    display: "flex",
-    alignItems: "center",
-    gap: "14px",
-    border: "1px solid rgba(148,163,184,0.10)",
-    background: "rgba(255,255,255,0.035)",
-    color: "#ffffff",
-    borderRadius: "20px",
-    padding: "14px",
-    cursor: "pointer",
-    textAlign: "left",
-    fontFamily: "inherit",
-  },
-
-  navItemActive: {
-    background: "rgba(59,130,246,0.18)",
-    border: "1px solid rgba(96,165,250,0.35)",
-    boxShadow: "0 12px 30px rgba(37,99,235,0.18)",
-  },
-
-  iconWrap: {
-    width: "42px",
-    height: "42px",
-    borderRadius: "14px",
-    display: "grid",
-    placeItems: "center",
-    background: "rgba(255,255,255,0.06)",
-    color: "rgba(255,255,255,0.78)",
-    fontSize: "19px",
-    flexShrink: 0,
-  },
-
-  iconWrapActive: {
-    background: "rgba(96,165,250,0.22)",
-    color: "#bfdbfe",
-  },
-
-  navText: {
-    display: "grid",
-    gap: "3px",
-  },
-
-  navLabel: {
-    fontSize: "17px",
-    fontWeight: 900,
-    lineHeight: 1,
-  },
-
-  navSub: {
-    fontSize: "13px",
-    color: "rgba(255,255,255,0.68)",
-    fontWeight: 700,
-  },
-
-  activeDot: {
-    marginLeft: "auto",
-    width: "7px",
-    height: "7px",
-    borderRadius: "999px",
-    background: "#93c5fd",
-    boxShadow: "0 0 16px rgba(147,197,253,0.9)",
-  },
-};
-
 const trialBannerStyles = {
   wrap: {
     width: "100%",
-    padding: "18px 28px 0",
+    padding: "18px 360px 0 28px",
     boxSizing: "border-box",
     position: "relative",
     zIndex: 40,
@@ -1447,6 +1427,33 @@ const authRequiredStyles = {
   },
 };
 
+const chartStyles = {
+  page: {
+    height: "100vh",
+    width: "100%",
+    position: "relative",
+    overflow: "hidden",
+    background: "#050b14",
+    padding: "8px",
+    boxSizing: "border-box",
+  },
+
+  widgetShell: {
+    width: "100%",
+    height: "100%",
+    borderRadius: "18px",
+    overflow: "hidden",
+    background: "#050b14",
+    border: "1px solid rgba(255,255,255,0.10)",
+    boxShadow: "0 22px 60px rgba(0,0,0,0.36)",
+  },
+
+  pageMobile: {
+    height: "calc(100vh - 150px)",
+    padding: "8px",
+  },
+};
+
 const mobileNavStyles = {
   topBar: {
     position: "fixed",
@@ -1483,7 +1490,7 @@ const mobileNavStyles = {
     border: "1px solid rgba(148,163,184,0.16)",
     borderRadius: "22px",
     display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
+    gridTemplateColumns: "repeat(6, 1fr)",
     gap: "6px",
     padding: "8px",
     zIndex: 100,
@@ -1557,6 +1564,150 @@ const secondaryButton = {
   fontWeight: 700,
 };
 
+const logoutButton = {
+  padding: "10px 14px",
+  borderRadius: "10px",
+  border: "1px solid rgba(148,163,184,0.14)",
+  background: "rgba(148,163,184,0.06)",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: 700,
+};
+
+
+const comingSoonStyles = {
+  page: {
+    minHeight: "100vh",
+    position: "relative",
+    overflow: "hidden",
+    background:
+      "linear-gradient(180deg, #07101d 0%, #08111f 45%, #050b14 100%)",
+    padding: "42px 32px",
+    color: "white",
+    display: "grid",
+    placeItems: "center",
+  },
+
+  glowOne: {
+    position: "absolute",
+    top: "-120px",
+    left: "-120px",
+    width: "360px",
+    height: "360px",
+    borderRadius: "999px",
+    background: "rgba(59,130,246,0.14)",
+    filter: "blur(90px)",
+    pointerEvents: "none",
+  },
+
+  glowTwo: {
+    position: "absolute",
+    bottom: "-130px",
+    right: "-90px",
+    width: "340px",
+    height: "340px",
+    borderRadius: "999px",
+    background: "rgba(96,165,250,0.12)",
+    filter: "blur(90px)",
+    pointerEvents: "none",
+  },
+
+  card: {
+    position: "relative",
+    zIndex: 2,
+    width: "100%",
+    maxWidth: "820px",
+    textAlign: "center",
+    background:
+      "linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.025))",
+    border: "1px solid rgba(255,255,255,0.10)",
+    borderRadius: "30px",
+    padding: "46px 34px",
+    boxShadow: "0 22px 60px rgba(0,0,0,0.35)",
+    backdropFilter: "blur(10px)",
+  },
+
+  badge: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: "18px",
+    padding: "8px 14px",
+    borderRadius: "999px",
+    background: "rgba(96,165,250,0.18)",
+    border: "1px solid rgba(96,165,250,0.35)",
+    color: "#bfdbfe",
+    fontSize: "13px",
+    fontWeight: 800,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+  },
+
+  title: {
+    margin: "0 0 14px 0",
+    fontSize: "48px",
+    lineHeight: 1.05,
+    fontWeight: 900,
+    letterSpacing: "-0.04em",
+  },
+
+  subtitle: {
+    margin: "0 auto 18px",
+    maxWidth: "650px",
+    color: "rgba(255,255,255,0.78)",
+    fontSize: "20px",
+    lineHeight: 1.6,
+  },
+
+  text: {
+    margin: "0 auto 30px",
+    maxWidth: "680px",
+    color: "rgba(255,255,255,0.62)",
+    fontSize: "16px",
+    lineHeight: 1.75,
+  },
+
+  featureGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: "16px",
+    margin: "0 auto 28px",
+    maxWidth: "680px",
+  },
+
+  featureBox: {
+    textAlign: "left",
+    background: "rgba(255,255,255,0.04)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: "20px",
+    padding: "18px",
+  },
+
+  featureTitle: {
+    color: "#bfdbfe",
+    fontSize: "15px",
+    fontWeight: 800,
+    marginBottom: "8px",
+  },
+
+  featureText: {
+    color: "rgba(255,255,255,0.68)",
+    fontSize: "14px",
+    lineHeight: 1.6,
+  },
+
+  button: {
+    borderRadius: "16px",
+    border: "1px solid rgba(96,165,250,0.45)",
+    background: "linear-gradient(180deg, #3b82f6 0%, #2563eb 100%)",
+    color: "white",
+    padding: "15px 22px",
+    fontSize: "16px",
+    fontWeight: 800,
+    cursor: "pointer",
+    boxShadow: "0 14px 28px rgba(37,99,235,0.28)",
+  },
+};
 
 const pricingStyles = {
   page: {
