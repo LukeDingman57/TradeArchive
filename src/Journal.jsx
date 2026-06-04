@@ -1344,65 +1344,69 @@ export default function Journal({ setActivePage }) {
         <div style={{ ...styles.actionInsightsCard, ...(isMobile ? styles.cardMobile : {}) }}>
           <div style={styles.actionInsightsTop}>
             <div>
-              <div style={styles.actionInsightsEyebrow}>SMART REVIEW</div>
+              <div style={styles.actionInsightsEyebrow}>REVIEW SUMMARY</div>
               <div style={{ ...styles.actionInsightsTitle, ...(isMobile ? styles.sectionTitleMobile : {}) }}>
-                🧠 What Your Journal Is Telling You
+                Key Trading Takeaways
               </div>
               <div style={styles.actionInsightsSubtext}>
-                Simple takeaways from your trading data, not just more stats.
+                What is working, what is hurting performance, and where to focus next.
               </div>
             </div>
           </div>
 
           <div style={styles.actionInsightsList}>
             <div style={styles.actionInsightRow}>
-              <div style={styles.actionIcon}>🏆</div>
+              <div style={styles.actionIcon}>01</div>
               <div>
-                <div style={styles.actionTitle}>Strongest Setup</div>
+                <div style={styles.actionTitle}>Best Setup</div>
                 <div style={styles.actionText}>
                   {performanceInsights.bestSetup !== "No data yet"
-                    ? `${performanceInsights.bestSetup} is your best current setup with ${formatPnl(
+                    ? `${performanceInsights.bestSetup}: ${formatPnl(
                         performanceInsights.bestSetupPnl
                       )} total P/L.`
-                    : "Log more trades to find your strongest setup."}
+                    : "Not enough setup data yet."}
                 </div>
               </div>
             </div>
 
             <div style={styles.actionInsightRow}>
-              <div style={styles.actionIcon}>🚫</div>
+              <div style={styles.actionIcon}>02</div>
               <div>
-                <div style={styles.actionTitle}>Biggest Weakness</div>
+                <div style={styles.actionTitle}>Main Mistake</div>
                 <div style={styles.actionText}>
                   {performanceInsights.costliestMistakeLoss > 0
-                    ? `${performanceInsights.costliestMistake} has cost you ${formatPnl(
+                    ? `${performanceInsights.costliestMistake}: ${formatPnl(
                         -Math.round(performanceInsights.costliestMistakeLoss)
-                      )}.`
-                    : "No losing mistake tags yet. Keep tagging mistakes honestly."}
+                      )} from losing trades.`
+                    : "No losing mistake tags yet."}
                 </div>
               </div>
             </div>
 
             <div style={styles.actionInsightRow}>
-              <div style={styles.actionIcon}>⏰</div>
+              <div style={styles.actionIcon}>03</div>
               <div>
-                <div style={styles.actionTitle}>Best Trading Window</div>
+                <div style={styles.actionTitle}>Best Session</div>
                 <div style={styles.actionText}>
                   {performanceInsights.bestSessionTrades > 0
-                    ? `${performanceInsights.bestSession} is your strongest session with a ${performanceInsights.bestSessionWinRate}% win rate.`
-                    : "Log more session data to find your best window."}
+                    ? `${performanceInsights.bestSession}: ${performanceInsights.bestSessionWinRate}% win rate across ${performanceInsights.bestSessionTrades} trade${
+                        performanceInsights.bestSessionTrades === 1 ? "" : "s"
+                      }.`
+                    : "Not enough session data yet."}
                 </div>
               </div>
             </div>
 
             <div style={{ ...styles.actionInsightRow, borderBottom: "none" }}>
-              <div style={styles.actionIcon}>⭐</div>
+              <div style={styles.actionIcon}>04</div>
               <div>
-                <div style={styles.actionTitle}>Highest Quality Trades</div>
+                <div style={styles.actionTitle}>Best Grade</div>
                 <div style={styles.actionText}>
                   {performanceInsights.bestGradeTrades > 0
-                    ? `${performanceInsights.bestGrade} trades have your highest win rate at ${performanceInsights.bestGradeWinRate}%.`
-                    : "Log more graded trades to see your strongest trade quality."}
+                    ? `${performanceInsights.bestGrade} trades: ${performanceInsights.bestGradeWinRate}% win rate across ${performanceInsights.bestGradeTrades} trade${
+                        performanceInsights.bestGradeTrades === 1 ? "" : "s"
+                      }.`
+                    : "Not enough graded trades yet."}
                 </div>
               </div>
             </div>
