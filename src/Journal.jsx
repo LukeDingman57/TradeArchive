@@ -411,6 +411,101 @@ export default function Journal({ setActivePage }) {
     };
   }, [trades]);
 
+  const performanceInsights = useMemo(() => {
+    const emptyInsights = {
+      bestGrade: "No data yet",
+      bestGradeWinRate: "0.0",
+      bestGradeTrades: 0,
+      bestSetup: "No data yet",
+      bestSetupPnl: 0,
+      bestAvgRSetup: "No data yet",
+      bestAvgR: "0.00",
+      costliestMistake: "No mistakes logged",
+      costliestMistakeLoss: 0,
+      bestSession: "No data yet",
+      bestSessionWinRate: "0.0",
+      bestSessionTrades: 0,
+    };
+
+    if (!trades.length) return emptyInsights;
+
+    const gradeStats = {};
+    const sessionStats = {};
+    const mistakeLosses = {};
+
+    trades.forEach((trade) => {
+      const grade = String(trade.grade || "Ungraded").trim() || "Ungraded";
+      const session = String(trade.session || "Uncategorized").trim() || "Uncategorized";
+      const pnl = Number(trade.pnl || 0);
+      const mistakeText = String(trade.mistakes || "").trim();
+
+      if (!gradeStats[grade]) {
+        gradeStats[grade] = { grade, trades: 0, wins: 0 };
+      }
+
+      gradeStats[grade].trades += 1;
+      if (pnl > 0) gradeStats[grade].wins += 1;
+
+      if (!sessionStats[session]) {
+        sessionStats[session] = { session, trades: 0, wins: 0 };
+      }
+
+      sessionStats[session].trades += 1;
+      if (pnl > 0) sessionStats[session].wins += 1;
+
+      if (mistakeText && pnl < 0) {
+        mistakeText
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .forEach((mistake) => {
+            mistakeLosses[mistake] = (mistakeLosses[mistake] || 0) + Math.abs(pnl);
+          });
+      }
+    });
+
+    const bestGrade = Object.values(gradeStats)
+      .map((item) => ({
+        ...item,
+        winRate: item.trades ? (item.wins / item.trades) * 100 : 0,
+      }))
+      .sort((a, b) => b.winRate - a.winRate || b.trades - a.trades)[0];
+
+    const bestSetup = [...setupAnalytics].sort(
+      (a, b) => b.totalPnl - a.totalPnl || b.trades - a.trades
+    )[0];
+
+    const bestAvgRSetup = [...setupAnalytics].sort(
+      (a, b) => Number(b.avgR) - Number(a.avgR) || b.trades - a.trades
+    )[0];
+
+    const costliestMistake = Object.entries(mistakeLosses).sort(
+      (a, b) => b[1] - a[1]
+    )[0];
+
+    const bestSession = Object.values(sessionStats)
+      .map((item) => ({
+        ...item,
+        winRate: item.trades ? (item.wins / item.trades) * 100 : 0,
+      }))
+      .sort((a, b) => b.winRate - a.winRate || b.trades - a.trades)[0];
+
+    return {
+      bestGrade: bestGrade?.grade || emptyInsights.bestGrade,
+      bestGradeWinRate: bestGrade ? bestGrade.winRate.toFixed(1) : "0.0",
+      bestGradeTrades: bestGrade?.trades || 0,
+      bestSetup: bestSetup?.setup || emptyInsights.bestSetup,
+      bestSetupPnl: bestSetup?.totalPnl || 0,
+      bestAvgRSetup: bestAvgRSetup?.setup || emptyInsights.bestAvgRSetup,
+      bestAvgR: bestAvgRSetup?.avgR || "0.00",
+      costliestMistake: costliestMistake?.[0] || emptyInsights.costliestMistake,
+      costliestMistakeLoss: costliestMistake?.[1] || 0,
+      bestSession: bestSession?.session || emptyInsights.bestSession,
+      bestSessionWinRate: bestSession ? bestSession.winRate.toFixed(1) : "0.0",
+      bestSessionTrades: bestSession?.trades || 0,
+    };
+  }, [trades, setupAnalytics]);
+
   const dailyTradeMap = useMemo(() => {
     const grouped = {};
 
@@ -1240,6 +1335,115 @@ export default function Journal({ setActivePage }) {
                 {formatPnl(behaviorInsights.largestLoss)}
               </div>
               <div style={styles.insightMeta}>Lowest negative P/L entry</div>
+            </div>
+          </div>
+        </div>
+
+
+
+        <div style={{ ...styles.insightsCard, ...(isMobile ? styles.cardMobile : {}) }}>
+          <div style={{ ...styles.insightsHeader, ...(isMobile ? styles.sectionHeaderMobile : {}) }}>
+            <div>
+              <div style={{ ...styles.insightsTitle, ...(isMobile ? styles.sectionTitleMobile : {}) }}>🚀 Performance Insights NEW</div>
+              <div style={{ ...styles.insightsSubtext, ...(isMobile ? styles.sectionSubtextMobile : {}) }}>
+                Quick takeaways that turn your journal data into decisions. This is the new pushed section.
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginBottom: "16px",
+              padding: "12px 14px",
+              borderRadius: "14px",
+              border: "1px solid rgba(96,165,250,0.35)",
+              background: "rgba(96,165,250,0.12)",
+              color: "#bfdbfe",
+              fontSize: "13px",
+              fontWeight: 800,
+            }}
+          >
+            New: these boxes automatically summarize your strongest grade, setup, average R, session edge, and most expensive mistake.
+          </div>
+
+          <div style={{ ...styles.insightsGrid, ...(isMobile ? styles.insightsGridMobile : {}) }}>
+            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
+              <div style={styles.insightLabel}>Highest Win Rate Grade</div>
+              <div style={styles.insightValue}>{performanceInsights.bestGrade}</div>
+              <div style={styles.insightMeta}>
+                {performanceInsights.bestGradeTrades > 0
+                  ? `${performanceInsights.bestGradeWinRate}% win rate over ${performanceInsights.bestGradeTrades} trade${
+                      performanceInsights.bestGradeTrades === 1 ? "" : "s"
+                    }`
+                  : "Log more graded trades"}
+              </div>
+            </div>
+
+            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
+              <div style={styles.insightLabel}>Most Profitable Setup</div>
+              <div style={styles.insightValue}>{performanceInsights.bestSetup}</div>
+              <div
+                style={{
+                  ...styles.insightMeta,
+                  color: performanceInsights.bestSetupPnl >= 0 ? "#4ade80" : "#f87171",
+                }}
+              >
+                {formatPnl(performanceInsights.bestSetupPnl)} total P/L
+              </div>
+            </div>
+
+            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
+              <div style={styles.insightLabel}>Highest Avg R Setup</div>
+              <div style={styles.insightValue}>{performanceInsights.bestAvgRSetup}</div>
+              <div
+                style={{
+                  ...styles.insightMeta,
+                  color: Number(performanceInsights.bestAvgR) >= 0 ? "#4ade80" : "#f87171",
+                }}
+              >
+                {performanceInsights.bestAvgR}R average
+              </div>
+            </div>
+
+            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
+              <div style={styles.insightLabel}>Costliest Mistake</div>
+              <div style={styles.insightValue}>{performanceInsights.costliestMistake}</div>
+              <div
+                style={{
+                  ...styles.insightMeta,
+                  color: performanceInsights.costliestMistakeLoss > 0 ? "#f87171" : "rgba(255,255,255,0.58)",
+                }}
+              >
+                {performanceInsights.costliestMistakeLoss > 0
+                  ? `${formatPnl(-Math.round(performanceInsights.costliestMistakeLoss))} from losses`
+                  : "No losing mistake tags yet"}
+              </div>
+            </div>
+
+            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
+              <div style={styles.insightLabel}>Best Session Edge</div>
+              <div style={styles.insightValue}>{performanceInsights.bestSession}</div>
+              <div style={styles.insightMeta}>
+                {performanceInsights.bestSessionTrades > 0
+                  ? `${performanceInsights.bestSessionWinRate}% win rate over ${performanceInsights.bestSessionTrades} trade${
+                      performanceInsights.bestSessionTrades === 1 ? "" : "s"
+                    }`
+                  : "No session data yet"}
+              </div>
+            </div>
+
+            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
+              <div style={styles.insightLabel}>Smart Focus</div>
+              <div style={styles.insightValue}>
+                {performanceInsights.bestSetup !== "No data yet"
+                  ? performanceInsights.bestSetup
+                  : "Log more trades"}
+              </div>
+              <div style={styles.insightMeta}>
+                {performanceInsights.bestSetup !== "No data yet"
+                  ? `Your strongest current setup by P/L is ${performanceInsights.bestSetup}.`
+                  : "Insights improve as your sample size grows."}
+              </div>
             </div>
           </div>
         </div>
