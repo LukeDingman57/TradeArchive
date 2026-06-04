@@ -1341,108 +1341,69 @@ export default function Journal({ setActivePage }) {
 
 
 
-        <div style={{ ...styles.insightsCard, ...(isMobile ? styles.cardMobile : {}) }}>
-          <div style={{ ...styles.insightsHeader, ...(isMobile ? styles.sectionHeaderMobile : {}) }}>
+        <div style={{ ...styles.actionInsightsCard, ...(isMobile ? styles.cardMobile : {}) }}>
+          <div style={styles.actionInsightsTop}>
             <div>
-              <div style={{ ...styles.insightsTitle, ...(isMobile ? styles.sectionTitleMobile : {}) }}>🚀 Performance Insights NEW</div>
-              <div style={{ ...styles.insightsSubtext, ...(isMobile ? styles.sectionSubtextMobile : {}) }}>
-                Quick takeaways that turn your journal data into decisions. This is the new pushed section.
+              <div style={styles.actionInsightsEyebrow}>SMART REVIEW</div>
+              <div style={{ ...styles.actionInsightsTitle, ...(isMobile ? styles.sectionTitleMobile : {}) }}>
+                🧠 What Your Journal Is Telling You
+              </div>
+              <div style={styles.actionInsightsSubtext}>
+                Simple takeaways from your trading data, not just more stats.
               </div>
             </div>
           </div>
 
-          <div
-            style={{
-              marginBottom: "16px",
-              padding: "12px 14px",
-              borderRadius: "14px",
-              border: "1px solid rgba(96,165,250,0.35)",
-              background: "rgba(96,165,250,0.12)",
-              color: "#bfdbfe",
-              fontSize: "13px",
-              fontWeight: 800,
-            }}
-          >
-            New: these boxes automatically summarize your strongest grade, setup, average R, session edge, and most expensive mistake.
-          </div>
-
-          <div style={{ ...styles.insightsGrid, ...(isMobile ? styles.insightsGridMobile : {}) }}>
-            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
-              <div style={styles.insightLabel}>Highest Win Rate Grade</div>
-              <div style={styles.insightValue}>{performanceInsights.bestGrade}</div>
-              <div style={styles.insightMeta}>
-                {performanceInsights.bestGradeTrades > 0
-                  ? `${performanceInsights.bestGradeWinRate}% win rate over ${performanceInsights.bestGradeTrades} trade${
-                      performanceInsights.bestGradeTrades === 1 ? "" : "s"
-                    }`
-                  : "Log more graded trades"}
+          <div style={styles.actionInsightsList}>
+            <div style={styles.actionInsightRow}>
+              <div style={styles.actionIcon}>🏆</div>
+              <div>
+                <div style={styles.actionTitle}>Strongest Setup</div>
+                <div style={styles.actionText}>
+                  {performanceInsights.bestSetup !== "No data yet"
+                    ? `${performanceInsights.bestSetup} is your best current setup with ${formatPnl(
+                        performanceInsights.bestSetupPnl
+                      )} total P/L.`
+                    : "Log more trades to find your strongest setup."}
+                </div>
               </div>
             </div>
 
-            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
-              <div style={styles.insightLabel}>Most Profitable Setup</div>
-              <div style={styles.insightValue}>{performanceInsights.bestSetup}</div>
-              <div
-                style={{
-                  ...styles.insightMeta,
-                  color: performanceInsights.bestSetupPnl >= 0 ? "#4ade80" : "#f87171",
-                }}
-              >
-                {formatPnl(performanceInsights.bestSetupPnl)} total P/L
+            <div style={styles.actionInsightRow}>
+              <div style={styles.actionIcon}>🚫</div>
+              <div>
+                <div style={styles.actionTitle}>Biggest Weakness</div>
+                <div style={styles.actionText}>
+                  {performanceInsights.costliestMistakeLoss > 0
+                    ? `${performanceInsights.costliestMistake} has cost you ${formatPnl(
+                        -Math.round(performanceInsights.costliestMistakeLoss)
+                      )}.`
+                    : "No losing mistake tags yet. Keep tagging mistakes honestly."}
+                </div>
               </div>
             </div>
 
-            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
-              <div style={styles.insightLabel}>Highest Avg R Setup</div>
-              <div style={styles.insightValue}>{performanceInsights.bestAvgRSetup}</div>
-              <div
-                style={{
-                  ...styles.insightMeta,
-                  color: Number(performanceInsights.bestAvgR) >= 0 ? "#4ade80" : "#f87171",
-                }}
-              >
-                {performanceInsights.bestAvgR}R average
+            <div style={styles.actionInsightRow}>
+              <div style={styles.actionIcon}>⏰</div>
+              <div>
+                <div style={styles.actionTitle}>Best Trading Window</div>
+                <div style={styles.actionText}>
+                  {performanceInsights.bestSessionTrades > 0
+                    ? `${performanceInsights.bestSession} is your strongest session with a ${performanceInsights.bestSessionWinRate}% win rate.`
+                    : "Log more session data to find your best window."}
+                </div>
               </div>
             </div>
 
-            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
-              <div style={styles.insightLabel}>Costliest Mistake</div>
-              <div style={styles.insightValue}>{performanceInsights.costliestMistake}</div>
-              <div
-                style={{
-                  ...styles.insightMeta,
-                  color: performanceInsights.costliestMistakeLoss > 0 ? "#f87171" : "rgba(255,255,255,0.58)",
-                }}
-              >
-                {performanceInsights.costliestMistakeLoss > 0
-                  ? `${formatPnl(-Math.round(performanceInsights.costliestMistakeLoss))} from losses`
-                  : "No losing mistake tags yet"}
-              </div>
-            </div>
-
-            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
-              <div style={styles.insightLabel}>Best Session Edge</div>
-              <div style={styles.insightValue}>{performanceInsights.bestSession}</div>
-              <div style={styles.insightMeta}>
-                {performanceInsights.bestSessionTrades > 0
-                  ? `${performanceInsights.bestSessionWinRate}% win rate over ${performanceInsights.bestSessionTrades} trade${
-                      performanceInsights.bestSessionTrades === 1 ? "" : "s"
-                    }`
-                  : "No session data yet"}
-              </div>
-            </div>
-
-            <div style={{ ...styles.insightBox, ...(isMobile ? styles.insightBoxMobile : {}) }}>
-              <div style={styles.insightLabel}>Smart Focus</div>
-              <div style={styles.insightValue}>
-                {performanceInsights.bestSetup !== "No data yet"
-                  ? performanceInsights.bestSetup
-                  : "Log more trades"}
-              </div>
-              <div style={styles.insightMeta}>
-                {performanceInsights.bestSetup !== "No data yet"
-                  ? `Your strongest current setup by P/L is ${performanceInsights.bestSetup}.`
-                  : "Insights improve as your sample size grows."}
+            <div style={{ ...styles.actionInsightRow, borderBottom: "none" }}>
+              <div style={styles.actionIcon}>⭐</div>
+              <div>
+                <div style={styles.actionTitle}>Highest Quality Trades</div>
+                <div style={styles.actionText}>
+                  {performanceInsights.bestGradeTrades > 0
+                    ? `${performanceInsights.bestGrade} trades have your highest win rate at ${performanceInsights.bestGradeWinRate}%.`
+                    : "Log more graded trades to see your strongest trade quality."}
+                </div>
               </div>
             </div>
           </div>
@@ -1505,8 +1466,7 @@ export default function Journal({ setActivePage }) {
                 Showing trades for <span style={{ color: "#93c5fd" }}>{selectedCalendarDate}</span>
               </div>
               <button style={styles.clearDateButton} onClick={clearDateFilter}>
-                Clear Date Filter
-              </button>
+                Clear Date Filter              </button>
             </div>
           )}
 
@@ -3313,6 +3273,79 @@ const styles = {
     border: "1px solid rgba(96,165,250,0.35)",
     background: "rgba(96,165,250,0.14)",
     color: "#bfdbfe",
+  },
+
+  actionInsightsCard: {
+    marginTop: "20px",
+    marginBottom: "20px",
+    borderRadius: "24px",
+    background:
+      "linear-gradient(135deg, rgba(15,23,42,0.98), rgba(30,41,59,0.88))",
+    border: "1px solid rgba(96,165,250,0.24)",
+    boxShadow: "0 18px 45px rgba(0,0,0,0.24)",
+    overflow: "hidden",
+  },
+  actionInsightsTop: {
+    padding: "24px 26px 18px",
+    borderBottom: "1px solid rgba(255,255,255,0.08)",
+    background:
+      "radial-gradient(circle at top left, rgba(96,165,250,0.16), transparent 34%)",
+  },
+  actionInsightsEyebrow: {
+    color: "#93c5fd",
+    fontSize: "12px",
+    fontWeight: 900,
+    letterSpacing: "0.14em",
+    marginBottom: "8px",
+  },
+  actionInsightsTitle: {
+    color: "#ffffff",
+    fontSize: "30px",
+    fontWeight: 950,
+    letterSpacing: "-0.04em",
+    lineHeight: 1.1,
+  },
+  actionInsightsSubtext: {
+    marginTop: "8px",
+    color: "rgba(255,255,255,0.64)",
+    fontSize: "15px",
+    lineHeight: 1.5,
+    fontWeight: 600,
+  },
+  actionInsightsList: {
+    display: "grid",
+    gridTemplateColumns: "1fr",
+  },
+  actionInsightRow: {
+    display: "flex",
+    gap: "16px",
+    alignItems: "flex-start",
+    padding: "20px 26px",
+    borderBottom: "1px solid rgba(255,255,255,0.07)",
+  },
+  actionIcon: {
+    width: "42px",
+    height: "42px",
+    borderRadius: "14px",
+    background: "rgba(96,165,250,0.14)",
+    border: "1px solid rgba(96,165,250,0.25)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "20px",
+    flexShrink: 0,
+  },
+  actionTitle: {
+    color: "#ffffff",
+    fontSize: "16px",
+    fontWeight: 900,
+    marginBottom: "6px",
+  },
+  actionText: {
+    color: "rgba(255,255,255,0.70)",
+    fontSize: "14px",
+    lineHeight: 1.55,
+    fontWeight: 600,
   },
 
 };
