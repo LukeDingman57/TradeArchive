@@ -89,6 +89,13 @@ const emptyForm = {
   entry: "",
   stop: "",
   target: "",
+  tradeReason: "",
+  tradeInvalidation: "",
+  bosConfirmed: false,
+  ifvgConfirmed: false,
+  smtConfirmed: false,
+  sessionConfirmed: false,
+  liquidityConfirmed: false,
   notes: "",
   screenshot: "",
 };
@@ -211,6 +218,13 @@ export default function Journal({ setActivePage }) {
         stop: trade.stop ?? "",
         target: trade.target ?? "",
         rMultiple: trade.r_multiple ?? null,
+        tradeReason: trade.trade_reason || "",
+        tradeInvalidation: trade.trade_invalidation || "",
+        bosConfirmed: Boolean(trade.bos_confirmed),
+        ifvgConfirmed: Boolean(trade.ifvg_confirmed),
+        smtConfirmed: Boolean(trade.smt_confirmed),
+        sessionConfirmed: Boolean(trade.session_confirmed),
+        liquidityConfirmed: Boolean(trade.liquidity_confirmed),
         notes: trade.notes || "",
         screenshot: trade.screenshot || "",
       }));
@@ -451,7 +465,9 @@ export default function Journal({ setActivePage }) {
           String(trade.notes || "").toLowerCase().includes(term) ||
           String(trade.session || "").toLowerCase().includes(term) ||
           String(trade.grade || "").toLowerCase().includes(term) ||
-          String(trade.mistakes || "").toLowerCase().includes(term)
+          String(trade.mistakes || "").toLowerCase().includes(term) ||
+          String(trade.tradeReason || "").toLowerCase().includes(term) ||
+          String(trade.tradeInvalidation || "").toLowerCase().includes(term)
         );
       });
     }
@@ -622,6 +638,13 @@ export default function Journal({ setActivePage }) {
       entry: trade.entry ?? "",
       stop: trade.stop ?? "",
       target: trade.target ?? "",
+      tradeReason: trade.tradeReason || "",
+      tradeInvalidation: trade.tradeInvalidation || "",
+      bosConfirmed: Boolean(trade.bosConfirmed),
+      ifvgConfirmed: Boolean(trade.ifvgConfirmed),
+      smtConfirmed: Boolean(trade.smtConfirmed),
+      sessionConfirmed: Boolean(trade.sessionConfirmed),
+      liquidityConfirmed: Boolean(trade.liquidityConfirmed),
       notes: trade.notes || "",
       screenshot: trade.screenshot || "",
     });
@@ -669,6 +692,13 @@ export default function Journal({ setActivePage }) {
       stop: stopNum,
       target: targetNum,
       r_multiple: rMultiple,
+      trade_reason: form.tradeReason,
+      trade_invalidation: form.tradeInvalidation,
+      bos_confirmed: Boolean(form.bosConfirmed),
+      ifvg_confirmed: Boolean(form.ifvgConfirmed),
+      smt_confirmed: Boolean(form.smtConfirmed),
+      session_confirmed: Boolean(form.sessionConfirmed),
+      liquidity_confirmed: Boolean(form.liquidityConfirmed),
       notes: form.notes,
       screenshot: form.screenshot || "",
     };
@@ -719,6 +749,13 @@ export default function Journal({ setActivePage }) {
       stop: stopNum,
       target: targetNum,
       r_multiple: rMultiple,
+      trade_reason: form.tradeReason,
+      trade_invalidation: form.tradeInvalidation,
+      bos_confirmed: Boolean(form.bosConfirmed),
+      ifvg_confirmed: Boolean(form.ifvgConfirmed),
+      smt_confirmed: Boolean(form.smtConfirmed),
+      session_confirmed: Boolean(form.sessionConfirmed),
+      liquidity_confirmed: Boolean(form.liquidityConfirmed),
       notes: form.notes,
       screenshot: form.screenshot || "",
     };
@@ -751,6 +788,13 @@ export default function Journal({ setActivePage }) {
       stop: data.stop ?? "",
       target: data.target ?? "",
       rMultiple: data.r_multiple ?? null,
+      tradeReason: data.trade_reason || "",
+      tradeInvalidation: data.trade_invalidation || "",
+      bosConfirmed: Boolean(data.bos_confirmed),
+      ifvgConfirmed: Boolean(data.ifvg_confirmed),
+      smtConfirmed: Boolean(data.smt_confirmed),
+      sessionConfirmed: Boolean(data.session_confirmed),
+      liquidityConfirmed: Boolean(data.liquidity_confirmed),
       notes: data.notes,
       screenshot: data.screenshot || "",
     };
@@ -782,6 +826,13 @@ export default function Journal({ setActivePage }) {
     stop: trade.stop ?? "",
     target: trade.target ?? "",
     rMultiple: trade.r_multiple ?? null,
+    tradeReason: trade.trade_reason || "",
+    tradeInvalidation: trade.trade_invalidation || "",
+    bosConfirmed: Boolean(trade.bos_confirmed),
+    ifvgConfirmed: Boolean(trade.ifvg_confirmed),
+    smtConfirmed: Boolean(trade.smt_confirmed),
+    sessionConfirmed: Boolean(trade.session_confirmed),
+    liquidityConfirmed: Boolean(trade.liquidity_confirmed),
     notes: trade.notes || "",
     screenshot: trade.screenshot || "",
   });
@@ -1649,6 +1700,36 @@ export default function Journal({ setActivePage }) {
             </div>
 
             <div style={styles.notesBox}>
+              <div style={styles.viewLabel}>Pre-Trade Plan</div>
+              <div style={styles.notesText}>
+                <strong>Reason:</strong> {selectedTrade.tradeReason || "No pre-trade reason logged."}
+              </div>
+              <div style={{ ...styles.notesText, marginTop: "10px" }}>
+                <strong>Invalidation:</strong> {selectedTrade.tradeInvalidation || "No invalidation logged."}
+              </div>
+
+              <div style={styles.viewChecklistWrap}>
+                {[
+                  ["BOS", selectedTrade.bosConfirmed],
+                  ["IFVG", selectedTrade.ifvgConfirmed],
+                  ["SMT", selectedTrade.smtConfirmed],
+                  ["Session", selectedTrade.sessionConfirmed],
+                  ["Liquidity", selectedTrade.liquidityConfirmed],
+                ].map(([label, checked]) => (
+                  <span
+                    key={label}
+                    style={{
+                      ...styles.viewChecklistPill,
+                      ...(checked ? styles.viewChecklistPillActive : {}),
+                    }}
+                  >
+                    {checked ? "✓" : "○"} {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div style={styles.notesBox}>
               <div style={styles.viewLabel}>Notes</div>
               <div style={styles.notesText}>{selectedTrade.notes || "No notes yet."}</div>
             </div>
@@ -1820,6 +1901,58 @@ function TradeForm({
             onChange={(e) => handleChange("mistakes", e.target.value)}
             style={styles.input}
           />
+        </div>
+
+        <div style={{ gridColumn: "span 2" }}>
+          <div style={styles.preTradeSection}>
+            <div style={styles.preTradeTitle}>Pre-Trade Plan</div>
+            <div style={styles.preTradeSubtitle}>
+              Plan the trade before reviewing the result. This makes it easier to separate a valid loss from a broken-rule trade.
+            </div>
+
+            <div style={styles.preTradeGrid}>
+              <div>
+                <label style={styles.label}>Why am I taking this trade?</label>
+                <textarea
+                  placeholder="Example: 5m BOS confirmed, IFVG entry, clean liquidity target..."
+                  value={form.tradeReason}
+                  onChange={(e) => handleChange("tradeReason", e.target.value)}
+                  style={styles.preTradeTextarea}
+                />
+              </div>
+
+              <div>
+                <label style={styles.label}>What would invalidate this trade?</label>
+                <textarea
+                  placeholder="Example: price closes back through structure, IFVG fails, target is no longer clean..."
+                  value={form.tradeInvalidation}
+                  onChange={(e) => handleChange("tradeInvalidation", e.target.value)}
+                  style={styles.preTradeTextarea}
+                />
+              </div>
+            </div>
+
+            <div style={styles.checklistTitle}>Rules Checklist</div>
+            <div style={styles.rulesGrid}>
+              {[
+                ["bosConfirmed", "BOS Confirmed"],
+                ["ifvgConfirmed", "IFVG Entry"],
+                ["smtConfirmed", "SMT Present"],
+                ["sessionConfirmed", "Correct Session Time"],
+                ["liquidityConfirmed", "Liquidity Target"],
+              ].map(([field, label]) => (
+                <label key={field} style={styles.ruleCheck}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form[field])}
+                    onChange={(e) => handleChange(field, e.target.checked)}
+                    style={styles.checkbox}
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div>
@@ -2878,6 +3011,105 @@ const styles = {
   },
   proButtonMobile: {
     width: "100%",
+  },
+,
+
+  preTradeSection: {
+    border: "1px solid rgba(96,165,250,0.24)",
+    background:
+      "linear-gradient(180deg, rgba(96,165,250,0.09), rgba(255,255,255,0.03))",
+    borderRadius: "18px",
+    padding: "18px",
+    margin: "2px 0 4px",
+  },
+  preTradeTitle: {
+    color: "#ffffff",
+    fontSize: "18px",
+    fontWeight: 900,
+    letterSpacing: "-0.02em",
+    marginBottom: "5px",
+  },
+  preTradeSubtitle: {
+    color: "rgba(255,255,255,0.62)",
+    fontSize: "13px",
+    lineHeight: 1.45,
+    marginBottom: "16px",
+  },
+  preTradeGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: "14px",
+  },
+  preTradeTextarea: {
+    width: "100%",
+    minHeight: "92px",
+    resize: "vertical",
+    border: "1px solid rgba(148,163,184,0.18)",
+    background: "#1f2d40",
+    color: "#ffffff",
+    borderRadius: "13px",
+    padding: "13px 14px",
+    fontSize: "14px",
+    fontFamily: "inherit",
+    outline: "none",
+    boxSizing: "border-box",
+  },
+  checklistTitle: {
+    marginTop: "16px",
+    marginBottom: "10px",
+    color: "#bfdbfe",
+    fontSize: "13px",
+    fontWeight: 900,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+  },
+  rulesGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+    gap: "10px",
+  },
+  ruleCheck: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.045)",
+    borderRadius: "12px",
+    padding: "10px 11px",
+    color: "rgba(255,255,255,0.82)",
+    fontSize: "13px",
+    fontWeight: 800,
+    cursor: "pointer",
+    userSelect: "none",
+  },
+  checkbox: {
+    width: "16px",
+    height: "16px",
+    accentColor: "#60a5fa",
+    cursor: "pointer",
+  },
+  viewChecklistWrap: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "8px",
+    marginTop: "14px",
+  },
+  viewChecklistPill: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    border: "1px solid rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.045)",
+    color: "rgba(255,255,255,0.62)",
+    borderRadius: "999px",
+    padding: "7px 10px",
+    fontSize: "12px",
+    fontWeight: 900,
+  },
+  viewChecklistPillActive: {
+    border: "1px solid rgba(96,165,250,0.35)",
+    background: "rgba(96,165,250,0.14)",
+    color: "#bfdbfe",
   },
 
 };
