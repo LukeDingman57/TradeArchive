@@ -57,6 +57,26 @@ function AuthScreen({ initialMode = "login", onBack }) {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+
+      if (error) throw error;
+    } catch (err) {
+      console.error("Google auth error:", err);
+      setMessage(err?.message || "Unable to continue with Google.");
+      setLoading(false);
+    }
+  };
+
   return (
     <div
       style={{
@@ -158,6 +178,25 @@ function AuthScreen({ initialMode = "login", onBack }) {
               : "Login"}
           </button>
         </form>
+
+        <div style={authDividerStyle}>
+          <span style={authDividerLineStyle} />
+          <span style={authDividerTextStyle}>or</span>
+          <span style={authDividerLineStyle} />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={loading}
+          style={{
+            ...googleButton,
+            ...(loading ? { opacity: 0.7, cursor: "not-allowed" } : {}),
+          }}
+        >
+          <span style={googleIconStyle}>G</span>
+          Continue with Google
+        </button>
 
         {message && (
           <p style={{ marginTop: "14px", color: "#cbd5e1", lineHeight: 1.5 }}>
@@ -1402,6 +1441,57 @@ const secondaryButton = {
   color: "white",
   cursor: "pointer",
   fontWeight: 700,
+};
+
+const authDividerStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+  margin: "16px 0",
+};
+
+const authDividerLineStyle = {
+  flex: 1,
+  height: "1px",
+  background: "rgba(148,163,184,0.16)",
+};
+
+const authDividerTextStyle = {
+  color: "#94a3b8",
+  fontSize: "12px",
+  fontWeight: 800,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+};
+
+const googleButton = {
+  width: "100%",
+  padding: "13px 16px",
+  borderRadius: "12px",
+  border: "1px solid rgba(255,255,255,0.14)",
+  background: "rgba(255,255,255,0.08)",
+  color: "white",
+  cursor: "pointer",
+  fontWeight: 800,
+  fontSize: "15px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "10px",
+};
+
+const googleIconStyle = {
+  width: "22px",
+  height: "22px",
+  borderRadius: "999px",
+  background: "#ffffff",
+  color: "#2563eb",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "14px",
+  fontWeight: 950,
+  fontFamily: "Arial, sans-serif",
 };
 
 const logoutButton = {
