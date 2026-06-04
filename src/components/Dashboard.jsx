@@ -25,25 +25,25 @@ export default function Dashboard({ setActivePage }) {
     {
       icon: "✍️",
       title: "Trade Journaling",
-      text: "Log entries, exits, mistakes, and execution notes.",
+      text: "Log trades, screenshots, mistakes, and notes.",
       page: "journal",
     },
     {
       icon: "📈",
       title: "Backtesting",
-      text: "Review setups, replay market conditions, and refine your edge faster.",
+      text: "Replay setups and sharpen your process.",
       page: "backtesting",
     },
     {
       icon: "📊",
       title: "Performance Analytics",
-      text: "Track win rate, average R, profit factor, and strategy-specific performance.",
+      text: "See what is helping or hurting your results.",
       page: "pricing",
     },
     {
       icon: "🗂️",
       title: "Strategy Archive",
-      text: "Save, organize, and revisit your best setups without losing what works.",
+      text: "Keep your best setups easy to find.",
       page: "journal",
     },
   ];
@@ -66,36 +66,34 @@ export default function Dashboard({ setActivePage }) {
     },
     {
       name: "Essential",
-      price: "$6.99/mo",
-      description: "Best for traders who want structure and deeper review.",
+      price: "$3.99/mo",
+      description: "For traders who want structure and cleaner review.",
       buttonText: "Get Essential",
       highlighted: true,
       page: "pricing",
       features: [
         "Everything in Free",
-        "Advanced journaling",
+        "Unlimited journal entries",
         "Screenshot uploads",
+        "Mistake tracking",
         "Performance analytics",
-        "Strategy tagging",
-        "Setup tracking",
-        "Weekly review tools",
+        "Setup tagging",
       ],
     },
     {
-      name: "Pro",
-      price: "$12.99/mo",
-      description: "Built for serious traders who want full control.",
-      buttonText: "Go Pro",
+      name: "Essential Yearly",
+      price: "$39.99/yr",
+      description: "Same Essential tools with yearly billing.",
+      buttonText: "Get Yearly",
       highlighted: false,
       page: "pricing",
       features: [
         "Everything in Essential",
-        "Advanced replay tools",
-        "Detailed strategy archive",
-        "Account performance breakdowns",
-        "Execution analytics",
-        "Priority feature access",
-        "Multi-workspace support",
+        "Unlimited journal entries",
+        "Screenshot uploads",
+        "Mistake tracking",
+        "Performance analytics",
+        "Lower effective monthly price",
       ],
     },
   ];
@@ -190,14 +188,12 @@ export default function Dashboard({ setActivePage }) {
 
       <section style={{ ...styles.hero, ...(isMobile ? styles.heroMobile : {}) }}>
         <div style={{ ...styles.heroLeft, ...(isMobile ? styles.heroLeftMobile : {}) }}>
-          <p style={{ ...styles.smallText, ...(isMobile ? styles.smallTextMobile : {}) }}>TRADE SMARTER. REVIEW BETTER.</p>
+          <p style={{ ...styles.smallText, ...(isMobile ? styles.smallTextMobile : {}) }}>JOURNAL. REVIEW. IMPROVE.</p>
 
-          <h1 style={{ ...styles.title, ...(isMobile ? styles.titleMobile : {}) }}>Everything you need to refine your trading</h1>
+          <h1 style={{ ...styles.title, ...(isMobile ? styles.titleMobile : {}) }}>A cleaner way to review your trades</h1>
 
           <p style={{ ...styles.subtitle, ...(isMobile ? styles.subtitleMobile : {}) }}>
-            TradeArchive gives you a clean way to log trades, review mistakes,
-            track performance, and build a repeatable process that actually
-            improves over time.
+            Log trades, track mistakes, review screenshots, and see what is actually helping your trading.
           </p>
 
           <div style={{ ...styles.buttonRow, ...(isMobile ? styles.buttonRowMobile : {}) }}>
@@ -247,11 +243,10 @@ export default function Dashboard({ setActivePage }) {
       <section style={{ ...styles.featuresSection, ...(isMobile ? styles.sectionMobile : {}) }}>
         <p style={styles.featuresLabel}>CORE FEATURES</p>
         <h2 style={{ ...styles.featuresTitle, ...(isMobile ? styles.sectionTitleMobile : {}) }}>
-          Everything you need to refine your trading
+          Built for better trade review
         </h2>
         <p style={{ ...styles.featuresSubtitle, ...(isMobile ? styles.sectionSubtitleMobile : {}) }}>
-          Built to help you organize your process, review your execution, and
-          spot what is actually making or losing you money.
+          Keep the important parts of your trading process organized without a messy spreadsheet.
         </p>
 
         <div style={{ ...styles.featuresGrid, ...(isMobile ? styles.featuresGridMobile : {}) }}>
@@ -274,10 +269,9 @@ export default function Dashboard({ setActivePage }) {
 
       <section style={{ ...styles.pricingSection, ...(isMobile ? styles.sectionMobile : {}) }}>
         <p style={styles.pricingLabel}>PRICING</p>
-        <h2 style={{ ...styles.pricingTitle, ...(isMobile ? styles.sectionTitleMobile : {}) }}>Simple plans for every trader</h2>
+        <h2 style={{ ...styles.pricingTitle, ...(isMobile ? styles.sectionTitleMobile : {}) }}>Simple pricing</h2>
         <p style={{ ...styles.pricingSubtitle, ...(isMobile ? styles.sectionSubtitleMobile : {}) }}>
-          Start free, then upgrade when you want deeper analytics,
-          backtesting, and better review tools.
+          Start free, then upgrade when you want unlimited journaling, screenshots, and better review tools.
         </p>
 
         <div style={{ ...styles.pricingGrid, ...(isMobile ? styles.pricingGridMobile : {}) }}>
@@ -327,11 +321,10 @@ export default function Dashboard({ setActivePage }) {
           <div>
             <div style={styles.supportLabel}>SUPPORT & FEEDBACK</div>
             <h2 style={{ ...styles.supportTitle, ...(isMobile ? styles.supportTitleMobile : {}) }}>
-              Need help or have a feature suggestion?
+              Need help or have an idea?
             </h2>
             <p style={{ ...styles.supportText, ...(isMobile ? styles.supportTextMobile : {}) }}>
-              Found a bug, have an idea, or need account help? Reach out anytime
-              and help improve TradeArchive.
+              Found a bug, need account help, or have an idea for TradeArchive? Send it over anytime.
             </p>
           </div>
 
@@ -370,7 +363,7 @@ const styles = {
     background:
       "radial-gradient(circle at top center, rgba(14,165,233,0.12), transparent 30%), linear-gradient(180deg, #03111f 0%, #020b16 45%, #01060d 100%)",
     color: "#ffffff",
-    padding: "34px 40px 60px",
+    padding: "30px 34px 54px",
     boxSizing: "border-box",
   },
 
@@ -378,7 +371,7 @@ const styles = {
     position: "absolute",
     inset: 0,
     pointerEvents: "none",
-    opacity: 0.72,
+    opacity: 0.46,
     overflow: "hidden",
   },
 
@@ -408,9 +401,9 @@ const styles = {
     position: "relative",
     zIndex: 2,
     textAlign: "center",
-    fontSize: "54px",
-    fontWeight: "800",
-    letterSpacing: "-0.04em",
+    fontSize: "38px",
+    fontWeight: "650",
+    letterSpacing: "-0.025em",
     lineHeight: 1,
     marginBottom: "18px",
   },
@@ -428,9 +421,9 @@ const styles = {
     zIndex: 2,
     display: "grid",
     gridTemplateColumns: "2fr 1fr",
-    gap: "42px",
+    gap: "34px",
     alignItems: "center",
-    marginBottom: "52px",
+    marginBottom: "38px",
   },
 
   heroLeft: {
@@ -446,15 +439,15 @@ const styles = {
   },
 
   title: {
-    fontSize: "64px",
+    fontSize: "52px",
     lineHeight: "0.98",
-    fontWeight: "800",
+    fontWeight: "650",
     margin: "0 0 22px 0",
-    letterSpacing: "-0.05em",
+    letterSpacing: "-0.035em",
   },
 
   subtitle: {
-    fontSize: "22px",
+    fontSize: "15px",
     lineHeight: "1.55",
     color: "rgba(255,255,255,0.78)",
     maxWidth: "700px",
@@ -473,8 +466,8 @@ const styles = {
     border: "none",
     borderRadius: "14px",
     padding: "16px 24px",
-    fontSize: "18px",
-    fontWeight: "700",
+    fontSize: "15px",
+    fontWeight: "650",
     cursor: "pointer",
     boxShadow: "0 10px 20px rgba(255,255,255,0.08)",
   },
@@ -485,8 +478,8 @@ const styles = {
     border: "1px solid rgba(255,255,255,0.15)",
     borderRadius: "14px",
     padding: "16px 24px",
-    fontSize: "18px",
-    fontWeight: "700",
+    fontSize: "15px",
+    fontWeight: "650",
     cursor: "pointer",
   },
 
@@ -500,14 +493,14 @@ const styles = {
     maxWidth: "340px",
     background: "rgba(0,0,0,0.55)",
     border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "24px",
-    padding: "28px",
+    borderRadius: "20px",
+    padding: "24px",
     boxShadow: "0 10px 40px rgba(0,0,0,0.35)",
     backdropFilter: "blur(6px)",
   },
 
   snapshotTitle: {
-    fontSize: "26px",
+    fontSize: "20px",
     margin: "0 0 22px 0",
     color: "rgba(255,255,255,0.95)",
   },
@@ -522,23 +515,23 @@ const styles = {
 
   statLabel: {
     color: "rgba(255,255,255,0.72)",
-    fontSize: "18px",
+    fontSize: "15px",
   },
 
   statValue: {
     color: "#ffffff",
-    fontSize: "18px",
-    fontWeight: "700",
+    fontSize: "15px",
+    fontWeight: "650",
   },
 
   featuresSection: {
     position: "relative",
     zIndex: 2,
     width: "100%",
-    background: "rgba(0,0,0,0.48)",
+    background: "rgba(0,0,0,0.34)",
     border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "30px",
-    padding: "44px 26px 30px",
+    borderRadius: "20px",
+    padding: "34px 24px 26px",
     boxSizing: "border-box",
     backdropFilter: "blur(4px)",
   },
@@ -553,17 +546,17 @@ const styles = {
 
   featuresTitle: {
     textAlign: "center",
-    fontSize: "54px",
+    fontSize: "38px",
     lineHeight: "1.06",
-    fontWeight: "800",
+    fontWeight: "650",
     margin: "0 0 18px 0",
-    letterSpacing: "-0.04em",
+    letterSpacing: "-0.025em",
   },
 
   featuresSubtitle: {
     textAlign: "center",
     color: "rgba(255,255,255,0.72)",
-    fontSize: "22px",
+    fontSize: "15px",
     lineHeight: "1.6",
     maxWidth: "950px",
     margin: "0 auto 36px auto",
@@ -591,9 +584,9 @@ const styles = {
     background:
       "linear-gradient(180deg, rgba(255,255,255,0.035), rgba(0,0,0,0.28))",
     border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "24px",
-    padding: "28px 22px",
-    minHeight: "230px",
+    borderRadius: "20px",
+    padding: "22px 18px",
+    minHeight: "178px",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -604,21 +597,21 @@ const styles = {
   },
 
   iconBox: {
-    width: "58px",
-    height: "58px",
+    width: "48px",
+    height: "48px",
     borderRadius: "16px",
     background: "rgba(255,255,255,0.06)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "28px",
+    fontSize: "24px",
     marginBottom: "18px",
   },
 
   featureTitle: {
-    fontSize: "24px",
+    fontSize: "20px",
     lineHeight: "1.2",
-    fontWeight: "800",
+    fontWeight: "650",
     margin: "0 0 14px 0",
     color: "#f8fafc",
     textShadow: "0 1px 12px rgba(0,0,0,0.45)",
@@ -626,7 +619,7 @@ const styles = {
 
   featureText: {
     color: "rgba(248,250,252,0.78)",
-    fontSize: "17px",
+    fontSize: "15px",
     lineHeight: "1.6",
     margin: 0,
   },
@@ -636,10 +629,10 @@ const styles = {
     zIndex: 2,
     width: "100%",
     marginTop: "32px",
-    background: "rgba(0,0,0,0.5)",
+    background: "rgba(0,0,0,0.34)",
     border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "30px",
-    padding: "45px 26px 30px",
+    borderRadius: "20px",
+    padding: "34px 24px 26px",
     boxSizing: "border-box",
     backdropFilter: "blur(4px)",
   },
@@ -654,11 +647,11 @@ const styles = {
 
   pricingTitle: {
     textAlign: "center",
-    fontSize: "48px",
+    fontSize: "32px",
     lineHeight: "1.08",
-    fontWeight: "800",
+    fontWeight: "650",
     margin: "0 0 18px 0",
-    letterSpacing: "-0.04em",
+    letterSpacing: "-0.025em",
   },
 
   pricingSubtitle: {
@@ -673,7 +666,7 @@ const styles = {
   pricingGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(3, 1fr)",
-    gap: "20px",
+    gap: "18px",
     width: "100%",
   },
 
@@ -682,9 +675,9 @@ const styles = {
     background:
       "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.3))",
     border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: "24px",
-    padding: "28px 22px",
-    minHeight: "520px",
+    borderRadius: "20px",
+    padding: "22px 18px",
+    minHeight: "430px",
     display: "flex",
     flexDirection: "column",
     backdropFilter: "blur(3px)",
@@ -704,27 +697,27 @@ const styles = {
     background: "#3b82f6",
     color: "#ffffff",
     fontSize: "13px",
-    fontWeight: "700",
+    fontWeight: "650",
     padding: "8px 12px",
     borderRadius: "999px",
     boxShadow: "0 8px 20px rgba(37,99,235,0.35)",
   },
 
   planName: {
-    fontSize: "28px",
-    fontWeight: "700",
+    fontSize: "24px",
+    fontWeight: "650",
     margin: "0 0 10px 0",
   },
 
   planPrice: {
-    fontSize: "40px",
-    fontWeight: "800",
+    fontSize: "24px",
+    fontWeight: "650",
     marginBottom: "12px",
     letterSpacing: "-0.03em",
   },
 
   planDescription: {
-    fontSize: "17px",
+    fontSize: "15px",
     lineHeight: "1.6",
     color: "rgba(255,255,255,0.72)",
     margin: "0 0 20px 0",
@@ -736,8 +729,8 @@ const styles = {
     border: "1px solid rgba(255,255,255,0.15)",
     borderRadius: "14px",
     padding: "14px 18px",
-    fontSize: "16px",
-    fontWeight: "700",
+    fontSize: "15px",
+    fontWeight: "650",
     cursor: "pointer",
     marginBottom: "24px",
   },
@@ -760,7 +753,7 @@ const styles = {
     alignItems: "center",
     gap: "10px",
     color: "rgba(255,255,255,0.82)",
-    fontSize: "16px",
+    fontSize: "15px",
     lineHeight: "1.5",
   },
 
@@ -780,7 +773,7 @@ const styles = {
     padding: "34px 28px",
     display: "flex",
     flexDirection: "column",
-    gap: "20px",
+    gap: "18px",
     backdropFilter: "blur(4px)",
   },
 
@@ -793,17 +786,17 @@ const styles = {
 
   supportTitle: {
     margin: "0 0 12px 0",
-    fontSize: "38px",
+    fontSize: "32px",
     lineHeight: "1.1",
-    fontWeight: "800",
-    letterSpacing: "-0.04em",
+    fontWeight: "650",
+    letterSpacing: "-0.025em",
   },
 
   supportText: {
     margin: 0,
     maxWidth: "760px",
     color: "rgba(255,255,255,0.72)",
-    fontSize: "18px",
+    fontSize: "15px",
     lineHeight: "1.7",
   },
 
@@ -819,8 +812,8 @@ const styles = {
     border: "none",
     borderRadius: "14px",
     padding: "15px 22px",
-    fontSize: "16px",
-    fontWeight: "700",
+    fontSize: "15px",
+    fontWeight: "650",
     textDecoration: "none",
     display: "inline-flex",
     alignItems: "center",
@@ -833,8 +826,8 @@ const styles = {
     border: "1px solid rgba(255,255,255,0.15)",
     borderRadius: "14px",
     padding: "15px 22px",
-    fontSize: "16px",
-    fontWeight: "700",
+    fontSize: "15px",
+    fontWeight: "650",
     textDecoration: "none",
     display: "inline-flex",
     alignItems: "center",
@@ -874,13 +867,13 @@ const styles = {
   },
 
   titleMobile: {
-    fontSize: "42px",
+    fontSize: "36px",
     lineHeight: "1.02",
-    letterSpacing: "-0.04em",
+    letterSpacing: "-0.025em",
   },
 
   subtitleMobile: {
-    fontSize: "17px",
+    fontSize: "15px",
     lineHeight: "1.55",
     maxWidth: "100%",
     marginBottom: "22px",
@@ -893,7 +886,7 @@ const styles = {
 
   mobileFullButton: {
     width: "100%",
-    fontSize: "16px",
+    fontSize: "15px",
     padding: "15px 18px",
   },
 
@@ -908,17 +901,17 @@ const styles = {
 
   sectionMobile: {
     padding: "28px 18px 24px",
-    borderRadius: "24px",
+    borderRadius: "20px",
     marginTop: "22px",
   },
 
   sectionTitleMobile: {
-    fontSize: "34px",
+    fontSize: "24px",
     lineHeight: "1.1",
   },
 
   sectionSubtitleMobile: {
-    fontSize: "17px",
+    fontSize: "15px",
     lineHeight: "1.55",
     marginBottom: "24px",
   },
@@ -954,15 +947,15 @@ const styles = {
 
   supportCardMobile: {
     padding: "26px 20px",
-    borderRadius: "24px",
+    borderRadius: "20px",
   },
 
   supportTitleMobile: {
-    fontSize: "30px",
+    fontSize: "24px",
   },
 
   supportTextMobile: {
-    fontSize: "16px",
+    fontSize: "15px",
   },
 
   supportActionsMobile: {
@@ -977,8 +970,8 @@ const styles = {
 
   checkIcon: {
     color: "#60a5fa",
-    fontWeight: "800",
-    fontSize: "16px",
+    fontWeight: "650",
+    fontSize: "15px",
     flexShrink: 0,
   },
 };
