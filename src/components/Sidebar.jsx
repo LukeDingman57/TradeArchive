@@ -7,18 +7,6 @@ export default function Sidebar({ activePage, setActivePage }) {
       sub: "Overview",
     },
     {
-      label: "Charts",
-      page: "charts",
-      icon: "▧",
-      sub: "Live charts",
-    },
-    {
-      label: "Replay",
-      page: "backtesting",
-      icon: "↻",
-      sub: "Market replay",
-    },
-    {
       label: "Journal",
       page: "journal",
       icon: "↗",
@@ -29,12 +17,6 @@ export default function Sidebar({ activePage, setActivePage }) {
       page: "pricing",
       icon: "◈",
       sub: "Plans",
-    },
-    {
-      label: "Coming Soon",
-      page: "comingsoon",
-      icon: "✦",
-      sub: "Upcoming",
     },
   ];
 

@@ -971,7 +971,7 @@ export default function App() {
 const trialBannerStyles = {
   wrap: {
     width: "100%",
-    padding: "86px 28px 0",
+    padding: "18px 360px 0 28px",
     boxSizing: "border-box",
     position: "relative",
     zIndex: 40,
@@ -983,8 +983,8 @@ const trialBannerStyles = {
 
   card: {
     width: "100%",
-    maxWidth: "1180px",
-    margin: "0 auto",
+    maxWidth: "none",
+    margin: "0",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
