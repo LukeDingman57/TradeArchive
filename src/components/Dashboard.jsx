@@ -558,7 +558,7 @@ const styles = {
 
   featuresGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
     gap: "18px",
     width: "100%",
   },
@@ -570,6 +570,7 @@ const styles = {
     textAlign: "left",
     cursor: "pointer",
     width: "100%",
+    height: "100%",
     color: "#f8fafc",
     fontFamily: "inherit",
   },
@@ -581,6 +582,7 @@ const styles = {
     borderRadius: "20px",
     padding: "22px 18px",
     minHeight: "178px",
+    height: "100%",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
