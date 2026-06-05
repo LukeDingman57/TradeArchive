@@ -29,12 +29,6 @@ export default function Dashboard({ setActivePage }) {
       page: "journal",
     },
     {
-      icon: "📈",
-      title: "Backtesting",
-      text: "Replay setups and sharpen your process.",
-      page: "backtesting",
-    },
-    {
       icon: "📊",
       title: "Performance Analytics",
       text: "See what is helping or hurting your results.",
@@ -206,7 +200,7 @@ export default function Dashboard({ setActivePage }) {
 
             <button
               style={{ ...styles.secondaryButton, ...(isMobile ? styles.mobileFullButton : {}) }}
-              onClick={() => setActivePage("backtesting")}
+              onClick={() => setActivePage("pricing")}
             >
               View Features
             </button>
