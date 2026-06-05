@@ -1,34 +1,18 @@
-export default function Sidebar({ activePage, setActivePage }) {
+export default function Sidebar({ activePage, setActivePage, session }) {
+  const userEmail = session?.user?.email || "";
+  const initials = userEmail ? userEmail.slice(0, 2).toUpperCase() : "TA";
+
   const navItems = [
-    {
-      label: "Dashboard",
-      page: "dashboard",
-      icon: "▦",
-      sub: "Overview",
-    },
-    {
-      label: "Journal",
-      page: "journal",
-      icon: "↗",
-      sub: "Trade notes",
-    },
-    {
-      label: "Pricing",
-      page: "pricing",
-      icon: "◈",
-      sub: "Plans",
-    },
+    { label: "Dashboard", page: "dashboard", icon: "▦", sub: "Overview" },
+    { label: "Journal", page: "journal", icon: "↗", sub: "Trade notes" },
+    { label: "Pricing", page: "pricing", icon: "◈", sub: "Plans" },
   ];
 
   return (
     <aside style={styles.sidebar}>
       <div style={styles.topGlow} />
       <div style={styles.content}>
-        <button
-          type="button"
-          onClick={() => setActivePage("dashboard")}
-          style={styles.logoButton}
-        >
+        <button type="button" onClick={() => setActivePage("dashboard")} style={styles.logoButton}>
           <div style={styles.logoMark}>TA</div>
           <div>
             <h1 style={styles.logo}>
@@ -44,45 +28,23 @@ export default function Sidebar({ activePage, setActivePage }) {
         <nav style={styles.menuGroup}>
           {navItems.map((item) => {
             const isActive = activePage === item.page;
-
             return (
               <button
                 key={item.page}
                 onClick={() => setActivePage(item.page)}
-                style={{
-                  ...styles.navItem,
-                  ...(isActive ? styles.activeNavItem : {}),
-                }}
+                style={{ ...styles.navItem, ...(isActive ? styles.activeNavItem : {}) }}
               >
-                <div
-                  style={{
-                    ...styles.iconWrap,
-                    ...(isActive ? styles.activeIconWrap : {}),
-                  }}
-                >
+                <div style={{ ...styles.iconWrap, ...(isActive ? styles.activeIconWrap : {}) }}>
                   {item.icon}
                 </div>
-
                 <div style={styles.textWrap}>
-                  <div
-                    style={{
-                      ...styles.navTitle,
-                      ...(isActive ? styles.activeNavTitle : {}),
-                    }}
-                  >
+                  <div style={{ ...styles.navTitle, ...(isActive ? styles.activeNavTitle : {}) }}>
                     {item.label}
                   </div>
-
-                  <div
-                    style={{
-                      ...styles.navSub,
-                      ...(isActive ? styles.activeNavSub : {}),
-                    }}
-                  >
+                  <div style={{ ...styles.navSub, ...(isActive ? styles.activeNavSub : {}) }}>
                     {item.sub}
                   </div>
                 </div>
-
                 {isActive && <div style={styles.activePill} />}
               </button>
             );
@@ -91,26 +53,25 @@ export default function Sidebar({ activePage, setActivePage }) {
 
         <div style={styles.spacer} />
 
-        <button
-          type="button"
-          onClick={() => setActivePage("pricing")}
-          style={styles.upgradeCard}
-        >
+        <button type="button" onClick={() => setActivePage("pricing")} style={styles.upgradeCard}>
           <div style={styles.upgradeTop}>
             <div style={styles.upgradeIcon}>★</div>
             <div style={styles.upgradeArrow}>→</div>
           </div>
           <div style={styles.upgradeTitle}>Essential</div>
-          <div style={styles.upgradeText}>Unlock screenshots, analytics, and unlimited journal entries.</div>
+          <div style={styles.upgradeText}>
+            Unlock screenshots, analytics, and unlimited journal entries.
+          </div>
         </button>
 
-        <div style={styles.footerCard}>
-          <div style={styles.footerAvatar}>TA</div>
+        <button type="button" onClick={() => setActivePage("settings")} style={styles.footerCard}>
+          <div style={styles.footerAvatar}>{initials}</div>
           <div style={styles.footerTextWrap}>
-            <div style={styles.footerTitle}>TradeArchive</div>
-            <div style={styles.footerSub}>Build consistency</div>
+            <div style={styles.footerTitle}>{userEmail || "Settings"}</div>
+            <div style={styles.footerSub}>Manage billing</div>
           </div>
-        </div>
+          <div style={styles.footerArrow}>›</div>
+        </button>
       </div>
     </aside>
   );
@@ -128,7 +89,6 @@ const styles = {
     boxSizing: "border-box",
     flexShrink: 0,
   },
-
   topGlow: {
     position: "absolute",
     top: "-90px",
@@ -140,7 +100,6 @@ const styles = {
     filter: "blur(54px)",
     pointerEvents: "none",
   },
-
   content: {
     position: "relative",
     zIndex: 2,
@@ -150,7 +109,6 @@ const styles = {
     padding: "22px 14px 18px",
     boxSizing: "border-box",
   },
-
   logoButton: {
     width: "100%",
     background: "transparent",
@@ -163,7 +121,6 @@ const styles = {
     alignItems: "center",
     gap: "11px",
   },
-
   logoMark: {
     width: "38px",
     height: "38px",
@@ -178,30 +135,10 @@ const styles = {
     boxShadow: "0 12px 28px rgba(37,99,235,0.14)",
     flexShrink: 0,
   },
-
-  logo: {
-    margin: 0,
-    fontSize: "23px",
-    fontWeight: 800,
-    letterSpacing: "-0.045em",
-    lineHeight: 1,
-  },
-
-  logoWhite: {
-    color: "#ffffff",
-  },
-
-  logoBlue: {
-    color: "#60a5fa",
-  },
-
-  logoSub: {
-    marginTop: "5px",
-    color: "rgba(148,163,184,0.72)",
-    fontSize: "12px",
-    fontWeight: 550,
-  },
-
+  logo: { margin: 0, fontSize: "23px", fontWeight: 800, letterSpacing: "-0.045em", lineHeight: 1 },
+  logoWhite: { color: "#ffffff" },
+  logoBlue: { color: "#60a5fa" },
+  logoSub: { marginTop: "5px", color: "rgba(148,163,184,0.72)", fontSize: "12px", fontWeight: 550 },
   sectionLabel: {
     margin: "2px 8px 9px",
     color: "rgba(148,163,184,0.55)",
@@ -210,13 +147,7 @@ const styles = {
     letterSpacing: "0.13em",
     textTransform: "uppercase",
   },
-
-  menuGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "9px",
-  },
-
+  menuGroup: { display: "flex", flexDirection: "column", gap: "9px" },
   navItem: {
     width: "100%",
     minHeight: "68px",
@@ -233,15 +164,11 @@ const styles = {
     transition: "all 0.18s ease",
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.025)",
   },
-
   activeNavItem: {
-    background:
-      "linear-gradient(135deg, rgba(37,99,235,0.28), rgba(15,23,42,0.78) 62%, rgba(8,15,28,0.92))",
+    background: "linear-gradient(135deg, rgba(37,99,235,0.28), rgba(15,23,42,0.78) 62%, rgba(8,15,28,0.92))",
     border: "1px solid rgba(96,165,250,0.32)",
-    boxShadow:
-      "inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 32px rgba(37,99,235,0.16)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 32px rgba(37,99,235,0.16)",
   },
-
   iconWrap: {
     width: "42px",
     height: "42px",
@@ -254,18 +181,12 @@ const styles = {
     fontSize: "17px",
     flexShrink: 0,
   },
-
   activeIconWrap: {
     background: "linear-gradient(180deg, rgba(59,130,246,0.42), rgba(37,99,235,0.24))",
     color: "#dbeafe",
     boxShadow: "0 10px 22px rgba(37,99,235,0.20)",
   },
-
-  textWrap: {
-    flex: 1,
-    minWidth: 0,
-  },
-
+  textWrap: { flex: 1, minWidth: 0 },
   navTitle: {
     fontSize: "15px",
     fontWeight: 700,
@@ -273,23 +194,9 @@ const styles = {
     marginBottom: "4px",
     letterSpacing: "-0.01em",
   },
-
-  activeNavTitle: {
-    color: "#ffffff",
-    fontWeight: 760,
-  },
-
-  navSub: {
-    fontSize: "12px",
-    lineHeight: 1.3,
-    color: "rgba(148,163,184,0.68)",
-    fontWeight: 500,
-  },
-
-  activeNavSub: {
-    color: "rgba(191,219,254,0.82)",
-  },
-
+  activeNavTitle: { color: "#ffffff", fontWeight: 760 },
+  navSub: { fontSize: "12px", lineHeight: 1.3, color: "rgba(148,163,184,0.68)", fontWeight: 500 },
+  activeNavSub: { color: "rgba(191,219,254,0.82)" },
   activePill: {
     position: "absolute",
     right: "11px",
@@ -299,17 +206,11 @@ const styles = {
     background: "#60a5fa",
     boxShadow: "0 0 16px rgba(96,165,250,0.95)",
   },
-
-  spacer: {
-    flex: 1,
-    minHeight: "28px",
-  },
-
+  spacer: { flex: 1, minHeight: "28px" },
   upgradeCard: {
     width: "100%",
     border: "1px solid rgba(96,165,250,0.16)",
-    background:
-      "linear-gradient(145deg, rgba(37,99,235,0.14), rgba(15,23,42,0.44) 56%, rgba(2,6,23,0.76))",
+    background: "linear-gradient(145deg, rgba(37,99,235,0.14), rgba(15,23,42,0.44) 56%, rgba(2,6,23,0.76))",
     borderRadius: "20px",
     padding: "15px",
     textAlign: "left",
@@ -318,14 +219,7 @@ const styles = {
     boxShadow: "0 14px 34px rgba(0,0,0,0.22)",
     marginBottom: "14px",
   },
-
-  upgradeTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "12px",
-  },
-
+  upgradeTop: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" },
   upgradeIcon: {
     width: "35px",
     height: "35px",
@@ -337,33 +231,21 @@ const styles = {
     placeItems: "center",
     fontSize: "17px",
   },
-
-  upgradeArrow: {
-    color: "rgba(191,219,254,0.80)",
-    fontSize: "18px",
-  },
-
-  upgradeTitle: {
-    fontSize: "15px",
-    fontWeight: 760,
-    marginBottom: "6px",
-  },
-
-  upgradeText: {
-    color: "rgba(203,213,225,0.70)",
-    fontSize: "12.5px",
-    lineHeight: 1.45,
-    fontWeight: 500,
-  },
-
+  upgradeArrow: { color: "rgba(191,219,254,0.80)", fontSize: "18px" },
+  upgradeTitle: { fontSize: "15px", fontWeight: 760, marginBottom: "6px" },
+  upgradeText: { color: "rgba(203,213,225,0.70)", fontSize: "12.5px", lineHeight: 1.45, fontWeight: 500 },
   footerCard: {
+    width: "100%",
+    border: "none",
     borderTop: "1px solid rgba(148,163,184,0.10)",
     padding: "14px 6px 0",
     display: "flex",
     alignItems: "center",
     gap: "10px",
+    background: "transparent",
+    cursor: "pointer",
+    textAlign: "left",
   },
-
   footerAvatar: {
     width: "34px",
     height: "34px",
@@ -376,21 +258,21 @@ const styles = {
     fontWeight: 850,
     flexShrink: 0,
   },
-
-  footerTextWrap: {
-    minWidth: 0,
-  },
-
+  footerTextWrap: { minWidth: 0, flex: 1 },
   footerTitle: {
     color: "rgba(248,250,252,0.88)",
     fontSize: "13px",
     fontWeight: 720,
     lineHeight: 1.25,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   },
-
-  footerSub: {
-    color: "rgba(148,163,184,0.64)",
-    fontSize: "12px",
-    lineHeight: 1.3,
+  footerSub: { color: "rgba(148,163,184,0.64)", fontSize: "12px", lineHeight: 1.3 },
+  footerArrow: {
+    marginLeft: "auto",
+    color: "rgba(148,163,184,0.75)",
+    fontSize: "20px",
+    fontWeight: 800,
   },
 };
