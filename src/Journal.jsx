@@ -1715,16 +1715,6 @@ export default function Journal({ setActivePage }) {
             </div>
           </div>
         </div>
-
-        <div style={{ ...styles.proCard, ...(isMobile ? styles.proCardMobile : {}) }}>
-          <div style={styles.proLeft}>
-            <div style={styles.proTitle}>
-              Upgrade to <span style={{ color: "#60a5fa" }}>PRO</span>
-            </div>
-            <div style={styles.proText}>Unlock advanced features and analytics</div>
-          </div>
-          <button style={{ ...styles.proButton, ...(isMobile ? styles.proButtonMobile : {}) }}>Get Pro</button>
-        </div>
       </div>
 
       {showAddModal && (
