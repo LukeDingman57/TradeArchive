@@ -814,7 +814,52 @@ export default function App() {
     }
 
     if (activePage === "dashboard") {
-      return <Dashboard setActivePage={setActivePage} />;
+  
+    if (activePage === "settings") {
+      return (
+        <div style={{ minHeight: "100vh", padding: "48px", color: "white" }}>
+          <h1 style={{ fontSize: "42px", marginBottom: "10px" }}>Settings</h1>
+          <p style={{ color: "rgba(255,255,255,0.65)", marginBottom: "30px" }}>
+            Manage your TradeArchive account.
+          </p>
+
+          <div
+            style={{
+              maxWidth: "700px",
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: "20px",
+              padding: "24px",
+            }}
+          >
+            <div style={{ marginBottom: "20px" }}>
+              <div style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "6px" }}>
+                Email
+              </div>
+              <div style={{ fontSize: "16px", fontWeight: "700" }}>
+                {session?.user?.email}
+              </div>
+            </div>
+
+            <button
+              style={{
+                padding: "12px 18px",
+                borderRadius: "12px",
+                border: "1px solid rgba(96,165,250,0.35)",
+                background: "linear-gradient(180deg,#3b82f6 0%,#2563eb 100%)",
+                color: "#fff",
+                cursor: "pointer",
+                fontWeight: "800",
+              }}
+            >
+              Manage Billing
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return <Dashboard setActivePage={setActivePage} />;
     }
 
     if (activePage === "journal") {
@@ -850,6 +895,51 @@ export default function App() {
       );
     }
 
+
+    if (activePage === "settings") {
+      return (
+        <div style={{ minHeight: "100vh", padding: "48px", color: "white" }}>
+          <h1 style={{ fontSize: "42px", marginBottom: "10px" }}>Settings</h1>
+          <p style={{ color: "rgba(255,255,255,0.65)", marginBottom: "30px" }}>
+            Manage your TradeArchive account.
+          </p>
+
+          <div
+            style={{
+              maxWidth: "700px",
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: "20px",
+              padding: "24px",
+            }}
+          >
+            <div style={{ marginBottom: "20px" }}>
+              <div style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "6px" }}>
+                Email
+              </div>
+              <div style={{ fontSize: "16px", fontWeight: "700" }}>
+                {session?.user?.email}
+              </div>
+            </div>
+
+            <button
+              style={{
+                padding: "12px 18px",
+                borderRadius: "12px",
+                border: "1px solid rgba(96,165,250,0.35)",
+                background: "linear-gradient(180deg,#3b82f6 0%,#2563eb 100%)",
+                color: "#fff",
+                cursor: "pointer",
+                fontWeight: "800",
+              }}
+            >
+              Manage Billing
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return <Dashboard setActivePage={setActivePage} />;
   };
 
@@ -882,7 +972,7 @@ export default function App() {
       }}
     >
       {!isMobile && (
-        <Sidebar activePage={activePage} setActivePage={setActivePage} />
+        <Sidebar activePage={activePage} setActivePage={setActivePage} session={session} />
       )}
 
       {isMobile && (
