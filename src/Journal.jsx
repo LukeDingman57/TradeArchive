@@ -1111,13 +1111,6 @@ export default function Journal({ setActivePage }) {
           <button
             type="button"
             style={styles.topNavButton}
-            onClick={() => setActivePage?.("backtesting")}
-          >
-            Backtest
-          </button>
-          <button
-            type="button"
-            style={styles.topNavButton}
             onClick={() => setActivePage?.("pricing")}
           >
             Pricing
@@ -1125,9 +1118,6 @@ export default function Journal({ setActivePage }) {
         </div>
 
         <div style={{ ...styles.topRight, ...(isMobile ? styles.topRightMobile : {}) }}>
-          <span style={styles.topRightText}>Settings</span>
-          <span style={styles.divider}>|</span>
-          <span style={styles.topRightText}>Logout</span>
           <div style={styles.userPill}>User ▾</div>
         </div>
       </div>
@@ -2295,12 +2285,6 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "14px",
-  },
-  topRightText: {
-    color: "rgba(255,255,255,0.82)",
-  },
-  divider: {
-    color: "rgba(255,255,255,0.35)",
   },
   userPill: {
     background: "rgba(255,255,255,0.08)",
