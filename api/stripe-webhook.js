@@ -24,9 +24,21 @@ async function buffer(readable) {
   return Buffer.concat(chunks);
 }
 
+function normalizePlan(plan) {
+  if (plan === "essential" || plan === "essential_yearly") return "essential";
+  if (plan === "pro") return "pro";
+  return "free";
+}
+
 function getPlanFromPriceId(priceId) {
-  if (priceId === process.env.STRIPE_ESSENTIAL_PRICE_ID) return "essential";
-  if (priceId === process.env.STRIPE_PRO_PRICE_ID) return "pro";
+  const essentialMonthly = process.env.STRIPE_ESSENTIAL_PRICE_ID;
+  const essentialYearly = process.env.STRIPE_ESSENTIAL_YEARLY_PRICE_ID;
+  const pro = process.env.STRIPE_PRO_PRICE_ID;
+
+  if (priceId === essentialMonthly) return "essential";
+  if (priceId === essentialYearly) return "essential";
+  if (priceId === pro) return "pro";
+
   return "free";
 }
 
@@ -45,7 +57,7 @@ async function upsertProfile({
   const payload = {
     id: userId,
     email: email || null,
-    plan: plan || "free",
+    plan: normalizePlan(plan),
     stripe_customer_id: stripeCustomerId || null,
     stripe_subscription_id: stripeSubscriptionId || null,
     subscription_status: subscriptionStatus || null,
@@ -106,10 +118,11 @@ export default async function handler(req, res) {
           ? session.customer
           : session.customer?.id;
 
-      let plan =
-        metadataPlan === "essential" || metadataPlan === "pro"
-          ? metadataPlan
-          : getPlanFromPriceId(metadataPriceId);
+      let plan = normalizePlan(metadataPlan);
+
+      if (plan === "free") {
+        plan = getPlanFromPriceId(metadataPriceId);
+      }
 
       await upsertProfile({
         userId,
@@ -121,6 +134,40 @@ export default async function handler(req, res) {
       });
 
       console.log(`✅ User upgraded: ${customerEmail} → ${plan}`);
+    }
+
+    if (event.type === "customer.subscription.created") {
+      const subscription = event.data.object;
+
+      const subscriptionId = subscription.id;
+      const status = subscription.status;
+      const userId = subscription.metadata?.userId;
+      const customerEmail = subscription.metadata?.customerEmail || null;
+
+      const priceId =
+        subscription.metadata?.priceId ||
+        subscription.items?.data?.[0]?.price?.id;
+
+      const plan =
+        status === "active" || status === "trialing"
+          ? getPlanFromPriceId(priceId)
+          : "free";
+
+      if (userId) {
+        await upsertProfile({
+          userId,
+          email: customerEmail,
+          plan,
+          stripeCustomerId:
+            typeof subscription.customer === "string"
+              ? subscription.customer
+              : subscription.customer?.id,
+          stripeSubscriptionId: subscriptionId,
+          subscriptionStatus: status,
+        });
+      }
+
+      console.log(`✅ Subscription created: ${subscriptionId} → ${plan}`);
     }
 
     if (event.type === "customer.subscription.updated") {
