@@ -681,6 +681,7 @@ export default function App() {
   const [activePage, setActivePage] = useState("dashboard");
   const [loadingSession, setLoadingSession] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
   const [billingError, setBillingError] = useState("");
   const [authMode, setAuthMode] = useState("login");
   const isMobile = useIsMobile();
@@ -803,6 +804,53 @@ export default function App() {
     }
   };
 
+
+  const handleManageBilling = async () => {
+    setBillingError("");
+
+    if (!session) {
+      setBillingError("Log in before managing billing.");
+      openAuth("login");
+      return;
+    }
+
+    try {
+      setPortalLoading(true);
+
+      const response = await fetch("/api/create-portal-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customerEmail: session?.user?.email ?? "",
+          userId: session?.user?.id ?? "",
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error ||
+            `Unable to open billing portal (${response.status})`
+        );
+      }
+
+      if (!result?.url) {
+        throw new Error("No billing portal URL returned from server.");
+      }
+
+      window.location.href = result.url;
+    } catch (err) {
+      console.error("Stripe portal error:", err);
+      setBillingError(err?.message || "Unable to open billing portal.");
+      alert(err?.message || "Unable to open billing portal.");
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
   const renderPage = () => {
     if (activePage === "auth") {
       return (
@@ -823,6 +871,23 @@ export default function App() {
             Manage your TradeArchive account.
           </p>
 
+          {billingError ? (
+            <div
+              style={{
+                maxWidth: "700px",
+                marginBottom: "18px",
+                borderRadius: "14px",
+                padding: "12px 14px",
+                background: "rgba(239,68,68,0.12)",
+                border: "1px solid rgba(239,68,68,0.25)",
+                color: "#fecaca",
+                fontWeight: "700",
+              }}
+            >
+              {billingError}
+            </div>
+          ) : null}
+
           <div
             style={{
               maxWidth: "700px",
@@ -842,6 +907,9 @@ export default function App() {
             </div>
 
             <button
+              type="button"
+              onClick={handleManageBilling}
+              disabled={portalLoading}
               style={{
                 padding: "12px 18px",
                 borderRadius: "12px",
@@ -852,7 +920,7 @@ export default function App() {
                 fontWeight: "800",
               }}
             >
-              Manage Billing
+              {portalLoading ? "Opening Billing..." : "Manage Billing"}
             </button>
           </div>
         </div>
@@ -904,6 +972,23 @@ export default function App() {
             Manage your TradeArchive account.
           </p>
 
+          {billingError ? (
+            <div
+              style={{
+                maxWidth: "700px",
+                marginBottom: "18px",
+                borderRadius: "14px",
+                padding: "12px 14px",
+                background: "rgba(239,68,68,0.12)",
+                border: "1px solid rgba(239,68,68,0.25)",
+                color: "#fecaca",
+                fontWeight: "700",
+              }}
+            >
+              {billingError}
+            </div>
+          ) : null}
+
           <div
             style={{
               maxWidth: "700px",
@@ -923,6 +1008,9 @@ export default function App() {
             </div>
 
             <button
+              type="button"
+              onClick={handleManageBilling}
+              disabled={portalLoading}
               style={{
                 padding: "12px 18px",
                 borderRadius: "12px",
@@ -933,7 +1021,7 @@ export default function App() {
                 fontWeight: "800",
               }}
             >
-              Manage Billing
+              {portalLoading ? "Opening Billing..." : "Manage Billing"}
             </button>
           </div>
         </div>
