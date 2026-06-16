@@ -1650,8 +1650,7 @@ export default function Journal({ setActivePage }) {
                       )
                     }
                     style={{
-                      ...styles.calendarDay,
-                      ...(isMobile ? styles.calendarDayMobile : {}),
+                      ...styles.calendarDay,  ...(isMobile ? styles.calendarDayMobile : {}),
                       ...(day.isCurrentMonth
                         ? {}
                         : styles.calendarDayOutsideMonth),
