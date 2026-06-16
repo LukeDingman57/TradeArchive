@@ -132,6 +132,8 @@ export default function Journal({ setActivePage }) {
   const [selectedCalendarDate, setSelectedCalendarDate] = useState("");
   const [loadingTrades, setLoadingTrades] = useState(true);
   const [userPlan, setUserPlan] = useState("free");
+  const [customRules, setCustomRules] = useState([]);
+  const [customRuleChecks, setCustomRuleChecks] = useState({});
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -188,6 +190,20 @@ export default function Journal({ setActivePage }) {
         setUserPlan(activePlan);
       }
 
+      const { data: rulesData, error: rulesError } = await supabase
+        .from("trading_rules")
+        .select("id, rule_name")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+
+      if (rulesError) {
+        console.error("Error loading custom rules:", rulesError);
+      }
+
+      if (isMounted) {
+        setCustomRules(rulesData || []);
+      }
+
       const { data, error } = await supabase
         .from("trades")
         .select("*")
@@ -229,8 +245,33 @@ export default function Journal({ setActivePage }) {
         screenshot: trade.screenshot || "",
       }));
 
+      const tradeIds = mappedTrades.map((trade) => trade.id);
+      let checksByTrade = {};
+
+      if (tradeIds.length) {
+        const { data: checksData, error: checksError } = await supabase
+          .from("trade_rule_checks")
+          .select("trade_id, rule_id, followed")
+          .in("trade_id", tradeIds);
+
+        if (checksError) {
+          console.error("Error loading rule checks:", checksError);
+        } else {
+          (checksData || []).forEach((check) => {
+            const tradeKey = String(check.trade_id);
+            if (!checksByTrade[tradeKey]) checksByTrade[tradeKey] = {};
+            checksByTrade[tradeKey][String(check.rule_id)] = Boolean(check.followed);
+          });
+        }
+      }
+
+      const mappedTradesWithRules = mappedTrades.map((trade) => ({
+        ...trade,
+        customRuleChecks: checksByTrade[String(trade.id)] || {},
+      }));
+
       if (isMounted) {
-        setTrades(mappedTrades);
+        setTrades(mappedTradesWithRules);
         setLoadingTrades(false);
       }
     };
@@ -271,6 +312,42 @@ export default function Journal({ setActivePage }) {
       avgR,
     };
   }, [trades]);
+
+  const ruleCompliance = useMemo(() => {
+    if (!customRules.length || !trades.length) {
+      return {
+        complianceRate: "0.0",
+        totalChecks: 0,
+        followedChecks: 0,
+        mostBrokenRule: "No custom rule data yet",
+      };
+    }
+
+    let totalChecks = 0;
+    let followedChecks = 0;
+    const brokenCounts = {};
+
+    trades.forEach((trade) => {
+      customRules.forEach((rule) => {
+        totalChecks += 1;
+        const followed = Boolean(trade.customRuleChecks?.[String(rule.id)]);
+        if (followed) {
+          followedChecks += 1;
+        } else {
+          brokenCounts[rule.rule_name] = (brokenCounts[rule.rule_name] || 0) + 1;
+        }
+      });
+    });
+
+    const mostBrokenRuleEntry = Object.entries(brokenCounts).sort((a, b) => b[1] - a[1])[0];
+
+    return {
+      complianceRate: totalChecks ? ((followedChecks / totalChecks) * 100).toFixed(1) : "0.0",
+      totalChecks,
+      followedChecks,
+      mostBrokenRule: mostBrokenRuleEntry ? mostBrokenRuleEntry[0] : "No broken rules logged",
+    };
+  }, [customRules, trades]);
 
   const setupAnalytics = useMemo(() => {
     const grouped = {};
@@ -681,6 +758,21 @@ export default function Journal({ setActivePage }) {
     }));
   };
 
+  const handleCustomRuleChange = (ruleId, followed) => {
+    setCustomRuleChecks((prev) => ({
+      ...prev,
+      [String(ruleId)]: followed,
+    }));
+  };
+
+  const resetCustomRuleChecks = (rules = customRules) => {
+    const nextChecks = {};
+    rules.forEach((rule) => {
+      nextChecks[String(rule.id)] = false;
+    });
+    setCustomRuleChecks(nextChecks);
+  };
+
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -711,6 +803,7 @@ export default function Journal({ setActivePage }) {
 
   const openAddModal = () => {
     resetForm();
+    resetCustomRuleChecks();
     setShowAddModal(true);
   };
 
@@ -743,6 +836,7 @@ export default function Journal({ setActivePage }) {
       notes: trade.notes || "",
       screenshot: trade.screenshot || "",
     });
+    setCustomRuleChecks(trade.customRuleChecks || {});
     setShowEditModal(true);
   };
 
@@ -810,7 +904,26 @@ export default function Journal({ setActivePage }) {
       return;
     }
 
-    const newTrade = mapSupabaseTrade(data);
+    if (customRules.length) {
+      const ruleRows = customRules.map((rule) => ({
+        trade_id: data.id,
+        rule_id: rule.id,
+        followed: Boolean(customRuleChecks[String(rule.id)]),
+      }));
+
+      const { error: ruleCheckError } = await supabase
+        .from("trade_rule_checks")
+        .insert(ruleRows);
+
+      if (ruleCheckError) {
+        console.error("Error saving rule checks:", ruleCheckError);
+      }
+    }
+
+    const newTrade = {
+      ...mapSupabaseTrade(data),
+      customRuleChecks: { ...customRuleChecks },
+    };
 
     setTrades((prev) => [newTrade, ...prev]);
     setShowAddModal(false);
@@ -868,6 +981,31 @@ export default function Journal({ setActivePage }) {
       return;
     }
 
+    if (customRules.length) {
+      const { error: deleteChecksError } = await supabase
+        .from("trade_rule_checks")
+        .delete()
+        .eq("trade_id", form.id);
+
+      if (deleteChecksError) {
+        console.error("Error clearing old rule checks:", deleteChecksError);
+      }
+
+      const ruleRows = customRules.map((rule) => ({
+        trade_id: form.id,
+        rule_id: rule.id,
+        followed: Boolean(customRuleChecks[String(rule.id)]),
+      }));
+
+      const { error: insertChecksError } = await supabase
+        .from("trade_rule_checks")
+        .insert(ruleRows);
+
+      if (insertChecksError) {
+        console.error("Error saving updated rule checks:", insertChecksError);
+      }
+    }
+
     const updatedTrade = {
       id: data.id,
       date: data.date,
@@ -892,6 +1030,7 @@ export default function Journal({ setActivePage }) {
       liquidityConfirmed: Boolean(data.liquidity_confirmed),
       notes: data.notes,
       screenshot: data.screenshot || "",
+      customRuleChecks: { ...customRuleChecks },
     };
 
     setTrades((prev) =>
@@ -979,6 +1118,11 @@ export default function Journal({ setActivePage }) {
       alert("That trade was not found for your account. I removed it from the screen.");
       return;
     }
+
+    await supabase
+      .from("trade_rule_checks")
+      .delete()
+      .eq("trade_id", tradeId);
 
     const { error: deleteError } = await supabase
       .from("trades")
@@ -1178,6 +1322,16 @@ export default function Journal({ setActivePage }) {
               }}
             >
               {stats.avgR}R
+            </div>
+          </div>
+
+          <div style={{ ...styles.statCard, ...(isMobile ? styles.statCardMobile : {}) }}>
+            <div style={styles.statLabel}>Rule Compliance</div>
+            <div style={{ ...styles.statValue, color: "#93c5fd" }}>
+              {ruleCompliance.complianceRate}%
+            </div>
+            <div style={{ marginTop: "6px", color: "rgba(255,255,255,0.55)", fontSize: "12px", fontWeight: 700 }}>
+              Most broken: {ruleCompliance.mostBrokenRule}
             </div>
           </div>
         </div>
@@ -1723,6 +1877,9 @@ export default function Journal({ setActivePage }) {
               handleFileChange={handleFileChange}
               removeScreenshot={removeScreenshot}
               liveRPreview={liveRPreview}
+              customRules={customRules}
+              customRuleChecks={customRuleChecks}
+              handleCustomRuleChange={handleCustomRuleChange}
               onCancel={() => setShowAddModal(false)}
               onSave={handleAddTrade}
             />
@@ -1747,6 +1904,9 @@ export default function Journal({ setActivePage }) {
               handleFileChange={handleFileChange}
               removeScreenshot={removeScreenshot}
               liveRPreview={liveRPreview}
+              customRules={customRules}
+              customRuleChecks={customRuleChecks}
+              handleCustomRuleChange={handleCustomRuleChange}
               onCancel={() => setShowEditModal(false)}
               onSave={handleSaveEdit}
               saveLabel="Save Changes"
@@ -1856,23 +2016,28 @@ export default function Journal({ setActivePage }) {
               </div>
 
               <div style={styles.viewChecklistWrap}>
-                {[
-                  ["BOS", selectedTrade.bosConfirmed],
-                  ["IFVG", selectedTrade.ifvgConfirmed],
-                  ["SMT", selectedTrade.smtConfirmed],
-                  ["Session", selectedTrade.sessionConfirmed],
-                  ["Liquidity", selectedTrade.liquidityConfirmed],
-                ].map(([label, checked]) => (
-                  <span
-                    key={label}
-                    style={{
-                      ...styles.viewChecklistPill,
-                      ...(checked ? styles.viewChecklistPillActive : {}),
-                    }}
-                  >
-                    {checked ? "✓" : "○"} {label}
-                  </span>
-                ))}
+                {customRules.length ? (
+                  customRules.map((rule) => {
+                    const checked = Boolean(selectedTrade.customRuleChecks?.[String(rule.id)]);
+                    return (
+                      <span
+                        key={rule.id}
+                        style={{
+                          ...styles.viewChecklistPill,
+                          ...(checked ? styles.viewChecklistPillActive : {}),
+                        }}
+                      >
+                        {checked ? "✓" : "○"} {rule.rule_name}
+                      </span>
+                    );
+                  })
+                ) : (
+                  [["BOS", selectedTrade.bosConfirmed], ["IFVG", selectedTrade.ifvgConfirmed], ["SMT", selectedTrade.smtConfirmed], ["Session", selectedTrade.sessionConfirmed], ["Liquidity", selectedTrade.liquidityConfirmed]].map(([label, checked]) => (
+                    <span key={label} style={{ ...styles.viewChecklistPill, ...(checked ? styles.viewChecklistPillActive : {}) }}>
+                      {checked ? "✓" : "○"} {label}
+                    </span>
+                  ))
+                )}
               </div>
             </div>
 
@@ -1925,6 +2090,9 @@ function TradeForm({
   handleFileChange,
   removeScreenshot,
   liveRPreview,
+  customRules = [],
+  customRuleChecks = {},
+  handleCustomRuleChange,
   onCancel,
   onSave,
   saveLabel = "Save Trade",
@@ -2081,24 +2249,32 @@ function TradeForm({
 
             <div style={styles.checklistTitle}>Rules Checklist</div>
             <div style={styles.rulesGrid}>
-              {[
-                ["bosConfirmed", "BOS Confirmed"],
-                ["ifvgConfirmed", "IFVG Entry"],
-                ["smtConfirmed", "SMT Present"],
-                ["sessionConfirmed", "Correct Session Time"],
-                ["liquidityConfirmed", "Liquidity Target"],
-              ].map(([field, label]) => (
-                <label key={field} style={styles.ruleCheck}>
-                  <input
-                    type="checkbox"
-                    checked={Boolean(form[field])}
-                    onChange={(e) => handleChange(field, e.target.checked)}
-                    style={styles.checkbox}
-                  />
-                  <span>{label}</span>
-                </label>
-              ))}
+              {customRules.length ? (
+                customRules.map((rule) => (
+                  <label key={rule.id} style={styles.ruleCheck}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(customRuleChecks[String(rule.id)])}
+                      onChange={(e) => handleCustomRuleChange?.(rule.id, e.target.checked)}
+                      style={styles.checkbox}
+                    />
+                    <span>{rule.rule_name}</span>
+                  </label>
+                ))
+              ) : (
+                [["bosConfirmed", "BOS Confirmed"], ["ifvgConfirmed", "IFVG Entry"], ["smtConfirmed", "SMT Present"], ["sessionConfirmed", "Correct Session Time"], ["liquidityConfirmed", "Liquidity Target"]].map(([field, label]) => (
+                  <label key={field} style={styles.ruleCheck}>
+                    <input type="checkbox" checked={Boolean(form[field])} onChange={(e) => handleChange(field, e.target.checked)} style={styles.checkbox} />
+                    <span>{label}</span>
+                  </label>
+                ))
+              )}
             </div>
+            {!customRules.length && (
+              <div style={{ marginTop: "10px", color: "rgba(255,255,255,0.55)", fontSize: "12px", fontWeight: 700 }}>
+                Add your own rules in Settings to replace these default checklist items.
+              </div>
+            )}
           </div>
         </div>
 
@@ -2320,7 +2496,7 @@ const styles = {
   },
   statsGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(6, 1fr)",
+    gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
     gap: "16px",
     marginBottom: "20px",
   },
