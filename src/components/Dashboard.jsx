@@ -73,6 +73,12 @@ const money = (value) => `$${Number(value || 0).toLocaleString()}`;
 
 export default function Dashboard({ setActivePage }) {
   const isMobile = useIsMobileDashboard();
+  const [activeModal, setActiveModal] = React.useState(null);
+
+  const openAddFirm = () => setActiveModal("addFirm");
+  const openAccountsManager = () => setActiveModal("accountsManager");
+  const openRecoveryCalculator = () => setActiveModal("recoveryCalculator");
+  const closeModal = () => setActiveModal(null);
 
   const goToPage = (page) => {
     if (typeof setActivePage === "function") {
@@ -155,7 +161,7 @@ export default function Dashboard({ setActivePage }) {
               <PanelHeader
                 title="My Accounts"
                 actionLabel="Manage →"
-                onAction={() => goToPage("accounts")}
+                onAction={openAccountsManager}
               />
 
               <div style={styles.accountRows}>
@@ -163,7 +169,7 @@ export default function Dashboard({ setActivePage }) {
                   <AccountRow
                     key={account.name}
                     account={account}
-                    onClick={() => goToPage("accounts")}
+                    onClick={openAccountsManager}
                   />
                 ))}
               </div>
@@ -171,7 +177,7 @@ export default function Dashboard({ setActivePage }) {
               <button
                 type="button"
                 style={styles.addFirmRow}
-                onClick={() => goToPage("accounts")}
+                onClick={openAddFirm}
               >
                 <span style={styles.addCircle}>+</span>
                 <span>
@@ -232,7 +238,7 @@ export default function Dashboard({ setActivePage }) {
                 <button
                   type="button"
                   style={styles.recoveryButton}
-                  onClick={() => goToPage("tools")}
+                  onClick={openRecoveryCalculator}
                 >
                   Open Recovery Calculator
                 </button>
@@ -294,9 +300,199 @@ export default function Dashboard({ setActivePage }) {
           </aside>
         </main>
       </div>
+
+      {activeModal === "addFirm" && (
+        <Modal title="Add Firm" onClose={closeModal}>
+          <AddFirmForm onClose={closeModal} />
+        </Modal>
+      )}
+
+      {activeModal === "accountsManager" && (
+        <Modal title="Manage Accounts" onClose={closeModal}>
+          <AccountsManager onAddFirm={openAddFirm} />
+        </Modal>
+      )}
+
+      {activeModal === "recoveryCalculator" && (
+        <Modal title="Recovery Calculator" onClose={closeModal}>
+          <RecoveryCalculator />
+        </Modal>
+      )}
     </div>
   );
 }
+
+
+function Modal({ title, children, onClose }) {
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modalCard} onClick={(event) => event.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h2 style={styles.modalTitle}>{title}</h2>
+          <button type="button" style={styles.modalCloseButton} onClick={onClose}>
+            ×
+          </button>
+        </div>
+
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function AddFirmForm({ onClose }) {
+  return (
+    <div style={styles.formGrid}>
+      <label style={styles.formLabel}>
+        Prop Firm
+        <select style={styles.formInput} defaultValue="Topstep">
+          <option>Topstep</option>
+          <option>Alpha Futures</option>
+          <option>Apex</option>
+          <option>MyFundedFutures</option>
+          <option>Other</option>
+        </select>
+      </label>
+
+      <label style={styles.formLabel}>
+        Account Name
+        <input style={styles.formInput} placeholder="Topstep 50K #2" />
+      </label>
+
+      <label style={styles.formLabel}>
+        Account Type
+        <select style={styles.formInput} defaultValue="Funded">
+          <option>Funded</option>
+          <option>Evaluation</option>
+        </select>
+      </label>
+
+      <label style={styles.formLabel}>
+        Starting Balance
+        <input style={styles.formInput} placeholder="50000" type="number" />
+      </label>
+
+      <label style={styles.formLabel}>
+        Current Balance
+        <input style={styles.formInput} placeholder="50000" type="number" />
+      </label>
+
+      <label style={styles.formLabel}>
+        Profit Target / Payout Target
+        <input style={styles.formInput} placeholder="3000" type="number" />
+      </label>
+
+      <div style={styles.modalActions}>
+        <button type="button" style={styles.modalSecondaryButton} onClick={onClose}>
+          Cancel
+        </button>
+        <button type="button" style={styles.modalPrimaryButton} onClick={onClose}>
+          Save Firm
+        </button>
+      </div>
+
+      <p style={styles.modalHelpText}>
+        This is ready for the UI. Next step is saving this to Supabase so the dashboard updates from real account data.
+      </p>
+    </div>
+  );
+}
+
+function AccountsManager({ onAddFirm }) {
+  return (
+    <div>
+      <div style={styles.managerList}>
+        {accounts.map((account) => (
+          <div key={account.name} style={styles.managerRow}>
+            <div style={styles.accountIdentity}>
+              <div style={styles.firmLogo}>{account.logo}</div>
+              <div>
+                <h3 style={styles.accountName}>{account.name}</h3>
+                <div style={styles.accountTags}>
+                  <span style={styles.accountTag}>{account.firm}</span>
+                  <span style={styles.accountTag}>{account.type}</span>
+                </div>
+              </div>
+            </div>
+
+            <span style={styles.managerBalance}>{money(account.balance)}</span>
+          </div>
+        ))}
+      </div>
+
+      <button type="button" style={styles.modalPrimaryButtonFull} onClick={onAddFirm}>
+        + Add New Firm
+      </button>
+    </div>
+  );
+}
+
+function RecoveryCalculator() {
+  const [currentBalance, setCurrentBalance] = React.useState(47550);
+  const [targetBalance, setTargetBalance] = React.useState(50000);
+  const [risk, setRisk] = React.useState(200);
+  const [averageR, setAverageR] = React.useState(1.5);
+
+  const needed = Math.max(0, Number(targetBalance || 0) - Number(currentBalance || 0));
+  const avgWin = Math.max(1, Number(risk || 0) * Number(averageR || 0));
+  const winsNeeded = Math.ceil(needed / avgWin);
+
+  return (
+    <div>
+      <div style={styles.formGrid}>
+        <label style={styles.formLabel}>
+          Current Balance
+          <input
+            style={styles.formInput}
+            type="number"
+            value={currentBalance}
+            onChange={(event) => setCurrentBalance(event.target.value)}
+          />
+        </label>
+
+        <label style={styles.formLabel}>
+          Target Balance
+          <input
+            style={styles.formInput}
+            type="number"
+            value={targetBalance}
+            onChange={(event) => setTargetBalance(event.target.value)}
+          />
+        </label>
+
+        <label style={styles.formLabel}>
+          Risk Per Trade
+          <input
+            style={styles.formInput}
+            type="number"
+            value={risk}
+            onChange={(event) => setRisk(event.target.value)}
+          />
+        </label>
+
+        <label style={styles.formLabel}>
+          Average R Winner
+          <input
+            style={styles.formInput}
+            type="number"
+            step="0.1"
+            value={averageR}
+            onChange={(event) => setAverageR(event.target.value)}
+          />
+        </label>
+      </div>
+
+      <div style={styles.calculatorResult}>
+        <span style={styles.metricLabel}>You need</span>
+        <strong style={styles.calculatorNumber}>{money(needed)}</strong>
+        <p style={styles.recoveryNote}>
+          At {money(risk)} risk and {averageR}R average, that is about {winsNeeded} clean winning trades.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 
 function TopStat({ icon, iconStyle, label, value, detail }) {
   return (
@@ -1024,6 +1220,183 @@ const styles = {
     fontWeight: 800,
     cursor: "pointer",
   },
+
+
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 9999,
+    background: "rgba(2,8,19,0.72)",
+    backdropFilter: "blur(10px)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "20px",
+    boxSizing: "border-box",
+  },
+
+  modalCard: {
+    width: "100%",
+    maxWidth: "620px",
+    maxHeight: "90vh",
+    overflowY: "auto",
+    background:
+      "linear-gradient(180deg, rgba(15,23,42,0.98), rgba(5,13,27,0.98))",
+    border: "1px solid rgba(148,163,184,0.18)",
+    borderRadius: "18px",
+    padding: "24px",
+    boxShadow: "0 28px 80px rgba(0,0,0,0.45)",
+    boxSizing: "border-box",
+  },
+
+  modalHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "16px",
+    marginBottom: "22px",
+  },
+
+  modalTitle: {
+    margin: 0,
+    color: "#ffffff",
+    fontSize: "24px",
+    fontWeight: 850,
+    letterSpacing: "-0.04em",
+  },
+
+  modalCloseButton: {
+    width: "38px",
+    height: "38px",
+    borderRadius: "10px",
+    border: "1px solid rgba(148,163,184,0.18)",
+    background: "rgba(2,8,19,0.45)",
+    color: "#ffffff",
+    fontSize: "24px",
+    lineHeight: 1,
+    cursor: "pointer",
+  },
+
+  formGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "14px",
+  },
+
+  formLabel: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    color: "#ffffff",
+    fontSize: "13px",
+    fontWeight: 800,
+  },
+
+  formInput: {
+    width: "100%",
+    border: "1px solid rgba(148,163,184,0.18)",
+    background: "rgba(2,8,19,0.55)",
+    color: "#ffffff",
+    borderRadius: "10px",
+    padding: "13px 12px",
+    fontSize: "14px",
+    boxSizing: "border-box",
+    outline: "none",
+  },
+
+  modalActions: {
+    gridColumn: "1 / -1",
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "12px",
+    marginTop: "8px",
+  },
+
+  modalPrimaryButton: {
+    border: "none",
+    background: "linear-gradient(180deg, #3483ff, #0f63e8)",
+    color: "#ffffff",
+    borderRadius: "10px",
+    padding: "12px 18px",
+    fontSize: "14px",
+    fontWeight: 850,
+    cursor: "pointer",
+  },
+
+  modalSecondaryButton: {
+    border: "1px solid rgba(148,163,184,0.18)",
+    background: "rgba(2,8,19,0.45)",
+    color: "#ffffff",
+    borderRadius: "10px",
+    padding: "12px 18px",
+    fontSize: "14px",
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+
+  modalPrimaryButtonFull: {
+    width: "100%",
+    marginTop: "16px",
+    border: "none",
+    background: "linear-gradient(180deg, #3483ff, #0f63e8)",
+    color: "#ffffff",
+    borderRadius: "10px",
+    padding: "14px 18px",
+    fontSize: "14px",
+    fontWeight: 850,
+    cursor: "pointer",
+  },
+
+  modalHelpText: {
+    gridColumn: "1 / -1",
+    margin: "0",
+    color: "#ffffff",
+    opacity: 0.68,
+    fontSize: "13px",
+    lineHeight: 1.5,
+  },
+
+  managerList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+  },
+
+  managerRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "16px",
+    border: "1px solid rgba(148,163,184,0.13)",
+    background: "rgba(2,8,19,0.35)",
+    borderRadius: "14px",
+    padding: "14px",
+  },
+
+  managerBalance: {
+    color: "#ffffff",
+    fontSize: "16px",
+    fontWeight: 850,
+    whiteSpace: "nowrap",
+  },
+
+  calculatorResult: {
+    marginTop: "18px",
+    border: "1px solid rgba(148,163,184,0.13)",
+    background: "rgba(2,8,19,0.35)",
+    borderRadius: "14px",
+    padding: "18px",
+  },
+
+  calculatorNumber: {
+    display: "block",
+    color: "#ffffff",
+    fontSize: "38px",
+    fontWeight: 900,
+    letterSpacing: "-0.06em",
+    marginTop: "8px",
+  },
+
 
   pageMobile: {
     padding: "24px 16px 100px",
