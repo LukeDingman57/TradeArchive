@@ -3,7 +3,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { supabase } from "./lib/supabase";
 import Dashboard from "./components/Dashboard";
 import Sidebar from "./components/Sidebar";
-import Accounts from "./pages/Accounts";
+import Accounts from "./components/Accounts";
 import Journal from "./Journal";
 import "./App.css";
 
