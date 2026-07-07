@@ -4,6 +4,7 @@ export default function Sidebar({ activePage, setActivePage, session }) {
 
   const navItems = [
     { label: "Dashboard", page: "dashboard", icon: "▦", sub: "Overview" },
+    { label: "Accounts", page: "accounts", icon: "▱", sub: "Prop firms" },
     { label: "Journal", page: "journal", icon: "↗", sub: "Trade notes" },
     { label: "Pricing", page: "pricing", icon: "◈", sub: "Plans" },
   ];
