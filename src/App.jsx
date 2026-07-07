@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { supabase } from "./lib/supabase";
 import Dashboard from "./components/Dashboard";
 import Sidebar from "./components/Sidebar";
+import Accounts from "./pages/Accounts";
 import Journal from "./Journal";
 import "./App.css";
 
@@ -771,6 +772,7 @@ function MobileNav({
 }) {
   const navItems = [
     { label: "Home", page: "dashboard", icon: "▦" },
+    { label: "Accounts", page: "accounts", icon: "▱" },
     { label: "Journal", page: "journal", icon: "↗" },
     { label: "Pricing", page: "pricing", icon: "◈" },
   ];
@@ -1018,75 +1020,11 @@ export default function App() {
     }
 
     if (activePage === "dashboard") {
-  
-    if (activePage === "settings") {
-      return (
-        <div style={{ minHeight: "100vh", padding: "48px", color: "white" }}>
-          <h1 style={{ fontSize: "42px", marginBottom: "10px" }}>Settings</h1>
-          <p style={{ color: "rgba(255,255,255,0.65)", marginBottom: "30px" }}>
-            Manage your TradeArchive account.
-          </p>
-
-          {billingError ? (
-            <div
-              style={{
-                maxWidth: "700px",
-                marginBottom: "18px",
-                borderRadius: "14px",
-                padding: "12px 14px",
-                background: "rgba(239,68,68,0.12)",
-                border: "1px solid rgba(239,68,68,0.25)",
-                color: "#fecaca",
-                fontWeight: "700",
-              }}
-            >
-              {billingError}
-            </div>
-          ) : null}
-
-          <div
-            style={{
-              maxWidth: "700px",
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: "20px",
-              padding: "24px",
-            }}
-          >
-            <div style={{ marginBottom: "20px" }}>
-              <div style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "6px" }}>
-                Email
-              </div>
-              <div style={{ fontSize: "16px", fontWeight: "700" }}>
-                {session?.user?.email}
-              </div>
-            </div>
-
-
-            <RulesSettingsPanel />
-
-            <button
-              type="button"
-              onClick={handleManageBilling}
-              disabled={portalLoading}
-              style={{
-                padding: "12px 18px",
-                borderRadius: "12px",
-                border: "1px solid rgba(96,165,250,0.35)",
-                background: "linear-gradient(180deg,#3b82f6 0%,#2563eb 100%)",
-                color: "#fff",
-                cursor: "pointer",
-                fontWeight: "800",
-              }}
-            >
-              {portalLoading ? "Opening Billing..." : "Manage Billing"}
-            </button>
-          </div>
-        </div>
-      );
+      return <Dashboard setActivePage={setActivePage} />;
     }
 
-    return <Dashboard setActivePage={setActivePage} />;
+    if (activePage === "accounts") {
+      return <Accounts setActivePage={setActivePage} />;
     }
 
     if (activePage === "journal") {
@@ -1122,7 +1060,6 @@ export default function App() {
       );
     }
 
-
     if (activePage === "settings") {
       return (
         <div style={{ minHeight: "100vh", padding: "48px", color: "white" }}>
@@ -1166,7 +1103,6 @@ export default function App() {
               </div>
             </div>
 
-
             <RulesSettingsPanel />
 
             <button
@@ -1192,6 +1128,7 @@ export default function App() {
 
     return <Dashboard setActivePage={setActivePage} />;
   };
+
 
   if (loadingSession) {
     return (
@@ -1809,7 +1746,7 @@ const mobileNavStyles = {
     border: "1px solid rgba(148,163,184,0.16)",
     borderRadius: "22px",
     display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
+    gridTemplateColumns: "repeat(4, 1fr)",
     gap: "6px",
     padding: "8px",
     zIndex: 100,
