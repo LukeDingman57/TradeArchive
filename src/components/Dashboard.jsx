@@ -161,13 +161,23 @@ export default function Dashboard({ setActivePage }) {
               <h2 style={styles.panelTitle}>Account overview</h2>
             </div>
 
-            <button
-              type="button"
-              style={styles.textButton}
-              onClick={() => setActivePage("accounts")}
-            >
-              Manage
-            </button>
+            <div style={styles.panelActions}>
+              <button
+                type="button"
+                style={styles.addFirmButton}
+                onClick={() => setActivePage("accounts")}
+              >
+                + Add Firm
+              </button>
+
+              <button
+                type="button"
+                style={styles.textButton}
+                onClick={() => setActivePage("accounts")}
+              >
+                Manage
+              </button>
+            </div>
           </div>
 
           <div style={styles.accountList}>
@@ -530,6 +540,24 @@ const styles = {
     alignItems: "flex-start",
     gap: "16px",
     marginBottom: "18px",
+  },
+
+  panelActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    flexShrink: 0,
+  },
+
+  addFirmButton: {
+    border: "1px solid rgba(96,165,250,0.28)",
+    background: "rgba(37,99,235,0.12)",
+    color: "#bfdbfe",
+    borderRadius: "12px",
+    padding: "9px 12px",
+    fontSize: "13px",
+    fontWeight: 800,
+    cursor: "pointer",
   },
 
   panelLabel: {
