@@ -85,16 +85,32 @@ export default function Dashboard({ setActivePage }) {
   const isMobile = useIsMobileDashboard();
   const [activeModal, setActiveModal] = React.useState(null);
   const [accounts, setAccounts] = React.useState([]);
+  const [selectedRecoveryAccountId, setSelectedRecoveryAccountId] = React.useState("");
 
   const addAccount = (accountData) => {
-    setAccounts((currentAccounts) => [...currentAccounts, createAccount(accountData)]);
+    const newAccount = createAccount(accountData);
+
+    setAccounts((currentAccounts) => {
+      if (currentAccounts.length === 0) {
+        setSelectedRecoveryAccountId(newAccount.id);
+      }
+
+      return [...currentAccounts, newAccount];
+    });
+
     setActiveModal(null);
   };
 
   const deleteAccount = (accountId) => {
-    setAccounts((currentAccounts) =>
-      currentAccounts.filter((account) => account.id !== accountId)
-    );
+    setAccounts((currentAccounts) => {
+      const nextAccounts = currentAccounts.filter((account) => account.id !== accountId);
+
+      if (selectedRecoveryAccountId === accountId) {
+        setSelectedRecoveryAccountId(nextAccounts[0]?.id || "");
+      }
+
+      return nextAccounts;
+    });
   };
 
   const openAddFirm = () => setActiveModal("addFirm");
@@ -117,7 +133,10 @@ export default function Dashboard({ setActivePage }) {
   );
   const totalNeeded = accounts.reduce((sum, account) => sum + Number(account.targetAmount || 0), 0);
   const selectedRecoveryAccount =
-    accounts.find((account) => account.targetAmount > 0) || accounts[0] || null;
+    accounts.find((account) => account.id === selectedRecoveryAccountId) ||
+    accounts.find((account) => account.targetAmount > 0) ||
+    accounts[0] ||
+    null;
   const recoveryProgress = selectedRecoveryAccount
     ? Math.max(0, Math.min(100, Number(selectedRecoveryAccount.progress || 0)))
     : 0;
@@ -257,9 +276,22 @@ export default function Dashboard({ setActivePage }) {
               <div style={styles.recoveryHeader}>
                 <h2 style={styles.sectionTitle}>Recovery Goal</h2>
 
-                <button type="button" style={styles.selectButton}>
-                  {selectedRecoveryAccount ? selectedRecoveryAccount.name : "Select Account"}⌄
-                </button>
+                <select
+                  style={styles.selectButton}
+                  value={selectedRecoveryAccount?.id || ""}
+                  onChange={(event) => setSelectedRecoveryAccountId(event.target.value)}
+                  disabled={accounts.length === 0}
+                >
+                  {accounts.length === 0 ? (
+                    <option value="">Select Account</option>
+                  ) : (
+                    accounts.map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.name}
+                      </option>
+                    ))
+                  )}
+                </select>
               </div>
 
               <div style={styles.recoveryCard}>
@@ -1184,8 +1216,10 @@ const styles = {
     borderRadius: "8px",
     padding: "11px 14px",
     fontSize: "14px",
-    fontWeight: 700,
+    fontWeight: 800,
     cursor: "pointer",
+    outline: "none",
+    maxWidth: "210px",
   },
 
   mutedLabel: {
