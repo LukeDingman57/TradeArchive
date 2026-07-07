@@ -43,8 +43,11 @@ const createAccount = ({
   currentBalance = 50000,
   targetAmount = 0,
 }) => {
+  const start = Number(startingBalance || 0);
   const balance = Number(currentBalance || startingBalance || 0);
   const target = Number(targetAmount || 0);
+  const profit = balance - start;
+  const progress = target > 0 ? Math.max(0, Math.min(100, (profit / target) * 100)) : 0;
 
   return {
     id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -52,11 +55,12 @@ const createAccount = ({
     firm,
     type,
     logo: getFirmLogo(firm),
-    status: "Not Started",
+    status: progress > 0 ? "In Progress" : "Not Started",
+    startingBalance: start,
     balance,
     targetLabel: type === "Evaluation" ? "To Pass" : "To Payout",
     targetAmount: target,
-    progress: 0,
+    progress: Math.round(progress),
   };
 };
 
@@ -106,8 +110,20 @@ export default function Dashboard({ setActivePage }) {
 
   const fundedCount = accounts.filter((account) => account.type === "Funded").length;
   const evalCount = accounts.filter((account) => account.type === "Evaluation").length;
-  const totalBalance = accounts.reduce((sum, account) => sum + Number(account.balance || 0), 0);
+  const monthlyPL = accounts.reduce(
+    (sum, account) =>
+      sum + (Number(account.balance || 0) - Number(account.startingBalance || 0)),
+    0
+  );
   const totalNeeded = accounts.reduce((sum, account) => sum + Number(account.targetAmount || 0), 0);
+  const selectedRecoveryAccount =
+    accounts.find((account) => account.targetAmount > 0) || accounts[0] || null;
+  const recoveryProgress = selectedRecoveryAccount
+    ? Math.max(0, Math.min(100, Number(selectedRecoveryAccount.progress || 0)))
+    : 0;
+  const recoveryNeeded = selectedRecoveryAccount
+    ? Number(selectedRecoveryAccount.targetAmount || 0)
+    : 0;
 
   return (
     <div style={{ ...styles.page, ...(isMobile ? styles.pageMobile : {}) }}>
@@ -157,14 +173,14 @@ export default function Dashboard({ setActivePage }) {
             icon="↗"
             iconStyle={styles.blueOrb}
             label="Monthly P/L"
-            value={accounts.length ? money(totalBalance) : "$0"}
+            value={monthlyPL > 0 ? `+${money(monthlyPL)}` : money(monthlyPL)}
             detail={`${fundedCount} funded • ${evalCount} evaluation`}
           />
 
           <TopStat
             icon="$"
             iconStyle={styles.goldOrb}
-            label="Total Needed"
+            label="Remaining Goal"
             value={accounts.length ? money(totalNeeded) : "$0"}
             detail="Pass and payout targets"
           />
@@ -242,7 +258,7 @@ export default function Dashboard({ setActivePage }) {
                 <h2 style={styles.sectionTitle}>Recovery Goal</h2>
 
                 <button type="button" style={styles.selectButton}>
-                  Topstep Eval⌄
+                  {selectedRecoveryAccount ? selectedRecoveryAccount.name : "Select Account"}⌄
                 </button>
               </div>
 
@@ -250,16 +266,25 @@ export default function Dashboard({ setActivePage }) {
                 <p style={styles.mutedLabel}>Need to pass</p>
 
                 <div style={styles.recoveryValueRow}>
-                  <div style={styles.recoveryValue}>{accounts.length ? money(totalNeeded) : "$0"}</div>
-                  <div style={styles.recoveryPercent}>{accounts.length ? "Open" : "Empty"}</div>
+                  <div style={styles.recoveryValue}>{money(recoveryNeeded)}</div>
+                  <div style={styles.recoveryPercent}>{recoveryProgress}%</div>
                 </div>
 
                 <div style={styles.recoveryTrack}>
-                  <div style={styles.recoveryFill} />
+                  <div
+                    style={{
+                      ...styles.recoveryFill,
+                      width: `${recoveryProgress}%`,
+                    }}
+                  />
                 </div>
 
                 <p style={styles.recoveryNote}>
-                  Add your prop firm accounts and this will show what you need to pass or reach payout.
+                  {selectedRecoveryAccount
+                    ? `At $200 risk and 1.5R avg, that's about ${Math.ceil(
+                        recoveryNeeded / 300 || 0
+                      )} winning trades.`
+                    : "Add your prop firm accounts and this will show what you need to pass or reach payout."}
                 </p>
 
                 <button
@@ -1057,7 +1082,7 @@ const styles = {
 
   addFirmRow: {
     width: "100%",
-    marginTop: "14px",
+    marginTop: "22px",
     border: "1px dashed rgba(148,163,184,0.20)",
     background: "rgba(2,8,19,0.30)",
     color: "#ffffff",
@@ -1202,7 +1227,7 @@ const styles = {
   },
 
   recoveryFill: {
-    width: "57%",
+    width: "var(--recovery-progress, 0%)",
     height: "100%",
     background: "#2f7cff",
     borderRadius: "999px",
