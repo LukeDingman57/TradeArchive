@@ -18,41 +18,47 @@ function useIsMobileDashboard() {
   return isMobile;
 }
 
-const accounts = [
-  {
-    name: "Topstep 50K #1",
-    firm: "Topstep",
-    type: "Funded",
-    logo: "TOP",
-    status: "Healthy",
-    balance: 51280,
-    targetLabel: "To Payout",
-    targetAmount: 720,
-    progress: 64,
-  },
-  {
-    name: "Alpha Zero",
-    firm: "Alpha Futures",
-    type: "Funded",
-    logo: "ALPHA",
-    status: "Warning",
-    balance: 50640,
-    targetLabel: "To Payout",
-    targetAmount: 420,
-    progress: 48,
-  },
-  {
-    name: "Topstep Eval",
-    firm: "Topstep",
-    type: "Evaluation",
-    logo: "TOP",
-    status: "In Progress",
-    balance: 47550,
-    targetLabel: "To Pass",
-    targetAmount: 2450,
-    progress: 57,
-  },
-];
+const getFirmLogo = (firmName) => {
+  const firm = String(firmName || "Firm").trim();
+
+  if (!firm) return "FIRM";
+
+  if (firm.toLowerCase().includes("alpha")) return "ALPHA";
+  if (firm.toLowerCase().includes("topstep")) return "TOP";
+  if (firm.toLowerCase().includes("apex")) return "APEX";
+
+  return firm
+    .split(" ")
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 5)
+    .toUpperCase();
+};
+
+const createAccount = ({
+  firm = "Topstep",
+  name = "",
+  type = "Funded",
+  startingBalance = 50000,
+  currentBalance = 50000,
+  targetAmount = 0,
+}) => {
+  const balance = Number(currentBalance || startingBalance || 0);
+  const target = Number(targetAmount || 0);
+
+  return {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    name: name || `${firm} Account`,
+    firm,
+    type,
+    logo: getFirmLogo(firm),
+    status: "Not Started",
+    balance,
+    targetLabel: type === "Evaluation" ? "To Pass" : "To Payout",
+    targetAmount: target,
+    progress: 0,
+  };
+};
 
 const trades = [
   { icon: "↑", tone: "green", setup: "A+ • Long", market: "NQ", result: "+$350", date: "Today" },
@@ -74,6 +80,18 @@ const money = (value) => `$${Number(value || 0).toLocaleString()}`;
 export default function Dashboard({ setActivePage }) {
   const isMobile = useIsMobileDashboard();
   const [activeModal, setActiveModal] = React.useState(null);
+  const [accounts, setAccounts] = React.useState([]);
+
+  const addAccount = (accountData) => {
+    setAccounts((currentAccounts) => [...currentAccounts, createAccount(accountData)]);
+    setActiveModal(null);
+  };
+
+  const deleteAccount = (accountId) => {
+    setAccounts((currentAccounts) =>
+      currentAccounts.filter((account) => account.id !== accountId)
+    );
+  };
 
   const openAddFirm = () => setActiveModal("addFirm");
   const openAccountsManager = () => setActiveModal("accountsManager");
@@ -85,6 +103,11 @@ export default function Dashboard({ setActivePage }) {
       setActivePage(page);
     }
   };
+
+  const fundedCount = accounts.filter((account) => account.type === "Funded").length;
+  const evalCount = accounts.filter((account) => account.type === "Evaluation").length;
+  const totalBalance = accounts.reduce((sum, account) => sum + Number(account.balance || 0), 0);
+  const totalNeeded = accounts.reduce((sum, account) => sum + Number(account.targetAmount || 0), 0);
 
   return (
     <div style={{ ...styles.page, ...(isMobile ? styles.pageMobile : {}) }}>
@@ -134,16 +157,16 @@ export default function Dashboard({ setActivePage }) {
             icon="↗"
             iconStyle={styles.blueOrb}
             label="Monthly P/L"
-            value="+$4,280"
-            detail="2 funded • 1 evaluation"
+            value={accounts.length ? money(totalBalance) : "$0"}
+            detail={`${fundedCount} funded • ${evalCount} evaluation`}
           />
 
           <TopStat
             icon="$"
             iconStyle={styles.goldOrb}
-            label="Daily Loss Left"
-            value="$600"
-            detail="Across all accounts"
+            label="Total Needed"
+            value={accounts.length ? money(totalNeeded) : "$0"}
+            detail="Pass and payout targets"
           />
 
           <TopStat
@@ -164,15 +187,19 @@ export default function Dashboard({ setActivePage }) {
                 onAction={openAccountsManager}
               />
 
-              <div style={styles.accountRows}>
-                {accounts.map((account) => (
-                  <AccountRow
-                    key={account.name}
-                    account={account}
-                    onClick={openAccountsManager}
-                  />
-                ))}
-              </div>
+              {accounts.length === 0 ? (
+                <EmptyAccounts onAddFirm={openAddFirm} />
+              ) : (
+                <div style={styles.accountRows}>
+                  {accounts.map((account) => (
+                    <AccountRow
+                      key={account.id}
+                      account={account}
+                      onClick={openAccountsManager}
+                    />
+                  ))}
+                </div>
+              )}
 
               <button
                 type="button"
@@ -223,8 +250,8 @@ export default function Dashboard({ setActivePage }) {
                 <p style={styles.mutedLabel}>Need to pass</p>
 
                 <div style={styles.recoveryValueRow}>
-                  <div style={styles.recoveryValue}>$2,450</div>
-                  <div style={styles.recoveryPercent}>57%</div>
+                  <div style={styles.recoveryValue}>{accounts.length ? money(totalNeeded) : "$0"}</div>
+                  <div style={styles.recoveryPercent}>{accounts.length ? "Open" : "Empty"}</div>
                 </div>
 
                 <div style={styles.recoveryTrack}>
@@ -232,7 +259,7 @@ export default function Dashboard({ setActivePage }) {
                 </div>
 
                 <p style={styles.recoveryNote}>
-                  At $200 risk and 1.5R avg, that's ~8 winning trades.
+                  Add your prop firm accounts and this will show what you need to pass or reach payout.
                 </p>
 
                 <button
@@ -303,13 +330,13 @@ export default function Dashboard({ setActivePage }) {
 
       {activeModal === "addFirm" && (
         <Modal title="Add Firm" onClose={closeModal}>
-          <AddFirmForm onClose={closeModal} />
+          <AddFirmForm onClose={closeModal} onSave={addAccount} />
         </Modal>
       )}
 
       {activeModal === "accountsManager" && (
         <Modal title="Manage Accounts" onClose={closeModal}>
-          <AccountsManager onAddFirm={openAddFirm} />
+          <AccountsManager accounts={accounts} onAddFirm={openAddFirm} onDeleteAccount={deleteAccount} />
         </Modal>
       )}
 
@@ -322,6 +349,22 @@ export default function Dashboard({ setActivePage }) {
   );
 }
 
+
+
+function EmptyAccounts({ onAddFirm }) {
+  return (
+    <div style={styles.emptyState}>
+      <div style={styles.emptyIcon}>＋</div>
+      <h3 style={styles.emptyTitle}>No firms added yet</h3>
+      <p style={styles.emptyText}>
+        Add your Topstep, Alpha, Apex, or other prop firm accounts. Your journal entries will eventually update these accounts automatically.
+      </p>
+      <button type="button" style={styles.emptyButton} onClick={onAddFirm}>
+        Add Your First Firm
+      </button>
+    </div>
+  );
+}
 
 function Modal({ title, children, onClose }) {
   return (
@@ -340,12 +383,34 @@ function Modal({ title, children, onClose }) {
   );
 }
 
-function AddFirmForm({ onClose }) {
+function AddFirmForm({ onClose, onSave }) {
+  const [firm, setFirm] = React.useState("Topstep");
+  const [name, setName] = React.useState("");
+  const [type, setType] = React.useState("Funded");
+  const [startingBalance, setStartingBalance] = React.useState("50000");
+  const [currentBalance, setCurrentBalance] = React.useState("50000");
+  const [targetAmount, setTargetAmount] = React.useState("");
+
+  const handleSave = () => {
+    onSave({
+      firm,
+      name,
+      type,
+      startingBalance,
+      currentBalance,
+      targetAmount,
+    });
+  };
+
   return (
     <div style={styles.formGrid}>
       <label style={styles.formLabel}>
         Prop Firm
-        <select style={styles.formInput} defaultValue="Topstep">
+        <select
+          style={styles.formInput}
+          value={firm}
+          onChange={(event) => setFirm(event.target.value)}
+        >
           <option>Topstep</option>
           <option>Alpha Futures</option>
           <option>Apex</option>
@@ -356,12 +421,21 @@ function AddFirmForm({ onClose }) {
 
       <label style={styles.formLabel}>
         Account Name
-        <input style={styles.formInput} placeholder="Topstep 50K #2" />
+        <input
+          style={styles.formInput}
+          placeholder="Topstep 50K #1"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
       </label>
 
       <label style={styles.formLabel}>
         Account Type
-        <select style={styles.formInput} defaultValue="Funded">
+        <select
+          style={styles.formInput}
+          value={type}
+          onChange={(event) => setType(event.target.value)}
+        >
           <option>Funded</option>
           <option>Evaluation</option>
         </select>
@@ -369,56 +443,87 @@ function AddFirmForm({ onClose }) {
 
       <label style={styles.formLabel}>
         Starting Balance
-        <input style={styles.formInput} placeholder="50000" type="number" />
+        <input
+          style={styles.formInput}
+          placeholder="50000"
+          type="number"
+          value={startingBalance}
+          onChange={(event) => setStartingBalance(event.target.value)}
+        />
       </label>
 
       <label style={styles.formLabel}>
         Current Balance
-        <input style={styles.formInput} placeholder="50000" type="number" />
+        <input
+          style={styles.formInput}
+          placeholder="50000"
+          type="number"
+          value={currentBalance}
+          onChange={(event) => setCurrentBalance(event.target.value)}
+        />
       </label>
 
       <label style={styles.formLabel}>
-        Profit Target / Payout Target
-        <input style={styles.formInput} placeholder="3000" type="number" />
+        Needed to Pass / Payout
+        <input
+          style={styles.formInput}
+          placeholder="3000"
+          type="number"
+          value={targetAmount}
+          onChange={(event) => setTargetAmount(event.target.value)}
+        />
       </label>
 
       <div style={styles.modalActions}>
         <button type="button" style={styles.modalSecondaryButton} onClick={onClose}>
           Cancel
         </button>
-        <button type="button" style={styles.modalPrimaryButton} onClick={onClose}>
+        <button type="button" style={styles.modalPrimaryButton} onClick={handleSave}>
           Save Firm
         </button>
       </div>
 
       <p style={styles.modalHelpText}>
-        This is ready for the UI. Next step is saving this to Supabase so the dashboard updates from real account data.
+        This saves in the dashboard UI for now. Next step is connecting it to Supabase so each user's firms persist after refresh.
       </p>
     </div>
   );
 }
 
-function AccountsManager({ onAddFirm }) {
+function AccountsManager({ accounts, onAddFirm, onDeleteAccount }) {
   return (
     <div>
-      <div style={styles.managerList}>
-        {accounts.map((account) => (
-          <div key={account.name} style={styles.managerRow}>
-            <div style={styles.accountIdentity}>
-              <div style={styles.firmLogo}>{account.logo}</div>
-              <div>
-                <h3 style={styles.accountName}>{account.name}</h3>
-                <div style={styles.accountTags}>
-                  <span style={styles.accountTag}>{account.firm}</span>
-                  <span style={styles.accountTag}>{account.type}</span>
+      {accounts.length === 0 ? (
+        <EmptyAccounts onAddFirm={onAddFirm} />
+      ) : (
+        <div style={styles.managerList}>
+          {accounts.map((account) => (
+            <div key={account.id} style={styles.managerRow}>
+              <div style={styles.accountIdentity}>
+                <div style={styles.firmLogo}>{account.logo}</div>
+                <div>
+                  <h3 style={styles.accountName}>{account.name}</h3>
+                  <div style={styles.accountTags}>
+                    <span style={styles.accountTag}>{account.firm}</span>
+                    <span style={styles.accountTag}>{account.type}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <span style={styles.managerBalance}>{money(account.balance)}</span>
-          </div>
-        ))}
-      </div>
+              <div style={styles.managerRight}>
+                <span style={styles.managerBalance}>{money(account.balance)}</span>
+                <button
+                  type="button"
+                  style={styles.deleteButton}
+                  onClick={() => onDeleteAccount(account.id)}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <button type="button" style={styles.modalPrimaryButtonFull} onClick={onAddFirm}>
         + Add New Firm
@@ -1222,6 +1327,60 @@ const styles = {
   },
 
 
+
+  emptyState: {
+    border: "1px dashed rgba(148,163,184,0.22)",
+    background: "rgba(2,8,19,0.30)",
+    borderRadius: "14px",
+    padding: "34px 22px",
+    marginTop: "18px",
+    textAlign: "center",
+  },
+
+  emptyIcon: {
+    width: "54px",
+    height: "54px",
+    borderRadius: "50%",
+    margin: "0 auto 14px",
+    background: "rgba(37,99,235,0.14)",
+    border: "1px solid rgba(96,165,250,0.24)",
+    color: "#ffffff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "30px",
+    fontWeight: 800,
+  },
+
+  emptyTitle: {
+    margin: "0 0 8px",
+    color: "#ffffff",
+    fontSize: "20px",
+    fontWeight: 850,
+    letterSpacing: "-0.035em",
+  },
+
+  emptyText: {
+    maxWidth: "520px",
+    margin: "0 auto 18px",
+    color: "#ffffff",
+    opacity: 0.74,
+    fontSize: "14px",
+    lineHeight: 1.55,
+  },
+
+  emptyButton: {
+    border: "none",
+    background: "linear-gradient(180deg, #3483ff, #0f63e8)",
+    color: "#ffffff",
+    borderRadius: "10px",
+    padding: "12px 16px",
+    fontSize: "14px",
+    fontWeight: 850,
+    cursor: "pointer",
+  },
+
+
   modalOverlay: {
     position: "fixed",
     inset: 0,
@@ -1373,11 +1532,29 @@ const styles = {
     padding: "14px",
   },
 
+  managerRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    flexShrink: 0,
+  },
+
   managerBalance: {
     color: "#ffffff",
     fontSize: "16px",
     fontWeight: 850,
     whiteSpace: "nowrap",
+  },
+
+  deleteButton: {
+    border: "1px solid rgba(248,113,113,0.22)",
+    background: "rgba(127,29,29,0.16)",
+    color: "#fecaca",
+    borderRadius: "9px",
+    padding: "9px 11px",
+    fontSize: "13px",
+    fontWeight: 850,
+    cursor: "pointer",
   },
 
   calculatorResult: {
