@@ -18,17 +18,6 @@ function useIsMobileDashboard() {
   return isMobile;
 }
 
-const navItems = [
-  { label: "Home", page: "dashboard", icon: "⌂" },
-  { label: "Accounts", page: "accounts", icon: "▱" },
-  { label: "Evaluations", page: "evaluations", icon: "↗" },
-  { label: "Payouts", page: "payouts", icon: "▣" },
-  { label: "Journal", page: "journal", icon: "☷" },
-  { label: "Analytics", page: "analytics", icon: "⌁" },
-  { label: "Tools", page: "tools", icon: "⌘" },
-  { label: "Settings", page: "settings", icon: "⚙" },
-];
-
 const accounts = [
   {
     name: "Topstep 50K #1",
@@ -92,21 +81,13 @@ export default function Dashboard({ setActivePage }) {
   };
 
   return (
-    <div style={styles.appShell}>
-      {!isMobile && <Sidebar goToPage={goToPage} />}
+    <div style={{ ...styles.page, ...(isMobile ? styles.pageMobile : {}) }}>
+      <div style={styles.pageGlow} />
 
-      <div style={{ ...styles.page, ...(isMobile ? styles.pageMobile : {}) }}>
-        <div style={styles.pageGlow} />
-
-        {isMobile && (
-          <div style={styles.mobileTopBar}>
-            <Brand />
-            <button style={styles.mobileMenuButton}>☰</button>
-          </div>
-        )}
-
+      <div style={styles.inner}>
         <header style={{ ...styles.header, ...(isMobile ? styles.headerMobile : {}) }}>
           <div>
+            <p style={styles.eyebrow}>PROP TRADER COMMAND CENTER</p>
             <h1 style={{ ...styles.heroTitle, ...(isMobile ? styles.heroTitleMobile : {}) }}>
               Good afternoon, Luke
             </h1>
@@ -121,7 +102,6 @@ export default function Dashboard({ setActivePage }) {
               style={styles.outlineButton}
               onClick={() => goToPage("journal")}
             >
-              <span style={styles.buttonIcon}>▤</span>
               View Journal
             </button>
 
@@ -130,20 +110,18 @@ export default function Dashboard({ setActivePage }) {
               style={styles.blueButton}
               onClick={() => goToPage("journal")}
             >
-              <span style={styles.buttonIcon}>＋</span>
-              Log Trade
+              + Log Trade
             </button>
           </div>
         </header>
 
         <section style={{ ...styles.statGrid, ...(isMobile ? styles.statGridMobile : {}) }}>
           <TopStat
-            icon="盾"
+            icon="✓"
             iconStyle={styles.greenOrb}
             label="Today's Status"
             value="Safe to Trade"
             detail="No account is past daily risk limits"
-            valueStyle={styles.greenText}
           />
 
           <TopStat
@@ -152,16 +130,14 @@ export default function Dashboard({ setActivePage }) {
             label="Monthly P/L"
             value="+$4,280"
             detail="2 funded • 1 evaluation"
-            valueStyle={styles.whiteText}
           />
 
           <TopStat
-            icon="▰"
+            icon="$"
             iconStyle={styles.goldOrb}
             label="Daily Loss Left"
             value="$600"
             detail="Across all accounts"
-            valueStyle={styles.whiteText}
           />
 
           <TopStat
@@ -170,7 +146,6 @@ export default function Dashboard({ setActivePage }) {
             label="Next News"
             value="NFP Friday"
             detail="High impact event"
-            valueStyle={styles.whiteText}
           />
         </section>
 
@@ -179,13 +154,17 @@ export default function Dashboard({ setActivePage }) {
             <Panel>
               <PanelHeader
                 title="My Accounts"
-                actionLabel="View all accounts →"
+                actionLabel="Manage →"
                 onAction={() => goToPage("accounts")}
               />
 
               <div style={styles.accountRows}>
                 {accounts.map((account) => (
-                  <AccountRow key={account.name} account={account} onClick={() => goToPage("accounts")} />
+                  <AccountRow
+                    key={account.name}
+                    account={account}
+                    onClick={() => goToPage("accounts")}
+                  />
                 ))}
               </div>
 
@@ -194,7 +173,7 @@ export default function Dashboard({ setActivePage }) {
                 style={styles.addFirmRow}
                 onClick={() => goToPage("accounts")}
               >
-                <span style={styles.addCircle}>＋</span>
+                <span style={styles.addCircle}>+</span>
                 <span>
                   <span style={styles.addFirmTitle}>Add Firm</span>
                   <span style={styles.addFirmText}>Track a new funded or evaluation account</span>
@@ -206,11 +185,14 @@ export default function Dashboard({ setActivePage }) {
               <h2 style={styles.sectionTitle}>Quick Tools</h2>
 
               <div style={{ ...styles.toolGrid, ...(isMobile ? styles.toolGridMobile : {}) }}>
-                {tools.map((tool) => (
+                {tools.map((tool, index) => (
                   <button
                     key={tool.label}
                     type="button"
-                    style={styles.toolItem}
+                    style={{
+                      ...styles.toolItem,
+                      ...(index === tools.length - 1 ? styles.toolItemLast : {}),
+                    }}
                     onClick={() => goToPage(tool.page)}
                   >
                     <span style={styles.toolIcon}>{tool.icon}</span>
@@ -244,7 +226,7 @@ export default function Dashboard({ setActivePage }) {
                 </div>
 
                 <p style={styles.recoveryNote}>
-                  ◎ At $200 risk and 1.5R avg, that's ~8 winning trades.
+                  At $200 risk and 1.5R avg, that's ~8 winning trades.
                 </p>
 
                 <button
@@ -252,7 +234,7 @@ export default function Dashboard({ setActivePage }) {
                   style={styles.recoveryButton}
                   onClick={() => goToPage("tools")}
                 >
-                  ▦ Open Recovery Calculator
+                  Open Recovery Calculator
                 </button>
               </div>
             </Panel>
@@ -306,7 +288,7 @@ export default function Dashboard({ setActivePage }) {
                 style={styles.goJournalButton}
                 onClick={() => goToPage("journal")}
               >
-                ▤ Go to Journal
+                Go to Journal
               </button>
             </Panel>
           </aside>
@@ -316,60 +298,14 @@ export default function Dashboard({ setActivePage }) {
   );
 }
 
-function Sidebar({ goToPage }) {
-  return (
-    <aside style={styles.sidebar}>
-      <Brand />
-
-      <nav style={styles.navList}>
-        {navItems.map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            style={{
-              ...styles.navItem,
-              ...(item.label === "Home" ? styles.navItemActive : {}),
-            }}
-            onClick={() => goToPage(item.page)}
-          >
-            <span style={styles.navIcon}>{item.icon}</span>
-            <span>{item.label}</span>
-          </button>
-        ))}
-      </nav>
-
-      <button type="button" style={styles.userCard} onClick={() => goToPage("settings")}>
-        <span style={styles.userAvatar}>LD</span>
-        <span style={styles.userInfo}>
-          <span style={styles.userName}>Luke Dingman</span>
-          <span style={styles.userPlan}>Essential Plan</span>
-        </span>
-        <span style={styles.userArrow}>›</span>
-      </button>
-    </aside>
-  );
-}
-
-function Brand() {
-  return (
-    <div style={styles.brand}>
-      <span style={styles.brandIcon}>▟</span>
-      <span>
-        <span style={styles.brandTrade}>Trade</span>
-        <span style={styles.brandArchive}>Archive</span>
-      </span>
-    </div>
-  );
-}
-
-function TopStat({ icon, iconStyle, label, value, detail, valueStyle }) {
+function TopStat({ icon, iconStyle, label, value, detail }) {
   return (
     <article style={styles.topStat}>
       <div style={{ ...styles.topStatIcon, ...iconStyle }}>{icon}</div>
 
       <div>
         <p style={styles.topStatLabel}>{label}</p>
-        <h3 style={{ ...styles.topStatValue, ...valueStyle }}>{value}</h3>
+        <h3 style={styles.topStatValue}>{value}</h3>
         <p style={styles.topStatDetail}>{detail}</p>
       </div>
     </article>
@@ -442,153 +378,17 @@ function AccountMetric({ label, value }) {
 }
 
 const styles = {
-  appShell: {
-    minHeight: "100vh",
-    display: "flex",
-    background: "#020813",
-    color: "#ffffff",
-    fontFamily:
-      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-  },
-
-  sidebar: {
-    width: "260px",
-    minHeight: "100vh",
-    position: "sticky",
-    top: 0,
-    alignSelf: "flex-start",
-    flexShrink: 0,
-    borderRight: "1px solid rgba(148,163,184,0.15)",
-    background:
-      "linear-gradient(180deg, rgba(7,16,31,0.96), rgba(3,10,21,0.98))",
-    padding: "34px 18px 20px",
-    boxSizing: "border-box",
-    display: "flex",
-    flexDirection: "column",
-  },
-
-  brand: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    marginBottom: "42px",
-    padding: "0 14px",
-    color: "#ffffff",
-    fontSize: "23px",
-    fontWeight: 800,
-    letterSpacing: "-0.04em",
-  },
-
-  brandIcon: {
-    color: "#2f7cff",
-    fontSize: "29px",
-    lineHeight: 1,
-    transform: "translateY(-1px)",
-  },
-
-  brandTrade: {
-    color: "#ffffff",
-  },
-
-  brandArchive: {
-    color: "#ffffff",
-  },
-
-  navList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  },
-
-  navItem: {
-    width: "100%",
-    border: "none",
-    background: "transparent",
-    color: "rgba(241,245,249,0.82)",
-    borderRadius: "10px",
-    padding: "14px 16px",
-    display: "flex",
-    alignItems: "center",
-    gap: "14px",
-    fontSize: "16px",
-    fontWeight: 600,
-    cursor: "pointer",
-    textAlign: "left",
-  },
-
-  navItemActive: {
-    background:
-      "linear-gradient(90deg, rgba(37,99,235,0.85), rgba(37,99,235,0.48))",
-    color: "#ffffff",
-    boxShadow: "0 16px 32px rgba(37,99,235,0.18)",
-  },
-
-  navIcon: {
-    width: "22px",
-    display: "inline-flex",
-    justifyContent: "center",
-    color: "inherit",
-    fontSize: "20px",
-  },
-
-  userCard: {
-    marginTop: "auto",
-    width: "100%",
-    border: "1px solid rgba(148,163,184,0.16)",
-    background: "rgba(15,23,42,0.58)",
-    borderRadius: "12px",
-    padding: "14px",
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    color: "#ffffff",
-    cursor: "pointer",
-  },
-
-  userAvatar: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "50%",
-    background: "#2563eb",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: 800,
-  },
-
-  userInfo: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "flex-start",
-    minWidth: 0,
-  },
-
-  userName: {
-    color: "#ffffff",
-    fontSize: "14px",
-    fontWeight: 750,
-  },
-
-  userPlan: {
-    color: "rgba(226,232,240,0.72)",
-    fontSize: "12px",
-    marginTop: "3px",
-  },
-
-  userArrow: {
-    marginLeft: "auto",
-    color: "rgba(255,255,255,0.72)",
-    fontSize: "24px",
-  },
-
   page: {
-    flex: 1,
+    minHeight: "100vh",
     position: "relative",
     overflow: "hidden",
-    padding: "42px 38px 38px",
-    boxSizing: "border-box",
     background:
-      "radial-gradient(circle at 20% 0%, rgba(37,99,235,0.16), transparent 26%), radial-gradient(circle at 95% 8%, rgba(14,165,233,0.10), transparent 24%), #020813",
+      "radial-gradient(circle at 30% 0%, rgba(37,99,235,0.14), transparent 28%), radial-gradient(circle at 95% 8%, rgba(14,165,233,0.08), transparent 24%), #020813",
+    color: "#ffffff",
+    padding: "38px 34px",
+    boxSizing: "border-box",
+    fontFamily:
+      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   },
 
   pageGlow: {
@@ -596,35 +396,31 @@ const styles = {
     inset: 0,
     pointerEvents: "none",
     background:
-      "linear-gradient(135deg, rgba(255,255,255,0.025), transparent 26%, rgba(37,99,235,0.04))",
+      "linear-gradient(135deg, rgba(255,255,255,0.022), transparent 28%, rgba(37,99,235,0.035))",
   },
 
-  mobileTopBar: {
+  inner: {
     position: "relative",
     zIndex: 2,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: "28px",
-  },
-
-  mobileMenuButton: {
-    border: "1px solid rgba(148,163,184,0.18)",
-    background: "rgba(15,23,42,0.72)",
-    color: "#ffffff",
-    borderRadius: "12px",
-    padding: "10px 12px",
-    fontSize: "18px",
+    width: "100%",
+    maxWidth: "1460px",
+    margin: "0 auto",
   },
 
   header: {
-    position: "relative",
-    zIndex: 2,
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
     gap: "24px",
-    marginBottom: "30px",
+    marginBottom: "28px",
+  },
+
+  eyebrow: {
+    margin: "0 0 10px",
+    color: "#93c5fd",
+    fontSize: "12px",
+    fontWeight: 800,
+    letterSpacing: "0.16em",
   },
 
   heroTitle: {
@@ -650,22 +446,19 @@ const styles = {
   },
 
   outlineButton: {
-    minHeight: "52px",
-    border: "1px solid rgba(148,163,184,0.28)",
-    background: "rgba(2,8,19,0.35)",
+    minHeight: "50px",
+    border: "1px solid rgba(148,163,184,0.22)",
+    background: "rgba(2,8,19,0.30)",
     color: "#ffffff",
     borderRadius: "10px",
     padding: "0 22px",
     fontSize: "15px",
     fontWeight: 750,
     cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "10px",
   },
 
   blueButton: {
-    minHeight: "52px",
+    minHeight: "50px",
     border: "none",
     background: "linear-gradient(180deg, #3483ff, #0f63e8)",
     color: "#ffffff",
@@ -674,20 +467,10 @@ const styles = {
     fontSize: "15px",
     fontWeight: 800,
     cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "10px",
-    boxShadow: "0 18px 36px rgba(37,99,235,0.24)",
-  },
-
-  buttonIcon: {
-    fontSize: "17px",
-    lineHeight: 1,
+    boxShadow: "0 18px 36px rgba(37,99,235,0.22)",
   },
 
   statGrid: {
-    position: "relative",
-    zIndex: 2,
     display: "grid",
     gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
     gap: "16px",
@@ -695,22 +478,22 @@ const styles = {
   },
 
   topStat: {
-    minHeight: "140px",
+    minHeight: "138px",
     background:
-      "linear-gradient(180deg, rgba(15,23,42,0.78), rgba(5,13,27,0.78))",
-    border: "1px solid rgba(148,163,184,0.14)",
-    borderRadius: "13px",
+      "linear-gradient(180deg, rgba(15,23,42,0.70), rgba(5,13,27,0.76))",
+    border: "1px solid rgba(148,163,184,0.13)",
+    borderRadius: "16px",
     padding: "22px",
     boxSizing: "border-box",
     display: "flex",
     alignItems: "center",
     gap: "18px",
-    boxShadow: "0 18px 52px rgba(0,0,0,0.20)",
+    boxShadow: "0 18px 52px rgba(0,0,0,0.18)",
   },
 
   topStatIcon: {
-    width: "72px",
-    height: "72px",
+    width: "68px",
+    height: "68px",
     flexShrink: 0,
     borderRadius: "50%",
     display: "flex",
@@ -722,18 +505,18 @@ const styles = {
   },
 
   greenOrb: {
-    background: "radial-gradient(circle at 35% 25%, rgba(34,197,94,0.78), rgba(22,101,52,0.56))",
-    color: "#86efac",
+    background:
+      "radial-gradient(circle at 35% 25%, rgba(34,197,94,0.80), rgba(22,101,52,0.58))",
   },
 
   blueOrb: {
-    background: "radial-gradient(circle at 35% 25%, rgba(59,130,246,0.75), rgba(29,78,216,0.46))",
-    color: "#93c5fd",
+    background:
+      "radial-gradient(circle at 35% 25%, rgba(59,130,246,0.76), rgba(29,78,216,0.48))",
   },
 
   goldOrb: {
-    background: "radial-gradient(circle at 35% 25%, rgba(245,158,11,0.82), rgba(146,64,14,0.48))",
-    color: "#fde68a",
+    background:
+      "radial-gradient(circle at 35% 25%, rgba(245,158,11,0.82), rgba(146,64,14,0.50))",
   },
 
   topStatLabel: {
@@ -748,6 +531,7 @@ const styles = {
 
   topStatValue: {
     margin: "0 0 8px",
+    color: "#ffffff",
     fontSize: "25px",
     lineHeight: 1.08,
     fontWeight: 850,
@@ -757,22 +541,12 @@ const styles = {
   topStatDetail: {
     margin: 0,
     color: "#ffffff",
-    opacity: 0.82,
+    opacity: 0.78,
     fontSize: "14px",
     lineHeight: 1.45,
   },
 
-  whiteText: {
-    color: "#ffffff",
-  },
-
-  greenText: {
-    color: "#ffffff",
-  },
-
   contentGrid: {
-    position: "relative",
-    zIndex: 2,
     display: "grid",
     gridTemplateColumns: "minmax(620px, 1.35fr) minmax(390px, 0.9fr)",
     gap: "18px",
@@ -793,12 +567,12 @@ const styles = {
 
   panel: {
     background:
-      "linear-gradient(180deg, rgba(15,23,42,0.80), rgba(5,13,27,0.80))",
-    border: "1px solid rgba(148,163,184,0.14)",
-    borderRadius: "13px",
+      "linear-gradient(180deg, rgba(15,23,42,0.73), rgba(5,13,27,0.78))",
+    border: "1px solid rgba(148,163,184,0.13)",
+    borderRadius: "16px",
     padding: "24px",
     boxSizing: "border-box",
-    boxShadow: "0 18px 52px rgba(0,0,0,0.20)",
+    boxShadow: "0 18px 52px rgba(0,0,0,0.18)",
   },
 
   panelHeader: {
@@ -807,7 +581,7 @@ const styles = {
     alignItems: "center",
     gap: "16px",
     paddingBottom: "20px",
-    borderBottom: "1px solid rgba(148,163,184,0.14)",
+    borderBottom: "1px solid rgba(148,163,184,0.13)",
   },
 
   sectionTitle: {
@@ -836,12 +610,13 @@ const styles = {
   accountRow: {
     width: "100%",
     border: "none",
-    borderBottom: "1px solid rgba(148,163,184,0.14)",
+    borderBottom: "1px solid rgba(148,163,184,0.13)",
     background: "transparent",
     color: "#ffffff",
     padding: "22px 0",
     display: "grid",
-    gridTemplateColumns: "minmax(220px, 1.45fr) minmax(100px, 0.7fr) minmax(100px, 0.7fr) minmax(120px, 0.8fr) auto 18px",
+    gridTemplateColumns:
+      "minmax(215px, 1.45fr) minmax(100px, 0.7fr) minmax(100px, 0.7fr) minmax(120px, 0.8fr) auto 18px",
     alignItems: "center",
     gap: "18px",
     textAlign: "left",
@@ -893,18 +668,18 @@ const styles = {
     borderRadius: "6px",
     padding: "4px 8px",
     fontSize: "12px",
-    fontWeight: 600,
+    fontWeight: 650,
   },
 
   accountMetric: {
     paddingLeft: "18px",
-    borderLeft: "1px solid rgba(148,163,184,0.14)",
+    borderLeft: "1px solid rgba(148,163,184,0.13)",
   },
 
   metricLabel: {
     display: "block",
     color: "#ffffff",
-    opacity: 0.78,
+    opacity: 0.72,
     textTransform: "uppercase",
     fontSize: "11px",
     letterSpacing: "0.04em",
@@ -921,7 +696,7 @@ const styles = {
 
   accountProgressCell: {
     paddingLeft: "18px",
-    borderLeft: "1px solid rgba(148,163,184,0.14)",
+    borderLeft: "1px solid rgba(148,163,184,0.13)",
   },
 
   progressNumber: {
@@ -974,7 +749,7 @@ const styles = {
 
   rowChevron: {
     color: "#ffffff",
-    opacity: 0.75,
+    opacity: 0.7,
     fontSize: "26px",
     fontWeight: 300,
   },
@@ -985,7 +760,7 @@ const styles = {
     border: "1px dashed rgba(148,163,184,0.20)",
     background: "rgba(2,8,19,0.30)",
     color: "#ffffff",
-    borderRadius: "10px",
+    borderRadius: "12px",
     padding: "16px",
     display: "flex",
     alignItems: "center",
@@ -1019,7 +794,7 @@ const styles = {
   addFirmText: {
     display: "block",
     color: "#ffffff",
-    opacity: 0.78,
+    opacity: 0.76,
     fontSize: "14px",
   },
 
@@ -1036,7 +811,7 @@ const styles = {
 
   toolItem: {
     border: "none",
-    borderRight: "1px solid rgba(148,163,184,0.14)",
+    borderRight: "1px solid rgba(148,163,184,0.13)",
     background: "transparent",
     color: "#ffffff",
     minHeight: "58px",
@@ -1048,6 +823,10 @@ const styles = {
     textAlign: "left",
     cursor: "pointer",
     padding: "0 16px",
+  },
+
+  toolItemLast: {
+    borderRight: "none",
   },
 
   toolIcon: {
@@ -1083,14 +862,10 @@ const styles = {
     cursor: "pointer",
   },
 
-  recoveryCard: {
-    color: "#ffffff",
-  },
-
   mutedLabel: {
     margin: "0 0 12px",
     color: "#ffffff",
-    opacity: 0.8,
+    opacity: 0.78,
     fontSize: "14px",
   },
 
@@ -1135,7 +910,7 @@ const styles = {
   recoveryNote: {
     margin: "0 0 22px",
     color: "#ffffff",
-    opacity: 0.82,
+    opacity: 0.8,
     fontSize: "14px",
     lineHeight: 1.55,
   },
@@ -1144,9 +919,10 @@ const styles = {
     width: "100%",
     minHeight: "50px",
     border: "1px solid rgba(148,163,184,0.14)",
-    background: "linear-gradient(180deg, rgba(30,41,59,0.58), rgba(15,23,42,0.58))",
+    background:
+      "linear-gradient(180deg, rgba(30,41,59,0.56), rgba(15,23,42,0.56))",
     color: "#ffffff",
-    borderRadius: "8px",
+    borderRadius: "9px",
     fontSize: "15px",
     fontWeight: 800,
     cursor: "pointer",
@@ -1223,14 +999,14 @@ const styles = {
 
   tradeDate: {
     color: "#ffffff",
-    opacity: 0.78,
+    opacity: 0.76,
     fontSize: "14px",
     textAlign: "right",
   },
 
   tradeChevron: {
     color: "#ffffff",
-    opacity: 0.76,
+    opacity: 0.72,
     fontSize: "24px",
     fontWeight: 300,
   },
@@ -1240,16 +1016,17 @@ const styles = {
     minHeight: "50px",
     marginTop: "16px",
     border: "1px solid rgba(148,163,184,0.14)",
-    background: "linear-gradient(180deg, rgba(30,41,59,0.58), rgba(15,23,42,0.58))",
+    background:
+      "linear-gradient(180deg, rgba(30,41,59,0.56), rgba(15,23,42,0.56))",
     color: "#ffffff",
-    borderRadius: "8px",
+    borderRadius: "9px",
     fontSize: "15px",
     fontWeight: 800,
     cursor: "pointer",
   },
 
   pageMobile: {
-    padding: "22px 16px 100px",
+    padding: "24px 16px 100px",
   },
 
   headerMobile: {
