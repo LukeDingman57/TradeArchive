@@ -81,11 +81,51 @@ const tools = [
 
 const money = (value) => `$${Number(value || 0).toLocaleString()}`;
 
+const STORAGE_KEY = "tradearchive_dashboard_accounts";
+const SELECTED_RECOVERY_KEY = "tradearchive_selected_recovery_account";
+
+const loadStoredAccounts = () => {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error("Failed to load saved accounts", error);
+    return [];
+  }
+};
+
+const loadSelectedRecoveryAccountId = () => {
+  if (typeof window === "undefined") return "";
+
+  try {
+    return window.localStorage.getItem(SELECTED_RECOVERY_KEY) || "";
+  } catch (error) {
+    console.error("Failed to load selected recovery account", error);
+    return "";
+  }
+};
+
 export default function Dashboard({ setActivePage }) {
   const isMobile = useIsMobileDashboard();
   const [activeModal, setActiveModal] = React.useState(null);
-  const [accounts, setAccounts] = React.useState([]);
-  const [selectedRecoveryAccountId, setSelectedRecoveryAccountId] = React.useState("");
+  const [accounts, setAccounts] = React.useState(loadStoredAccounts);
+  const [selectedRecoveryAccountId, setSelectedRecoveryAccountId] = React.useState(
+    loadSelectedRecoveryAccountId
+  );
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+  }, [accounts]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    window.localStorage.setItem(SELECTED_RECOVERY_KEY, selectedRecoveryAccountId || "");
+  }, [selectedRecoveryAccountId]);
 
   const addAccount = (accountData) => {
     const newAccount = createAccount(accountData);
