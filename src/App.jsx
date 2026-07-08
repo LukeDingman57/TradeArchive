@@ -677,7 +677,7 @@ function RulesSettingsPanel() {
 }
 
 function TrialBanner({ isMobile = false, session, activePage, setActivePage, openAuth }) {
-  const shouldShow = activePage !== "auth";
+  const shouldShow = activePage === "dashboard";
 
   if (!shouldShow) return null;
 
@@ -709,14 +709,14 @@ function TrialBanner({ isMobile = false, session, activePage, setActivePage, ope
             ...(isMobile ? trialBannerStyles.copyMobile : {}),
           }}
         >
-          <div style={trialBannerStyles.badge}>Limited early-user offer</div>
+          <div style={trialBannerStyles.badge}>Early user offer</div>
           <div
             style={{
               ...trialBannerStyles.title,
               ...(isMobile ? trialBannerStyles.titleMobile : {}),
             }}
           >
-            Try Essential free for 30 days
+            Essential free trial
           </div>
           <div
             style={{
@@ -737,7 +737,7 @@ function TrialBanner({ isMobile = false, session, activePage, setActivePage, ope
             ...(isMobile ? trialBannerStyles.buttonMobile : {}),
           }}
         >
-          Start Free Trial
+          Try Free
         </button>
       </div>
     </div>
@@ -1387,7 +1387,7 @@ const rulesSettingsStyles = {
 const trialBannerStyles = {
   wrap: {
     width: "100%",
-    padding: "18px 360px 0 28px",
+    padding: "10px 360px 0 28px",
     boxSizing: "border-box",
     position: "relative",
     zIndex: 40,
@@ -1405,7 +1405,7 @@ const trialBannerStyles = {
     alignItems: "center",
     justifyContent: "space-between",
     gap: "18px",
-    padding: "16px 18px",
+    padding: "10px 12px",
     borderRadius: "20px",
     background:
       "linear-gradient(135deg, rgba(37,99,235,0.16), rgba(8,15,28,0.94) 55%, rgba(96,165,250,0.10))",
