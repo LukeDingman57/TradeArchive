@@ -2202,9 +2202,9 @@ function TradeForm({
             }}
             style={styles.input}
           >
-            <option value="">Unassigned trade</option>
+            <option value="" style={{ backgroundColor: "#0f172a", color: "#ffffff" }}>Unassigned trade</option>
             {propAccounts.map((account) => (
-              <option key={account.id} value={account.id}>
+              <option key={account.id} value={account.id} style={{ backgroundColor: "#0f172a", color: "#ffffff" }}>
                 {getAccountLabel(account)}
               </option>
             ))}
@@ -2750,6 +2750,8 @@ const styles = {
     color: "#fff",
     fontSize: "14px",
     outline: "none",
+    appearance: "none",
+    WebkitAppearance: "none",
   },
   filterWrap: {
     display: "flex",
@@ -3194,6 +3196,8 @@ const styles = {
     fontSize: "15px",
     boxSizing: "border-box",
     outline: "none",
+    appearance: "none",
+    WebkitAppearance: "none",
   },
   textarea: {
     width: "100%",
@@ -3206,6 +3210,8 @@ const styles = {
     fontSize: "15px",
     boxSizing: "border-box",
     outline: "none",
+    appearance: "none",
+    WebkitAppearance: "none",
     resize: "vertical",
   },
   fileInput: {
@@ -3527,6 +3533,8 @@ const styles = {
     fontSize: "14px",
     fontFamily: "inherit",
     outline: "none",
+    appearance: "none",
+    WebkitAppearance: "none",
     boxSizing: "border-box",
   },
   checklistTitle: {
