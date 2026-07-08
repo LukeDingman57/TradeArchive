@@ -3,7 +3,9 @@ export default async function handler(req, res) {
     const apiKey = process.env.FMP_API_KEY;
 
     if (!apiKey) {
-      return res.status(500).json({ error: "Missing FMP_API_KEY in Vercel" });
+      return res.status(500).json({
+        error: "Missing FMP_API_KEY in Vercel Environment Variables",
+      });
     }
 
     const today = new Date();
@@ -13,7 +15,7 @@ export default async function handler(req, res) {
     end.setDate(today.getDate() + 7);
     const to = end.toISOString().split("T")[0];
 
-    const url = `https://financialmodelingprep.com/api/v3/economic_calendar?from=${from}&to=${to}&apikey=${apiKey}`;
+    const url = `https://financialmodelingprep.com/stable/economic-calendar?from=${from}&to=${to}&apikey=${apiKey}`;
 
     const fmpRes = await fetch(url);
     const text = await fmpRes.text();
@@ -30,21 +32,27 @@ export default async function handler(req, res) {
 
     if (!fmpRes.ok) {
       return res.status(fmpRes.status).json({
-        error: "FMP request failed",
+        error:
+          data?.["Error Message"] ||
+          data?.message ||
+          data?.error ||
+          "FMP request failed",
         details: data,
       });
     }
 
-    if (!Array.isArray(data)) {
-      return res.status(500).json({
-        error: "FMP returned unexpected data",
-        details: data,
-      });
-    }
+    const events = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.data)
+      ? data.data
+      : [];
 
-    const sorted = data
-      .filter((event) => event.date)
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    const sorted = events
+      .filter((event) => event.date || event.datetime)
+      .sort(
+        (a, b) =>
+          new Date(a.date || a.datetime) - new Date(b.date || b.datetime)
+      );
 
     return res.status(200).json(sorted);
   } catch (error) {
