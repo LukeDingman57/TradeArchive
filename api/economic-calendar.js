@@ -15,13 +15,17 @@ export default async function handler(req, res) {
     end.setDate(today.getDate() + 7);
     const to = end.toISOString().split("T")[0];
 
-    const url = `https://financialmodelingprep.com/api/v3/economic_calendar?from=${from}&to=${to}&apikey=${apiKey}`;
+    const url = `https://financialmodelingprep.com/stable/economic-calendar?from=${from}&to=${to}&apikey=${apiKey}`;
 
-    const fmpRes = await fetch(url);
+    const fmpRes = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
     const text = await fmpRes.text();
 
     let data;
-
     try {
       data = JSON.parse(text);
     } catch {
@@ -51,11 +55,8 @@ export default async function handler(req, res) {
       : [];
 
     const sorted = events
-      .filter((event) => event.date || event.datetime)
-      .sort(
-        (a, b) =>
-          new Date(a.date || a.datetime) - new Date(b.date || b.datetime)
-      );
+      .filter((event) => event.date)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
 
     return res.status(200).json(sorted);
   } catch (error) {
