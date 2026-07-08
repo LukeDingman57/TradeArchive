@@ -78,6 +78,9 @@ const defaultTrades = [
 
 const emptyForm = {
   id: null,
+  accountId: "",
+  accountName: "",
+  accountFirm: "",
   date: new Date().toISOString().slice(0, 10),
   symbol: "NQ",
   setup: "",
@@ -116,6 +119,31 @@ const monthNames = [
   "December",
 ];
 
+const ACCOUNT_STORAGE_KEY = "tradearchive_dashboard_accounts";
+
+const loadStoredAccounts = () => {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const stored = window.localStorage.getItem(ACCOUNT_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error("Failed to load prop firm accounts:", error);
+    return [];
+  }
+};
+
+const getAccountLabel = (account) => {
+  if (!account) return "No account selected";
+
+  const firm = account.firm ? `${account.firm} • ` : "";
+  return `${firm}${account.name || "Unnamed Account"}`;
+};
+
+const getAccountById = (accounts, accountId) =>
+  accounts.find((account) => String(account.id) === String(accountId)) || null;
+
+
 export default function Journal({ setActivePage }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -134,6 +162,7 @@ export default function Journal({ setActivePage }) {
   const [userPlan, setUserPlan] = useState("free");
   const [customRules, setCustomRules] = useState([]);
   const [customRuleChecks, setCustomRuleChecks] = useState({});
+  const [propAccounts, setPropAccounts] = useState(loadStoredAccounts);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -145,6 +174,28 @@ export default function Journal({ setActivePage }) {
     window.addEventListener("resize", checkMobile);
 
     return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  useEffect(() => {
+    const loadAccounts = () => {
+      setPropAccounts(loadStoredAccounts());
+    };
+
+    loadAccounts();
+
+    const handleStorageChange = (event) => {
+      if (!event.key || event.key === ACCOUNT_STORAGE_KEY) {
+        loadAccounts();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("focus", loadAccounts);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("focus", loadAccounts);
+    };
   }, []);
 
   useEffect(() => {
@@ -221,6 +272,9 @@ export default function Journal({ setActivePage }) {
 
       const mappedTrades = (data || []).map((trade) => ({
         id: trade.id,
+        accountId: trade.account_id || "",
+        accountName: trade.account_name || "",
+        accountFirm: trade.account_firm || "",
         date: trade.date,
         symbol: trade.symbol || "NQ",
         setup: trade.setup || "",
@@ -815,6 +869,9 @@ export default function Journal({ setActivePage }) {
   const openEditModal = (trade) => {
     setForm({
       id: trade.id,
+      accountId: trade.accountId || "",
+      accountName: trade.accountName || "",
+      accountFirm: trade.accountFirm || "",
       date: trade.date || new Date().toISOString().slice(0, 10),
       symbol: trade.symbol || "NQ",
       setup: trade.setup || "",
@@ -865,9 +922,16 @@ export default function Journal({ setActivePage }) {
     const stopNum = form.stop === "" ? null : Number(form.stop);
     const targetNum = form.target === "" ? null : Number(form.target);
     const rMultiple = calculateRMultiple(form.side, entryNum, stopNum, targetNum);
+    const selectedAccount = getAccountById(propAccounts, form.accountId);
 
     const tradeToInsert = {
       user_id: user.id,
+      account_id: form.accountId || null,
+      account_name: selectedAccount?.name || form.accountName || "",
+      account_firm: selectedAccount?.firm || form.accountFirm || "",
+      account_id: form.accountId || null,
+      account_name: selectedAccount?.name || form.accountName || "",
+      account_firm: selectedAccount?.firm || form.accountFirm || "",
       date: form.date,
       symbol: form.symbol,
       setup: form.setup,
@@ -942,6 +1006,7 @@ export default function Journal({ setActivePage }) {
     const targetNum = form.target === "" ? null : Number(form.target);
 
     const rMultiple = calculateRMultiple(form.side, entryNum, stopNum, targetNum);
+    const selectedAccount = getAccountById(propAccounts, form.accountId);
 
     const updatedTradePayload = {
       date: form.date,
@@ -1008,6 +1073,9 @@ export default function Journal({ setActivePage }) {
 
     const updatedTrade = {
       id: data.id,
+      accountId: data.account_id || "",
+      accountName: data.account_name || "",
+      accountFirm: data.account_firm || "",
       date: data.date,
       symbol: data.symbol,
       setup: data.setup,
@@ -1047,6 +1115,9 @@ export default function Journal({ setActivePage }) {
 
   const mapSupabaseTrade = (trade) => ({
     id: trade.id,
+    accountId: trade.account_id || "",
+    accountName: trade.account_name || "",
+    accountFirm: trade.account_firm || "",
     date: trade.date,
     symbol: trade.symbol || "NQ",
     setup: trade.setup || "",
@@ -1623,6 +1694,7 @@ export default function Journal({ setActivePage }) {
               <thead>
                 <tr>
                   <th style={styles.th}>Date</th>
+                  <th style={styles.th}>Account</th>
                   <th style={styles.th}>Symbol</th>
                   <th style={styles.th}>Setup</th>
                   <th style={styles.th}>Side</th>
@@ -1638,7 +1710,7 @@ export default function Journal({ setActivePage }) {
               <tbody>
                 {filteredTrades.length === 0 ? (
                   <tr>
-                    <td style={styles.emptyState} colSpan="10">
+                    <td style={styles.emptyState} colSpan="11">
                       No trades found for this filter or search.
                     </td>
                   </tr>
@@ -1650,6 +1722,11 @@ export default function Journal({ setActivePage }) {
                       onClick={() => openViewModal(row)}
                     >
                       <td style={styles.td}>{row.date}</td>
+                      <td style={styles.td}>
+                        <span style={styles.accountPill}>
+                          {row.accountName || "Unassigned"}
+                        </span>
+                      </td>
                       <td style={{ ...styles.td, fontWeight: 700 }}>{row.symbol}</td>
                       <td style={styles.td}>{row.setup}</td>
                       <td style={styles.td}>{row.side}</td>
@@ -1873,6 +1950,8 @@ export default function Journal({ setActivePage }) {
             <TradeForm
               form={form}
               userPlan={userPlan}
+              propAccounts={propAccounts}
+              setActivePage={setActivePage}
               handleChange={handleChange}
               handleFileChange={handleFileChange}
               removeScreenshot={removeScreenshot}
@@ -1900,6 +1979,8 @@ export default function Journal({ setActivePage }) {
             <TradeForm
               form={form}
               userPlan={userPlan}
+              propAccounts={propAccounts}
+              setActivePage={setActivePage}
               handleChange={handleChange}
               handleFileChange={handleFileChange}
               removeScreenshot={removeScreenshot}
@@ -1931,6 +2012,12 @@ export default function Journal({ setActivePage }) {
               <div style={styles.viewCard}>
                 <div style={styles.viewLabel}>Date</div>
                 <div style={styles.viewValue}>{selectedTrade.date}</div>
+              </div>
+              <div style={styles.viewCard}>
+                <div style={styles.viewLabel}>Account</div>
+                <div style={styles.viewValue}>
+                  {selectedTrade.accountName || "Unassigned"}
+                </div>
               </div>
               <div style={styles.viewCard}>
                 <div style={styles.viewLabel}>Side</div>
@@ -2086,6 +2173,8 @@ export default function Journal({ setActivePage }) {
 function TradeForm({
   form,
   userPlan,
+  propAccounts = [],
+  setActivePage,
   handleChange,
   handleFileChange,
   removeScreenshot,
@@ -2100,6 +2189,41 @@ function TradeForm({
   return (
     <>
       <div style={styles.formGrid}>
+
+        <label style={{ ...styles.field, ...styles.fullWidth }}>
+          Account / Prop Firm
+          <select
+            value={form.accountId || ""}
+            onChange={(e) => {
+              const selected = getAccountById(propAccounts, e.target.value);
+              handleChange("accountId", e.target.value);
+              handleChange("accountName", selected?.name || "");
+              handleChange("accountFirm", selected?.firm || "");
+            }}
+            style={styles.input}
+          >
+            <option value="">Unassigned trade</option>
+            {propAccounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {getAccountLabel(account)}
+              </option>
+            ))}
+          </select>
+
+          {propAccounts.length === 0 && (
+            <div style={styles.accountHelpBox}>
+              No prop firm accounts yet. Create one on the Accounts page, then assign trades to it here.
+              <button
+                type="button"
+                style={styles.inlineLinkButton}
+                onClick={() => setActivePage?.("accounts")}
+              >
+                Open Accounts
+              </button>
+            </div>
+          )}
+        </label>
+
         <div>
           <label style={styles.label}>Date</label>
           <input
@@ -2662,6 +2786,41 @@ const styles = {
     background: "rgba(59,130,246,0.07)",
     flexWrap: "wrap",
   },
+  accountPill: {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "5px 8px",
+    borderRadius: "999px",
+    background: "rgba(96,165,250,0.12)",
+    border: "1px solid rgba(96,165,250,0.20)",
+    color: "#bfdbfe",
+    fontSize: "12px",
+    fontWeight: 800,
+    whiteSpace: "nowrap",
+  },
+
+  accountHelpBox: {
+    marginTop: "6px",
+    padding: "11px 12px",
+    borderRadius: "12px",
+    background: "rgba(37,99,235,0.10)",
+    border: "1px solid rgba(96,165,250,0.18)",
+    color: "rgba(255,255,255,0.72)",
+    fontSize: "13px",
+    lineHeight: 1.5,
+  },
+
+  inlineLinkButton: {
+    marginLeft: "8px",
+    border: "none",
+    background: "transparent",
+    color: "#93c5fd",
+    fontSize: "13px",
+    fontWeight: 900,
+    cursor: "pointer",
+    padding: 0,
+  },
+
   activeDateFilterText: {
     color: "rgba(255,255,255,0.84)",
     fontSize: "14px",
