@@ -15,18 +15,20 @@ export default async function handler(req, res) {
     end.setDate(today.getDate() + 7);
     const to = end.toISOString().split("T")[0];
 
-    const url = `https://financialmodelingprep.com/stable/economic-calendar?from=${from}&to=${to}&apikey=${apiKey}`;
+    const url = `https://financialmodelingprep.com/api/v3/economic_calendar?from=${from}&to=${to}&apikey=${apiKey}`;
 
     const fmpRes = await fetch(url);
     const text = await fmpRes.text();
 
     let data;
+
     try {
       data = JSON.parse(text);
     } catch {
       return res.status(500).json({
         error: "FMP did not return JSON",
-        response: text,
+        response: text.substring(0, 1000),
+        url,
       });
     }
 
@@ -38,6 +40,7 @@ export default async function handler(req, res) {
           data?.error ||
           "FMP request failed",
         details: data,
+        url,
       });
     }
 
