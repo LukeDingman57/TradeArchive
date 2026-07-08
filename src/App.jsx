@@ -4,6 +4,7 @@ import { supabase } from "./lib/supabase";
 import Dashboard from "./components/Dashboard";
 import Sidebar from "./components/Sidebar";
 import Accounts from "./components/Accounts";
+import News from "./components/News";
 import Journal from "./Journal";
 import "./App.css";
 
@@ -774,6 +775,7 @@ function MobileNav({
     { label: "Home", page: "dashboard", icon: "▦" },
     { label: "Accounts", page: "accounts", icon: "▱" },
     { label: "Journal", page: "journal", icon: "↗" },
+    { label: "News", page: "news", icon: "📰" },
     { label: "Pricing", page: "pricing", icon: "◈" },
   ];
 
@@ -1025,6 +1027,10 @@ export default function App() {
 
     if (activePage === "accounts") {
       return <Accounts setActivePage={setActivePage} />;
+    }
+
+    if (activePage === "news" || activePage === "market") {
+      return <News setActivePage={setActivePage} />;
     }
 
     if (activePage === "journal") {
@@ -1746,7 +1752,7 @@ const mobileNavStyles = {
     border: "1px solid rgba(148,163,184,0.16)",
     borderRadius: "22px",
     display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
+    gridTemplateColumns: "repeat(5, 1fr)",
     gap: "6px",
     padding: "8px",
     zIndex: 100,
