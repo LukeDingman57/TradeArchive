@@ -6,7 +6,7 @@ export default function Sidebar({ activePage, setActivePage, session }) {
     { label: "Dashboard", page: "dashboard", icon: "▦", sub: "Overview" },
     { label: "Accounts", page: "accounts", icon: "▱", sub: "Prop firms" },
     { label: "Journal", page: "journal", icon: "↗", sub: "Trade notes" },
-    { label: "Market", page: "market", icon: "◷", sub: "News & sessions" },
+    { label: "News", page: "news", icon: "📰", sub: "Economic calendar" },
     { label: "Pricing", page: "pricing", icon: "◈", sub: "Plans" },
   ];
 
