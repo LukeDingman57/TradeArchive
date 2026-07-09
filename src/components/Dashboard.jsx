@@ -1,4 +1,5 @@
 import React from "react";
+import { supabase } from "../lib/supabase";
 
 function useIsMobileDashboard() {
   const getIsMobile = () =>
@@ -88,13 +89,51 @@ const createAccount = ({
   };
 };
 
-const trades = [
-  { icon: "↑", tone: "green", setup: "A+ • Long", market: "NQ", result: "+$350", date: "Today" },
-  { icon: "↓", tone: "red", setup: "A • Short", market: "ES", result: "BE", date: "Yesterday" },
-  { icon: "↑", tone: "green", setup: "A+ • Long", market: "NQ", result: "+$310", date: "Jul 6" },
-  { icon: "↓", tone: "red", setup: "B • Short", market: "ES", result: "-$200", date: "Jul 6" },
-  { icon: "↑", tone: "green", setup: "A • Long", market: "MNQ", result: "+$280", date: "Jul 5" },
-];
+const formatDashboardMoney = (value) => {
+  const number = Number(value || 0);
+  if (number > 0) return `+$${number.toLocaleString()}`;
+  if (number < 0) return `-$${Math.abs(number).toLocaleString()}`;
+  return "BE";
+};
+
+const formatTradeDate = (dateValue) => {
+  if (!dateValue) return "";
+
+  const tradeDate = new Date(`${dateValue}T00:00:00`);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  const sameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  if (sameDay(tradeDate, today)) return "Today";
+  if (sameDay(tradeDate, yesterday)) return "Yesterday";
+
+  return tradeDate.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+};
+
+const mapDashboardTrade = (trade) => {
+  const pnl = Number(trade.pnl || 0);
+  const side = trade.side || "Trade";
+  const grade = trade.grade || "—";
+  const setupLabel = `${grade} • ${side}`;
+
+  return {
+    id: trade.id,
+    icon: side === "Short" ? "↓" : "↑",
+    tone: pnl >= 0 ? "green" : "red",
+    setup: setupLabel,
+    market: trade.symbol || "—",
+    result: formatDashboardMoney(pnl),
+    date: formatTradeDate(trade.date),
+  };
+};
 
 const tools = [
   { label: "Recovery Calculator", icon: "◎", page: "tools" },
@@ -223,6 +262,9 @@ export default function Dashboard({ setActivePage, session }) {
     loadSelectedRecoveryAccountId
   );
 
+  const [recentTrades, setRecentTrades] = React.useState([]);
+  const [recentTradesLoading, setRecentTradesLoading] = React.useState(false);
+
   React.useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -234,6 +276,43 @@ export default function Dashboard({ setActivePage, session }) {
 
     window.localStorage.setItem(SELECTED_RECOVERY_KEY, selectedRecoveryAccountId || "");
   }, [selectedRecoveryAccountId]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+
+    const loadRecentTrades = async () => {
+      if (!session?.user?.id) {
+        setRecentTrades([]);
+        return;
+      }
+
+      setRecentTradesLoading(true);
+
+      const { data, error } = await supabase
+        .from("trades")
+        .select("id, date, symbol, side, grade, pnl")
+        .eq("user_id", session.user.id)
+        .order("date", { ascending: false })
+        .limit(5);
+
+      if (!isMounted) return;
+
+      if (error) {
+        console.error("Error loading dashboard recent trades:", error);
+        setRecentTrades([]);
+      } else {
+        setRecentTrades((data || []).map(mapDashboardTrade));
+      }
+
+      setRecentTradesLoading(false);
+    };
+
+    loadRecentTrades();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [session?.user?.id]);
 
   const addAccount = (accountData) => {
     const accountCount = Math.max(1, Math.min(20, Number(accountData.accountCount || 1)));
@@ -586,40 +665,48 @@ export default function Dashboard({ setActivePage, session }) {
               />
 
               <div style={styles.tradeList}>
-                {trades.map((trade, index) => (
-                  <button
-                    key={`${trade.setup}-${index}`}
-                    type="button"
-                    style={styles.tradeRow}
-                    onClick={() => goToPage("journal")}
-                  >
-                    <span
-                      style={{
-                        ...styles.tradeIcon,
-                        ...(trade.tone === "green" ? styles.tradeIconGreen : styles.tradeIconRed),
-                      }}
+                {recentTradesLoading ? (
+                  <div style={styles.emptyRecentTrades}>Loading recent trades...</div>
+                ) : recentTrades.length === 0 ? (
+                  <div style={styles.emptyRecentTrades}>
+                    No journal trades yet. Log your first trade to see it here.
+                  </div>
+                ) : (
+                  recentTrades.map((trade) => (
+                    <button
+                      key={trade.id}
+                      type="button"
+                      style={styles.tradeRow}
+                      onClick={() => goToPage("journal")}
                     >
-                      {trade.icon}
-                    </span>
+                      <span
+                        style={{
+                          ...styles.tradeIcon,
+                          ...(trade.tone === "green" ? styles.tradeIconGreen : styles.tradeIconRed),
+                        }}
+                      >
+                        {trade.icon}
+                      </span>
 
-                    <span style={styles.tradeSetup}>{trade.setup}</span>
-                    <span style={styles.tradeMarket}>{trade.market}</span>
-                    <span
-                      style={{
-                        ...styles.tradeResult,
-                        ...(trade.result.includes("+")
-                          ? styles.tradeProfit
-                          : trade.result.includes("-")
-                          ? styles.tradeLoss
-                          : {}),
-                      }}
-                    >
-                      {trade.result}
-                    </span>
-                    <span style={styles.tradeDate}>{trade.date}</span>
-                    <span style={styles.tradeChevron}>›</span>
-                  </button>
-                ))}
+                      <span style={styles.tradeSetup}>{trade.setup}</span>
+                      <span style={styles.tradeMarket}>{trade.market}</span>
+                      <span
+                        style={{
+                          ...styles.tradeResult,
+                          ...(trade.result.includes("+")
+                            ? styles.tradeProfit
+                            : trade.result.includes("-")
+                            ? styles.tradeLoss
+                            : {}),
+                        }}
+                      >
+                        {trade.result}
+                      </span>
+                      <span style={styles.tradeDate}>{trade.date}</span>
+                      <span style={styles.tradeChevron}>›</span>
+                    </button>
+                  ))
+                )}
               </div>
 
               <button
@@ -1581,6 +1668,16 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     marginTop: "12px",
+  },
+
+  emptyRecentTrades: {
+    border: "1px dashed rgba(148,163,184,0.16)",
+    background: "rgba(2,8,19,0.28)",
+    color: "rgba(255,255,255,0.68)",
+    borderRadius: "12px",
+    padding: "16px",
+    fontSize: "14px",
+    lineHeight: 1.5,
   },
 
   tradeRow: {
