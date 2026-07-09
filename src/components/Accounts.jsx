@@ -532,7 +532,7 @@ function AccountDetail({ account, onEdit, onDelete, onRecordPayout, onAddPayoutD
   const profit = Number(account.balance || 0) - Number(account.startingBalance || 0);
   const progress = getAccountProgress(account);
   const payoutGoal = getPayoutDayGoal(account);
-  const payoutDays = getPayoutDays(account);
+  const payoutDays = getPayoutDaysCompleted(account);
   const winsNeeded = payoutGoal
     ? getPayoutDaysLeft(account)
     : Math.ceil(Number(account.targetAmount || 0) / 300);
