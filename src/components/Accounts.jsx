@@ -27,7 +27,7 @@ const DEFAULT_FORM = {
   dailyLossLimit: "1000",
   maxDrawdown: "2000",
   payoutRule: "",
-  payoutDays: "0",
+  payoutDaysLeft: "5",
   payoutDayGoal: "5",
   payoutHistory: [],
   notes: "",
@@ -75,29 +75,40 @@ function getPayoutDayGoal(account) {
   return Number(account?.payoutDayGoal || 5);
 }
 
-function getPayoutDays(account) {
+function getPayoutDaysLeft(account) {
   const goal = getPayoutDayGoal(account);
   if (!goal) return 0;
 
-  if (Number.isFinite(Number(account?.payoutDays))) {
-    return Math.max(0, Math.min(goal, Number(account.payoutDays || 0)));
+  if (Number.isFinite(Number(account?.payoutDaysLeft))) {
+    return Math.max(0, Math.min(goal, Number(account.payoutDaysLeft || 0)));
   }
 
-  return account?.status === "Eligible" ? goal : 0;
+  // Backward compatibility for older saved accounts where payoutDays meant completed days.
+  if (Number.isFinite(Number(account?.payoutDays))) {
+    return Math.max(0, Math.min(goal, goal - Number(account.payoutDays || 0)));
+  }
+
+  return account?.status === "Eligible" ? 0 : goal;
+}
+
+function getPayoutDaysCompleted(account) {
+  const goal = getPayoutDayGoal(account);
+  if (!goal) return 0;
+  return Math.max(0, Math.min(goal, goal - getPayoutDaysLeft(account)));
 }
 
 function getAccountProgress(account) {
   const goal = getPayoutDayGoal(account);
 
   if (goal) {
-    return Math.round((getPayoutDays(account) / goal) * 100);
+    return Math.round((getPayoutDaysCompleted(account) / goal) * 100);
   }
 
   return Number(account?.progress || 0);
 }
 
 function getAccountTargetLabel(account) {
-  if (getPayoutDayGoal(account)) return "Payout Days";
+  if (getPayoutDayGoal(account)) return "Days Until Payout";
   return account?.type === "Evaluation" ? "To Pass" : "To Payout";
 }
 
@@ -105,30 +116,34 @@ function getAccountTargetValue(account) {
   const goal = getPayoutDayGoal(account);
 
   if (goal) {
-    return `${getPayoutDays(account)} / ${goal}`;
+    const daysLeft = getPayoutDaysLeft(account);
+    return daysLeft === 0 ? "Eligible" : `${daysLeft} / ${goal}`;
   }
 
   return money(account?.targetAmount);
 }
+
 
 function createAccount(form, existingId = null, existingCreatedAt = null, accountNumber = 1, groupId = "") {
   const firm = form.firm === "Other" ? form.customFirm || "Other" : form.firm;
   const accountSize = Number(form.accountSize || 0);
   const startingBalance = Number(form.startingBalance || accountSize || 0);
   const balance = Number(form.currentBalance || startingBalance || 0);
-  const targetAmount = Number(form.targetAmount || 0);
+  const rawTargetAmount = Number(form.targetAmount || 0);
   const profit = balance - startingBalance;
   const lowerFirm = firm.toLowerCase();
   const isTopstep = lowerFirm.includes("topstep");
   const isFunded = form.type === "Funded";
   const payoutDayGoal = isTopstep && isFunded ? Number(form.payoutDayGoal || 5) : 0;
-  const payoutDays = payoutDayGoal
-    ? Math.max(0, Math.min(payoutDayGoal, Number(form.payoutDays || 0)))
+  const payoutDaysLeft = payoutDayGoal
+    ? Math.max(0, Math.min(payoutDayGoal, Number(form.payoutDaysLeft ?? payoutDayGoal)))
     : 0;
+  const payoutDaysCompleted = payoutDayGoal ? payoutDayGoal - payoutDaysLeft : 0;
+  const targetAmount = payoutDayGoal ? 0 : rawTargetAmount;
 
   const progress =
     payoutDayGoal > 0
-      ? Math.max(0, Math.min(100, (payoutDays / payoutDayGoal) * 100))
+      ? Math.max(0, Math.min(100, (payoutDaysCompleted / payoutDayGoal) * 100))
       : targetAmount > 0
       ? Math.max(0, Math.min(100, (profit / targetAmount) * 100))
       : 0;
@@ -146,23 +161,26 @@ function createAccount(form, existingId = null, existingCreatedAt = null, accoun
     name: accountNumber > 1 && !existingId ? `${baseName} #${accountNumber}` : baseName,
     type: form.type,
     status:
-      payoutDayGoal && payoutDays >= payoutDayGoal
+      payoutDayGoal && payoutDaysLeft === 0
         ? "Eligible"
+        : form.status === "Eligible" && payoutDaysLeft > 0
+        ? "Active"
         : form.status,
     accountSize,
     startingBalance,
     balance,
-    targetAmount: payoutDayGoal ? 0 : targetAmount,
+    targetAmount,
     dailyLossLimit: Number(form.dailyLossLimit || 0),
     maxDrawdown: Number(form.maxDrawdown || 0),
     payoutRule:
       form.payoutRule ||
       (isTopstep && isFunded ? "5 winning days over $150" : ""),
-    payoutDays,
+    payoutDaysLeft,
+    payoutDays: payoutDaysCompleted,
     payoutDayGoal,
     payoutHistory: form.payoutHistory || [],
     notes: form.notes || "",
-    targetLabel: payoutDayGoal ? "Payout Days" : form.type === "Evaluation" ? "To Pass" : "To Payout",
+    targetLabel: payoutDayGoal ? "Days Until Payout" : form.type === "Evaluation" ? "To Pass" : "To Payout",
     progress: Math.round(progress),
     createdAt: existingCreatedAt || new Date().toISOString(),
   };
@@ -183,8 +201,8 @@ function accountToForm(account) {
     dailyLossLimit: String(account.dailyLossLimit || ""),
     maxDrawdown: String(account.maxDrawdown || ""),
     payoutRule: account.payoutRule || "",
-    payoutDays: String(account.payoutDays || 0),
-    payoutDayGoal: String(account.payoutDayGoal || 5),
+    payoutDaysLeft: String(getPayoutDaysLeft(account)),
+    payoutDayGoal: String(getPayoutDayGoal(account) || account.payoutDayGoal || 5),
     payoutHistory: account.payoutHistory || [],
     notes: account.notes || "",
   };
@@ -293,8 +311,9 @@ export default function Accounts({ setActivePage }) {
 
         return {
           ...account,
+          payoutDaysLeft: getPayoutDayGoal(account) || account.payoutDayGoal || 5,
           payoutDays: 0,
-          progress: account.payoutDayGoal ? 0 : account.progress,
+          progress: getPayoutDayGoal(account) ? 0 : account.progress,
           status: "Active",
           payoutHistory: [payout, ...(account.payoutHistory || [])],
         };
@@ -305,16 +324,19 @@ export default function Accounts({ setActivePage }) {
   const addPayoutDay = (accountId) => {
     setAccounts((current) =>
       current.map((account) => {
-        if (account.id !== accountId || !account.payoutDayGoal) return account;
+        const goal = getPayoutDayGoal(account);
+        if (account.id !== accountId || !goal) return account;
 
-        const nextDays = Math.min(account.payoutDayGoal, Number(account.payoutDays || 0) + 1);
-        const nextProgress = Math.round((nextDays / account.payoutDayGoal) * 100);
+        const nextDaysLeft = Math.max(0, getPayoutDaysLeft(account) - 1);
+        const nextCompleted = goal - nextDaysLeft;
+        const nextProgress = Math.round((nextCompleted / goal) * 100);
 
         return {
           ...account,
-          payoutDays: nextDays,
+          payoutDaysLeft: nextDaysLeft,
+          payoutDays: nextCompleted,
           progress: nextProgress,
-          status: nextDays >= account.payoutDayGoal ? "Eligible" : "Active",
+          status: nextDaysLeft === 0 ? "Eligible" : "Active",
         };
       })
     );
@@ -328,8 +350,9 @@ export default function Accounts({ setActivePage }) {
         account.id === accountId
           ? {
               ...account,
+              payoutDaysLeft: getPayoutDayGoal(account) || account.payoutDayGoal || 5,
               payoutDays: 0,
-              progress: account.payoutDayGoal ? 0 : account.progress,
+              progress: getPayoutDayGoal(account) ? 0 : account.progress,
               status: "Active",
             }
           : account
@@ -475,8 +498,8 @@ export default function Accounts({ setActivePage }) {
               <Field label="Current Balance"><input style={styles.input} type="number" value={form.currentBalance} onChange={(e) => updateForm("currentBalance", e.target.value)} /></Field>
               {form.firm === "Topstep" && form.type === "Funded" ? (
                 <>
-                  <Field label="Current Payout Days">
-                    <input style={styles.input} type="number" min="0" max="5" value={form.payoutDays} onChange={(e) => updateForm("payoutDays", e.target.value)} />
+                  <Field label="Days Until Payout">
+                    <input style={styles.input} type="number" min="0" max="5" value={form.payoutDaysLeft} onChange={(e) => updateForm("payoutDaysLeft", e.target.value)} />
                   </Field>
                   <Field label="Payout Day Goal">
                     <input style={styles.input} type="number" min="1" value={form.payoutDayGoal} onChange={(e) => updateForm("payoutDayGoal", e.target.value)} />
@@ -511,7 +534,7 @@ function AccountDetail({ account, onEdit, onDelete, onRecordPayout, onAddPayoutD
   const payoutGoal = getPayoutDayGoal(account);
   const payoutDays = getPayoutDays(account);
   const winsNeeded = payoutGoal
-    ? Math.max(0, payoutGoal - payoutDays)
+    ? getPayoutDaysLeft(account)
     : Math.ceil(Number(account.targetAmount || 0) / 300);
   return (
     <div>
@@ -537,13 +560,13 @@ function AccountDetail({ account, onEdit, onDelete, onRecordPayout, onAddPayoutD
       {payoutGoal ? (
         <div style={styles.payoutActions}>
           <button type="button" style={styles.editButton} onClick={onAddPayoutDay}>
-            + Add Payout Day
+            + Complete Payout Day
           </button>
           <button type="button" style={styles.editButton} onClick={onRecordPayout}>
             Record Payout
           </button>
           <button type="button" style={styles.secondarySmallButton} onClick={onResetPayoutDays}>
-            Reset Days
+            Reset to 5 Days
           </button>
         </div>
       ) : null}
