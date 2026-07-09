@@ -299,6 +299,12 @@ export default function Dashboard({ setActivePage, session }) {
   const eligiblePayoutCount = fundedPayoutAccounts.filter(
     (account) => Number(account.payoutDays || 0) >= Number(account.payoutDayGoal || 0)
   ).length;
+  const payoutDaysLeftByAccount = fundedPayoutAccounts.map((account) =>
+    Math.max(0, Number(account.payoutDayGoal || 0) - Number(account.payoutDays || 0))
+  );
+  const closestPayoutDaysLeft = payoutDaysLeftByAccount.length
+    ? Math.min(...payoutDaysLeftByAccount)
+    : 0;
   const selectedRecoveryAccount =
     accounts.find((account) => account.id === selectedRecoveryAccountId) ||
     accounts.find((account) => account.targetAmount > 0) ||
@@ -366,16 +372,30 @@ export default function Dashboard({ setActivePage, session }) {
           <TopStat
             icon="$"
             iconStyle={styles.goldOrb}
-            label={evaluationAccounts.length ? "Evaluation Goals" : "Payout Progress"}
+            label="Payout Progress"
             value={
-              evaluationAccounts.length
-                ? money(totalEvaluationTargets)
-                : `${eligiblePayoutCount} Eligible`
+              fundedPayoutAccounts.length
+                ? closestPayoutDaysLeft === 0
+                  ? `${eligiblePayoutCount} Eligible`
+                  : `${closestPayoutDaysLeft} Days Left`
+                : "No Funded"
             }
+            detail={
+              fundedPayoutAccounts.length
+                ? `${fundedPayoutAccounts.length} funded account${fundedPayoutAccounts.length === 1 ? "" : "s"} tracked`
+                : "Add funded accounts to track payouts"
+            }
+          />
+
+          <TopStat
+            icon="◎"
+            iconStyle={styles.goldOrb}
+            label="Evaluation Goals"
+            value={evaluationAccounts.length ? money(totalEvaluationTargets) : "$0"}
             detail={
               evaluationAccounts.length
                 ? `${evaluationAccounts.length} evaluation account${evaluationAccounts.length === 1 ? "" : "s"}`
-                : `${totalPayoutDaysCompleted} / ${totalPayoutDaysNeeded || 0} payout days completed`
+                : "Add evaluations to track pass targets"
             }
           />
 
@@ -1053,7 +1073,7 @@ const styles = {
 
   statGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
     gap: "16px",
     marginBottom: "20px",
   },
