@@ -1,105 +1,41 @@
+import { createClient } from "@supabase/supabase-js";
+
 export default async function handler(req, res) {
   try {
-    const apiKey = process.env.JBLANKED_API_KEY;
+    const supabaseUrl = process.env.VITE_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!apiKey) {
+    if (!supabaseUrl || !serviceKey) {
       return res.status(500).json({
-        error: "Missing JBLANKED_API_KEY in Vercel Environment Variables",
+        error: "Missing Supabase env variables",
       });
     }
 
-    const url = "https://www.jblanked.com/news/api/mql5/calendar/today/";
+    const supabase = createClient(supabaseUrl, serviceKey);
 
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Api-Key ${apiKey}`,
-      },
-    });
+    const { data, error } = await supabase
+      .from("economic_events")
+      .select("*")
+      .gte("event_time", new Date().toISOString())
+      .order("event_time", { ascending: true });
 
-    const text = await response.text();
-
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      return res.status(500).json({
-        error: "JBlanked did not return JSON",
-        response: text.substring(0, 500),
-      });
+    if (error) {
+      return res.status(500).json({ error: error.message });
     }
 
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: data?.error || data?.message || "JBlanked request failed",
-        details: data,
-      });
-    }
+    const events = data.map((event) => ({
+      id: event.id,
+      date: event.event_time,
+      event: event.event,
+      currency: event.currency || "USD",
+      country: event.country || "",
+      impact: event.impact || "Low",
+      previous: event.previous,
+      estimate: event.forecast,
+      actual: event.actual,
+    }));
 
-    const events = Array.isArray(data) ? data : data?.data || [];
-
-    const normalized = events
-      .map((event, index) => ({
-        date:
-          event.Date ||
-          event.date ||
-          event.Time ||
-          event.time ||
-          event.datetime ||
-          null,
-
-        event:
-          event.Name ||
-          event.name ||
-          event.Event ||
-          event.event ||
-          event.Title ||
-          event.title ||
-          "Economic Event",
-
-        currency:
-          event.Currency ||
-          event.currency ||
-          event.Country ||
-          event.country ||
-          "USD",
-
-        country:
-          event.Country ||
-          event.country ||
-          "",
-
-        impact:
-          event.Impact ||
-          event.impact ||
-          event.Importance ||
-          event.importance ||
-          "Low",
-
-        previous:
-          event.Previous ??
-          event.previous ??
-          null,
-
-        estimate:
-          event.Forecast ??
-          event.forecast ??
-          event.Estimate ??
-          event.estimate ??
-          null,
-
-        actual:
-          event.Actual ??
-          event.actual ??
-          null,
-
-        id: event.Id || event.id || `${index}`,
-      }))
-      .filter((event) => event.date)
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    return res.status(200).json(normalized);
+    return res.status(200).json(events);
   } catch (error) {
     return res.status(500).json({
       error: error.message || "Economic calendar failed",
