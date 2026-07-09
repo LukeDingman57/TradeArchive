@@ -60,7 +60,13 @@ function getFirmLogo(firmName) {
 function money(value, showPlus = false) {
   const number = Number(value || 0);
   const sign = number > 0 && showPlus ? "+" : number < 0 ? "-" : "";
-  return `${sign}$${Math.abs(number).toLocaleString()}`;
+  const absolute = Math.abs(number);
+  const formatted = absolute.toLocaleString("en-US", {
+    minimumFractionDigits: absolute % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+
+  return `${sign}$${formatted}`;
 }
 
 function isFundedAccount(account) {
@@ -556,7 +562,14 @@ function HeroStat({ label, value }) { return <div style={styles.heroStat}><div s
 function SummaryCard({ label, value, detail }) { return <article style={styles.summaryCard}><p style={styles.summaryLabel}>{label}</p><h3 style={styles.summaryValue}>{value}</h3><p style={styles.summaryDetail}>{detail}</p></article>; }
 function EmptyAccounts({ onAdd }) { return <div style={styles.emptyState}><div style={styles.emptyIcon}>+</div><h3 style={styles.emptyTitle}>No prop accounts yet</h3><p style={styles.emptyText}>Add your first funded or evaluation account. After that, this page becomes the control room for all firm rules and limits.</p><button type="button" style={styles.primaryButton} onClick={onAdd}>Add Your First Account</button></div>; }
 function TimelineItem({ active, number, title, text }) { return <div style={styles.timelineItem}><div style={{ ...styles.timelineNumber, ...(active ? styles.timelineNumberActive : {}) }}>{active ? "✓" : number}</div><div><h3 style={styles.timelineTitle}>{title}</h3><p style={styles.timelineText}>{text}</p></div></div>; }
-function DetailMetric({ label, value }) { return <div style={styles.detailMetric}><span>{label}</span><strong>{value}</strong></div>; }
+function DetailMetric({ label, value }) {
+  return (
+    <div style={styles.detailMetric}>
+      <span style={styles.detailMetricLabel}>{label}</span>
+      <strong style={styles.detailMetricValue}>{value}</strong>
+    </div>
+  );
+}
 function Field({ label, children }) { return <label style={styles.field}>{label}{children}</label>; }
 
 function AccountDetail({ account, onEdit, onDelete, onRecordPayout, onAddPayoutDay, onResetPayoutDays }) {
@@ -573,7 +586,7 @@ function AccountDetail({ account, onEdit, onDelete, onRecordPayout, onAddPayoutD
       <div style={styles.detailMoney}><div><span style={styles.detailLabel}>Balance</span><strong style={styles.detailBalance}>{money(account.balance)}</strong></div><div><span style={styles.detailLabel}>Net P/L</span><strong style={styles.detailBalance}>{money(profit, true)}</strong></div></div>
       <div style={styles.detailProgressHeader}>
         <span>{getAccountTargetLabel(account)}</span>
-        <strong>{payoutGoal ? `${getAccountTargetValue(account)} • ${getPayoutDaysDetail(account)}` : `${progress}%`}</strong>
+        <strong>{payoutGoal ? getPayoutDaysDetail(account) : `${progress}%`}</strong>
       </div>
       <div style={styles.progressTrackBig}><div style={{ ...styles.progressFill, width: `${progress}%` }} /></div>
       <div style={styles.detailGrid}>
@@ -588,7 +601,7 @@ function AccountDetail({ account, onEdit, onDelete, onRecordPayout, onAddPayoutD
       {payoutGoal ? (
         <div style={styles.payoutActions}>
           <button type="button" style={styles.editButton} onClick={onAddPayoutDay}>
-            + Complete Payout Day
+            + Complete Day
           </button>
           <button type="button" style={styles.editButton} onClick={onRecordPayout}>
             Record Payout
@@ -686,7 +699,34 @@ const styles = {
   detailBalance: { color: "#ffffff", fontSize: "28px", fontWeight: 900, letterSpacing: "-0.05em" },
   detailProgressHeader: { display: "flex", justifyContent: "space-between", color: "#ffffff", fontSize: "14px", fontWeight: 850, marginBottom: "9px" },
   detailGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "16px" },
-  detailMetric: { background: "rgba(2,8,19,0.35)", border: "1px solid rgba(148,163,184,0.12)", borderRadius: "12px", padding: "13px" },
+  detailMetric: {
+    background: "rgba(2,8,19,0.35)",
+    border: "1px solid rgba(148,163,184,0.12)",
+    borderRadius: "12px",
+    padding: "16px",
+    minHeight: "86px",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    gap: "8px",
+  },
+  detailMetricLabel: {
+    display: "block",
+    color: "rgba(255,255,255,0.64)",
+    fontSize: "12px",
+    fontWeight: 850,
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    lineHeight: 1.25,
+  },
+  detailMetricValue: {
+    display: "block",
+    color: "#ffffff",
+    fontSize: "24px",
+    fontWeight: 900,
+    lineHeight: 1.05,
+    letterSpacing: "-0.035em",
+  },
   noteBox: { background: "rgba(2,8,19,0.35)", border: "1px solid rgba(148,163,184,0.12)", borderRadius: "12px", padding: "13px", marginBottom: "10px" },
   detailActions: { display: "flex", gap: "10px", marginTop: "16px" },
   payoutActions: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "14px" },
