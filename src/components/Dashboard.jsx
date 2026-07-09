@@ -42,24 +42,48 @@ const createAccount = ({
   startingBalance = 50000,
   currentBalance = 50000,
   targetAmount = 0,
+  accountCount = 1,
+  accountNumber = 1,
+  accountGroupId = "",
+  payoutDays = 0,
 }) => {
   const start = Number(startingBalance || 0);
   const balance = Number(currentBalance || startingBalance || 0);
   const target = Number(targetAmount || 0);
   const profit = balance - start;
-  const progress = target > 0 ? Math.max(0, Math.min(100, (profit / target) * 100)) : 0;
+  const lowerFirm = firm.toLowerCase();
+  const isTopstep = lowerFirm.includes("topstep");
+  const isFunded = type === "Funded";
+  const payoutDayGoal = isTopstep && isFunded ? 5 : 0;
+  const cleanPayoutDays = Math.max(0, Math.min(payoutDayGoal || 999, Number(payoutDays || 0)));
+  const progress =
+    payoutDayGoal > 0
+      ? Math.max(0, Math.min(100, (cleanPayoutDays / payoutDayGoal) * 100))
+      : target > 0
+      ? Math.max(0, Math.min(100, (profit / target) * 100))
+      : 0;
 
   return {
     id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    name: name || `${firm} Account`,
+    accountGroupId,
+    accountNumber,
+    accountCount,
+    name: name || `${firm} Account${accountNumber > 1 ? ` #${accountNumber}` : ""}`,
     firm,
     type,
     logo: getFirmLogo(firm),
-    status: progress > 0 ? "In Progress" : "Not Started",
+    status:
+      payoutDayGoal > 0 && cleanPayoutDays >= payoutDayGoal
+        ? "Eligible"
+        : progress > 0
+        ? "In Progress"
+        : "Active",
     startingBalance: start,
     balance,
-    targetLabel: type === "Evaluation" ? "To Pass" : "To Payout",
+    targetLabel: payoutDayGoal > 0 ? "Payout Days" : type === "Evaluation" ? "To Pass" : "To Payout",
     targetAmount: target,
+    payoutDayGoal,
+    payoutDays: cleanPayoutDays,
     progress: Math.round(progress),
   };
 };
@@ -89,7 +113,27 @@ const loadStoredAccounts = () => {
 
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    const parsedAccounts = stored ? JSON.parse(stored) : [];
+
+    return parsedAccounts.map((account) => {
+      const isTopstepFunded =
+        String(account.firm || "").toLowerCase().includes("topstep") &&
+        account.type === "Funded";
+
+      if (!isTopstepFunded) return account;
+
+      const payoutDayGoal = account.payoutDayGoal || 5;
+      const payoutDays = Math.max(0, Math.min(payoutDayGoal, Number(account.payoutDays || 0)));
+
+      return {
+        ...account,
+        targetLabel: "Payout Days",
+        payoutDayGoal,
+        payoutDays,
+        progress: Math.round((payoutDays / payoutDayGoal) * 100),
+        status: payoutDays >= payoutDayGoal ? "Eligible" : account.status || "Active",
+      };
+    });
   } catch (error) {
     console.error("Failed to load saved accounts", error);
     return [];
@@ -154,14 +198,34 @@ export default function Dashboard({ setActivePage, session }) {
   }, [selectedRecoveryAccountId]);
 
   const addAccount = (accountData) => {
-    const newAccount = createAccount(accountData);
+    const accountCount = Math.max(1, Math.min(20, Number(accountData.accountCount || 1)));
+    const groupId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const sizeLabel = Number(accountData.startingBalance || 0)
+      ? `${Number(accountData.startingBalance || 0) / 1000}K`
+      : "Account";
+
+    const newAccounts = Array.from({ length: accountCount }, (_, index) => {
+      const accountNumber = index + 1;
+      const generatedName =
+        accountCount > 1
+          ? `${accountData.name || `${accountData.firm} ${sizeLabel}`} #${accountNumber}`
+          : accountData.name;
+
+      return createAccount({
+        ...accountData,
+        accountCount,
+        accountNumber,
+        accountGroupId: groupId,
+        name: generatedName,
+      });
+    });
 
     setAccounts((currentAccounts) => {
-      if (currentAccounts.length === 0) {
-        setSelectedRecoveryAccountId(newAccount.id);
+      if (currentAccounts.length === 0 && newAccounts[0]) {
+        setSelectedRecoveryAccountId(newAccounts[0].id);
       }
 
-      return [...currentAccounts, newAccount];
+      return [...currentAccounts, ...newAccounts];
     });
 
     setActiveModal(null);
@@ -177,6 +241,27 @@ export default function Dashboard({ setActivePage, session }) {
 
       return nextAccounts;
     });
+  };
+
+  const recordPayoutReset = (accountId) => {
+    const confirmed = window.confirm(
+      "Record payout and reset this account's payout days back to 0 / 5?"
+    );
+
+    if (!confirmed) return;
+
+    setAccounts((currentAccounts) =>
+      currentAccounts.map((account) =>
+        account.id === accountId
+          ? {
+              ...account,
+              payoutDays: 0,
+              progress: account.payoutDayGoal ? 0 : account.progress,
+              status: "Active",
+            }
+          : account
+      )
+    );
   };
 
   const openAddFirm = () => setActiveModal("addFirm");
@@ -197,7 +282,23 @@ export default function Dashboard({ setActivePage, session }) {
       sum + (Number(account.balance || 0) - Number(account.startingBalance || 0)),
     0
   );
-  const totalNeeded = accounts.reduce((sum, account) => sum + Number(account.targetAmount || 0), 0);
+  const evaluationAccounts = accounts.filter((account) => account.type === "Evaluation");
+  const fundedPayoutAccounts = accounts.filter((account) => account.payoutDayGoal);
+  const totalEvaluationTargets = evaluationAccounts.reduce(
+    (sum, account) => sum + Number(account.targetAmount || 0),
+    0
+  );
+  const totalPayoutDaysCompleted = fundedPayoutAccounts.reduce(
+    (sum, account) => sum + Number(account.payoutDays || 0),
+    0
+  );
+  const totalPayoutDaysNeeded = fundedPayoutAccounts.reduce(
+    (sum, account) => sum + Number(account.payoutDayGoal || 0),
+    0
+  );
+  const eligiblePayoutCount = fundedPayoutAccounts.filter(
+    (account) => Number(account.payoutDays || 0) >= Number(account.payoutDayGoal || 0)
+  ).length;
   const selectedRecoveryAccount =
     accounts.find((account) => account.id === selectedRecoveryAccountId) ||
     accounts.find((account) => account.targetAmount > 0) ||
@@ -265,9 +366,17 @@ export default function Dashboard({ setActivePage, session }) {
           <TopStat
             icon="$"
             iconStyle={styles.goldOrb}
-            label="Remaining Goal"
-            value={accounts.length ? money(totalNeeded) : "$0"}
-            detail="Pass and payout targets"
+            label={evaluationAccounts.length ? "Evaluation Goals" : "Payout Progress"}
+            value={
+              evaluationAccounts.length
+                ? money(totalEvaluationTargets)
+                : `${eligiblePayoutCount} Eligible`
+            }
+            detail={
+              evaluationAccounts.length
+                ? `${evaluationAccounts.length} evaluation account${evaluationAccounts.length === 1 ? "" : "s"}`
+                : `${totalPayoutDaysCompleted} / ${totalPayoutDaysNeeded || 0} payout days completed`
+            }
           />
 
           <TopStat
@@ -340,7 +449,9 @@ export default function Dashboard({ setActivePage, session }) {
           <aside style={styles.rightColumn}>
             <Panel>
               <div style={styles.recoveryHeader}>
-                <h2 style={styles.sectionTitle}>Recovery Goal</h2>
+                <h2 style={styles.sectionTitle}>
+                  {selectedRecoveryAccount?.payoutDayGoal ? "Payout Progress" : "Recovery Goal"}
+                </h2>
 
                 <select
                   style={styles.selectButton}
@@ -361,10 +472,16 @@ export default function Dashboard({ setActivePage, session }) {
               </div>
 
               <div style={styles.recoveryCard}>
-                <p style={styles.mutedLabel}>Need to pass</p>
+                <p style={styles.mutedLabel}>
+                  {selectedRecoveryAccount?.payoutDayGoal ? "Payout days needed" : "Need to pass"}
+                </p>
 
                 <div style={styles.recoveryValueRow}>
-                  <div style={styles.recoveryValue}>{money(recoveryNeeded)}</div>
+                  <div style={styles.recoveryValue}>
+                    {selectedRecoveryAccount?.payoutDayGoal
+                      ? `${selectedRecoveryAccount.payoutDays || 0} / ${selectedRecoveryAccount.payoutDayGoal}`
+                      : money(recoveryNeeded)}
+                  </div>
                   <div style={styles.recoveryPercent}>{recoveryProgress}%</div>
                 </div>
 
@@ -379,9 +496,11 @@ export default function Dashboard({ setActivePage, session }) {
 
                 <p style={styles.recoveryNote}>
                   {selectedRecoveryAccount
-                    ? `At $200 risk and 1.5R avg, that's about ${Math.ceil(
-                        recoveryNeeded / 300 || 0
-                      )} winning trades.`
+                    ? selectedRecoveryAccount.payoutDayGoal
+                      ? `Topstep funded accounts need ${selectedRecoveryAccount.payoutDayGoal} winning days over $150 before payout eligibility.`
+                      : `At $200 risk and 1.5R avg, that's about ${Math.ceil(
+                          recoveryNeeded / 300 || 0
+                        )} winning trades.`
                     : "Add your prop firm accounts and this will show what you need to pass or reach payout."}
                 </p>
 
@@ -459,7 +578,12 @@ export default function Dashboard({ setActivePage, session }) {
 
       {activeModal === "accountsManager" && (
         <Modal title="Manage Accounts" onClose={closeModal}>
-          <AccountsManager accounts={accounts} onAddFirm={openAddFirm} onDeleteAccount={deleteAccount} />
+          <AccountsManager
+          accounts={accounts}
+          onAddFirm={openAddFirm}
+          onDeleteAccount={deleteAccount}
+          onRecordPayout={recordPayoutReset}
+        />
         </Modal>
       )}
 
@@ -513,6 +637,7 @@ function AddFirmForm({ onClose, onSave }) {
   const [startingBalance, setStartingBalance] = React.useState("50000");
   const [currentBalance, setCurrentBalance] = React.useState("50000");
   const [targetAmount, setTargetAmount] = React.useState("");
+  const [accountCount, setAccountCount] = React.useState("1");
 
   const handleSave = () => {
     onSave({
@@ -522,6 +647,7 @@ function AddFirmForm({ onClose, onSave }) {
       startingBalance,
       currentBalance,
       targetAmount,
+      accountCount,
     });
   };
 
@@ -549,6 +675,19 @@ function AddFirmForm({ onClose, onSave }) {
           placeholder="Topstep 50K #1"
           value={name}
           onChange={(event) => setName(event.target.value)}
+        />
+      </label>
+
+      <label style={styles.formLabel}>
+        Number of Accounts
+        <input
+          style={styles.formInput}
+          placeholder="1"
+          type="number"
+          min="1"
+          max="20"
+          value={accountCount}
+          onChange={(event) => setAccountCount(event.target.value)}
         />
       </label>
 
@@ -607,13 +746,13 @@ function AddFirmForm({ onClose, onSave }) {
       </div>
 
       <p style={styles.modalHelpText}>
-        This saves in the dashboard UI for now. Next step is connecting it to Supabase so each user's firms persist after refresh.
+        Tip: if you have multiple matching accounts, enter the number above and TradeArchive will create them automatically.
       </p>
     </div>
   );
 }
 
-function AccountsManager({ accounts, onAddFirm, onDeleteAccount }) {
+function AccountsManager({ accounts, onAddFirm, onDeleteAccount, onRecordPayout }) {
   return (
     <div>
       {accounts.length === 0 ? (
@@ -635,6 +774,17 @@ function AccountsManager({ accounts, onAddFirm, onDeleteAccount }) {
 
               <div style={styles.managerRight}>
                 <span style={styles.managerBalance}>{money(account.balance)}</span>
+
+                {account.payoutDayGoal ? (
+                  <button
+                    type="button"
+                    style={styles.payoutResetButton}
+                    onClick={() => onRecordPayout(account.id)}
+                  >
+                    Record Payout
+                  </button>
+                ) : null}
+
                 <button
                   type="button"
                   style={styles.deleteButton}
@@ -755,7 +905,7 @@ function PanelHeader({ title, actionLabel, onAction }) {
 
 function AccountRow({ account, onClick }) {
   const statusStyle =
-    account.status === "Healthy"
+    account.status === "Healthy" || account.status === "Eligible"
       ? styles.statusHealthy
       : account.status === "Warning"
       ? styles.statusWarning
@@ -776,7 +926,14 @@ function AccountRow({ account, onClick }) {
       </div>
 
       <AccountMetric label="Balance" value={money(account.balance)} />
-      <AccountMetric label={account.targetLabel} value={money(account.targetAmount)} />
+      <AccountMetric
+        label={account.targetLabel}
+        value={
+          account.payoutDayGoal
+            ? `${account.payoutDays || 0} / ${account.payoutDayGoal}`
+            : money(account.targetAmount)
+        }
+      />
 
       <div style={styles.accountProgressCell}>
         <span style={styles.metricLabel}>Progress</span>
@@ -1668,6 +1825,18 @@ const styles = {
     color: "#ffffff",
     fontSize: "16px",
     fontWeight: 850,
+    whiteSpace: "nowrap",
+  },
+
+  payoutResetButton: {
+    border: "1px solid rgba(96,165,250,0.24)",
+    background: "rgba(37,99,235,0.14)",
+    color: "#bfdbfe",
+    borderRadius: "9px",
+    padding: "9px 11px",
+    fontSize: "13px",
+    fontWeight: 850,
+    cursor: "pointer",
     whiteSpace: "nowrap",
   },
 
