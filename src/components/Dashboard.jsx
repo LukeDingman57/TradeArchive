@@ -107,9 +107,35 @@ const loadSelectedRecoveryAccountId = () => {
   }
 };
 
-export default function Dashboard({ setActivePage }) {
+export default function Dashboard({ setActivePage, session }) {
   const isMobile = useIsMobileDashboard();
   const [activeModal, setActiveModal] = React.useState(null);
+
+  // Dynamic greeting, user name and date
+  const user = session?.user;
+
+  const firstName =
+    user?.user_metadata?.full_name?.split(" ")[0] ||
+    user?.user_metadata?.name?.split(" ")[0] ||
+    user?.email?.split("@")[0] ||
+    "Trader";
+
+  const now = new Date();
+  const hour = now.getHours();
+
+  const greeting =
+    hour < 12
+      ? "Good morning"
+      : hour < 17
+      ? "Good afternoon"
+      : "Good evening";
+
+  const formattedDate = now.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
   const [accounts, setAccounts] = React.useState(loadStoredAccounts);
   const [selectedRecoveryAccountId, setSelectedRecoveryAccountId] = React.useState(
     loadSelectedRecoveryAccountId
@@ -193,10 +219,10 @@ export default function Dashboard({ setActivePage }) {
           <div>
             <p style={styles.eyebrow}>PROP TRADER COMMAND CENTER</p>
             <h1 style={{ ...styles.heroTitle, ...(isMobile ? styles.heroTitleMobile : {}) }}>
-              Good afternoon, Luke
+              {greeting}, {firstName}
             </h1>
             <p style={styles.heroText}>
-              Here's your trading overview for Tuesday, July 7.
+              Here's your trading overview for {formattedDate}.
             </p>
           </div>
 
