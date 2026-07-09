@@ -123,6 +123,27 @@ function getAccountTargetValue(account) {
   return money(account?.targetAmount);
 }
 
+function getAvailablePayout(account) {
+  const profit = Number(account?.balance || 0) - Number(account?.startingBalance || 0);
+  if (profit <= 0) return 0;
+
+  const firm = String(account?.firm || "").toLowerCase();
+
+  if (firm.includes("topstep") && account?.type === "Funded") {
+    return profit * 0.5;
+  }
+
+  if (account?.type === "Funded") {
+    return profit;
+  }
+
+  return 0;
+}
+
+function getTotalAvailablePayout(accounts) {
+  return accounts.reduce((sum, account) => sum + getAvailablePayout(account), 0);
+}
+
 
 function createAccount(form, existingId = null, existingCreatedAt = null, accountNumber = 1, groupId = "") {
   const firm = form.firm === "Other" ? form.customFirm || "Other" : form.firm;
@@ -225,6 +246,7 @@ export default function Accounts({ setActivePage }) {
   const evalCount = accounts.filter((account) => account.type === "Evaluation").length;
   const totalBalance = accounts.reduce((sum, account) => sum + Number(account.balance || 0), 0);
   const totalProfit = accounts.reduce((sum, account) => sum + (Number(account.balance || 0) - Number(account.startingBalance || 0)), 0);
+  const totalAvailablePayout = getTotalAvailablePayout(accounts);
   const evalAccounts = accounts.filter((account) => account.type === "Evaluation");
   const fundedPayoutAccounts = accounts.filter((account) => account.payoutDayGoal);
   const totalTargets = evalAccounts.reduce((sum, account) => sum + Number(account.targetAmount || 0), 0);
@@ -409,7 +431,7 @@ export default function Accounts({ setActivePage }) {
                 : `${fundedPayoutAccounts.length} funded account${fundedPayoutAccounts.length === 1 ? "" : "s"} tracked`
             }
           />
-          <SummaryCard label="Data Source" value="Manual" detail="Supabase sync comes next" />
+          <SummaryCard label="Available Payout" value={money(totalAvailablePayout)} detail="Estimated withdrawable amount" />
         </section>
 
         <main style={styles.workspaceGrid}>
@@ -550,12 +572,9 @@ function AccountDetail({ account, onEdit, onDelete, onRecordPayout, onAddPayoutD
           label={payoutGoal ? "Payout Days Left" : "Remaining Goal"}
           value={payoutGoal ? winsNeeded : money(account.targetAmount)}
         />
+        <DetailMetric label="Available Payout" value={money(getAvailablePayout(account))} />
         <DetailMetric label="Daily Loss Limit" value={money(account.dailyLossLimit)} />
         <DetailMetric label="Max Drawdown" value={money(account.maxDrawdown)} />
-        <DetailMetric
-          label={payoutGoal ? "Rule" : "Est. Wins Needed"}
-          value={payoutGoal ? ">$150 days" : winsNeeded || 0}
-        />
       </div>
       {payoutGoal ? (
         <div style={styles.payoutActions}>
@@ -578,6 +597,12 @@ function AccountDetail({ account, onEdit, onDelete, onRecordPayout, onAddPayoutD
               {new Date(payout.date).toLocaleDateString("en-US")} — {money(payout.amount)}
             </p>
           ))}
+        </div>
+      ) : null}
+      {payoutGoal ? (
+        <div style={styles.noteBox}>
+          <span>Available Payout Estimate</span>
+          <p>Topstep funded estimate uses 50% of net profit. Example: +$1,572 profit = about $786 available.</p>
         </div>
       ) : null}
       {account.payoutRule ? <div style={styles.noteBox}><span>Payout Rule</span><p>{account.payoutRule}</p></div> : null}

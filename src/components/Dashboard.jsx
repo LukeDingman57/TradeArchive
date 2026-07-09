@@ -105,6 +105,23 @@ const tools = [
 
 const money = (value) => `$${Number(value || 0).toLocaleString()}`;
 
+const getAvailablePayout = (account) => {
+  const profit = Number(account?.balance || 0) - Number(account?.startingBalance || 0);
+  if (profit <= 0) return 0;
+
+  const firm = String(account?.firm || "").toLowerCase();
+
+  if (firm.includes("topstep") && account?.type === "Funded") {
+    return profit * 0.5;
+  }
+
+  if (account?.type === "Funded") {
+    return profit;
+  }
+
+  return 0;
+};
+
 const STORAGE_KEY = "tradearchive_dashboard_accounts";
 const SELECTED_RECOVERY_KEY = "tradearchive_selected_recovery_account";
 
@@ -282,6 +299,10 @@ export default function Dashboard({ setActivePage, session }) {
       sum + (Number(account.balance || 0) - Number(account.startingBalance || 0)),
     0
   );
+  const totalAvailablePayout = accounts.reduce(
+    (sum, account) => sum + getAvailablePayout(account),
+    0
+  );
   const evaluationAccounts = accounts.filter((account) => account.type === "Evaluation");
   const fundedPayoutAccounts = accounts.filter((account) => account.payoutDayGoal);
   const totalEvaluationTargets = evaluationAccounts.reduce(
@@ -366,7 +387,7 @@ export default function Dashboard({ setActivePage, session }) {
             iconStyle={styles.blueOrb}
             label="Monthly P/L"
             value={monthlyPL > 0 ? `+${money(monthlyPL)}` : money(monthlyPL)}
-            detail={`${fundedCount} funded • ${evalCount} evaluation`}
+            detail={`Available payout: ${money(totalAvailablePayout)}`}
           />
 
           <TopStat
@@ -517,7 +538,7 @@ export default function Dashboard({ setActivePage, session }) {
                 <p style={styles.recoveryNote}>
                   {selectedRecoveryAccount
                     ? selectedRecoveryAccount.payoutDayGoal
-                      ? `Topstep funded accounts need ${selectedRecoveryAccount.payoutDayGoal} winning days over $150 before payout eligibility.`
+                      ? `Topstep funded estimate: ${money(getAvailablePayout(selectedRecoveryAccount))} available payout based on 50% of net profit.`
                       : `At $200 risk and 1.5R avg, that's about ${Math.ceil(
                           recoveryNeeded / 300 || 0
                         )} winning trades.`
