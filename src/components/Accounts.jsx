@@ -139,8 +139,13 @@ function getAvailablePayout(account) {
   const profit = Number(account?.balance || 0) - Number(account?.startingBalance || 0);
   if (profit <= 0 || account?.type !== "Funded") return 0;
 
-  // Default funded-account estimate: most prop firms cap payouts around 50% of net profit.
-  // We can customize this per firm later if needed.
+  const goal = getPayoutDayGoal(account);
+  const isEligible = goal ? getPayoutDaysLeft(account) === 0 : account?.status === "Eligible";
+
+  if (!isEligible) return 0;
+
+  // Estimated available payout only counts accounts that are actually eligible.
+  // Default funded-account estimate: 50% of net profit.
   return profit * 0.5;
 }
 
@@ -435,7 +440,7 @@ export default function Accounts({ setActivePage }) {
                 : `${fundedPayoutAccounts.length} funded account${fundedPayoutAccounts.length === 1 ? "" : "s"} tracked`
             }
           />
-          <SummaryCard label="Available Payout" value={money(totalAvailablePayout)} detail="Estimated withdrawable amount" />
+          <SummaryCard label="Available Payout" value={money(totalAvailablePayout)} detail="Eligible accounts only" />
         </section>
 
         <main style={styles.workspaceGrid}>

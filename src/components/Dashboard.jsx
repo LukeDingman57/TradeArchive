@@ -109,6 +109,11 @@ const getAvailablePayout = (account) => {
   const profit = Number(account?.balance || 0) - Number(account?.startingBalance || 0);
   if (profit <= 0 || account?.type !== "Funded") return 0;
 
+  const goal = getPayoutDayGoal(account);
+  const isEligible = goal ? getPayoutDaysLeft(account) === 0 : account?.status === "Eligible";
+
+  if (!isEligible) return 0;
+
   return profit * 0.5;
 };
 
@@ -556,7 +561,7 @@ export default function Dashboard({ setActivePage, session }) {
                 <p style={styles.recoveryNote}>
                   {selectedRecoveryAccount
                     ? selectedRecoveryAccount.type === "Funded"
-                      ? `Estimated available payout: ${money(getAvailablePayout(selectedRecoveryAccount))}. Estimate uses 50% of net profit.`
+                      ? `Eligible available payout: ${money(getAvailablePayout(selectedRecoveryAccount))}. Estimate uses 50% of net profit.`
                       : `At $200 risk and 1.5R avg, that's about ${Math.ceil(
                           recoveryNeeded / 300 || 0
                         )} winning trades.`
