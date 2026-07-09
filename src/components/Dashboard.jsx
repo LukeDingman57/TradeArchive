@@ -1138,56 +1138,180 @@ function SessionCountdown() {
     return () => window.clearInterval(intervalId);
   }, []);
 
-  const getTodayAt = (hour, minute = 0) => {
-    const date = new Date(now);
-    date.setHours(hour, minute, 0, 0);
-    return date;
+  const userTimeZone =
+    typeof Intl !== "undefined"
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : "Local time";
+
+  const getTimeZoneOffsetMs = (timeZone, date) => {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).formatToParts(date);
+
+    const values = {};
+    parts.forEach((part) => {
+      if (part.type !== "literal") values[part.type] = part.value;
+    });
+
+    const asUtc = Date.UTC(
+      Number(values.year),
+      Number(values.month) - 1,
+      Number(values.day),
+      Number(values.hour),
+      Number(values.minute),
+      Number(values.second)
+    );
+
+    return asUtc - date.getTime();
   };
 
-  const marketOpen = getTodayAt(8, 30);
-  const noTradeBefore = getTodayAt(8, 45);
-  const cutoff = getTodayAt(10, 30);
+  const nyTimeToLocalDate = (year, month, day, hour, minute = 0) => {
+    const utcGuess = Date.UTC(year, month - 1, day, hour, minute, 0);
+    const offset = getTimeZoneOffsetMs("America/New_York", new Date(utcGuess));
+    return new Date(utcGuess - offset);
+  };
+
+  const getNyDateParts = (date) => {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+
+    const values = {};
+    parts.forEach((part) => {
+      if (part.type !== "literal") values[part.type] = part.value;
+    });
+
+    return {
+      year: Number(values.year),
+      month: Number(values.month),
+      day: Number(values.day),
+    };
+  };
+
+  const addNyDays = (nyParts, daysToAdd) => {
+    const noonLocal = nyTimeToLocalDate(nyParts.year, nyParts.month, nyParts.day, 12, 0);
+    const next = new Date(noonLocal.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+    return getNyDateParts(next);
+  };
+
+  const getNextSessionStart = (session) => {
+    const todayNy = getNyDateParts(now);
+
+    for (let offset = 0; offset <= 7; offset += 1) {
+      const nyDay = addNyDays(todayNy, offset);
+      const sessionStart = nyTimeToLocalDate(
+        nyDay.year,
+        nyDay.month,
+        nyDay.day,
+        session.nyHour,
+        session.nyMinute
+      );
+
+      if (sessionStart > now) return sessionStart;
+    }
+
+    return now;
+  };
 
   const formatCountdown = (target) => {
     const diff = target.getTime() - now.getTime();
 
-    if (diff <= 0) return "Started";
+    if (diff <= 0) return "Open now";
 
     const totalSeconds = Math.floor(diff / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
 
-    return `${hours}h ${minutes}m ${seconds}s`;
+    return days > 0
+      ? `${days}d ${hours}h ${minutes}m`
+      : `${hours}h ${minutes}m ${seconds}s`;
   };
 
-  const rows = [
-    { label: "NY Open", time: "8:30 AM local", value: formatCountdown(marketOpen) },
-    { label: "Your no-trade-before rule", time: "8:45 AM local", value: formatCountdown(noTradeBefore) },
-    { label: "Morning cutoff", time: "10:30 AM local", value: formatCountdown(cutoff) },
+  const formatLocalStart = (date) =>
+    date.toLocaleString("en-US", {
+      weekday: "short",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+  const sessions = [
+    {
+      label: "Asia Session",
+      nyHour: 20,
+      nyMinute: 0,
+      newYorkStart: "8:00 PM NY",
+    },
+    {
+      label: "London Session",
+      nyHour: 3,
+      nyMinute: 0,
+      newYorkStart: "3:00 AM NY",
+    },
+    {
+      label: "New York Session",
+      nyHour: 9,
+      nyMinute: 30,
+      newYorkStart: "9:30 AM NY",
+    },
   ];
+
+  const sessionRows = sessions
+    .map((session) => {
+      const start = getNextSessionStart(session);
+
+      return {
+        ...session,
+        start,
+        localStart: formatLocalStart(start),
+        countdown: formatCountdown(start),
+        msUntilStart: start.getTime() - now.getTime(),
+      };
+    })
+    .sort((a, b) => a.msUntilStart - b.msUntilStart);
 
   return (
     <div>
+      <div style={styles.nextSessionCard}>
+        <span style={styles.metricLabel}>Next session</span>
+        <strong style={styles.nextSessionTitle}>{sessionRows[0]?.label}</strong>
+        <p style={styles.recoveryNote}>
+          Starts {sessionRows[0]?.localStart} on this device.
+        </p>
+      </div>
+
       <div style={styles.sessionList}>
-        {rows.map((row) => (
-          <div key={row.label} style={styles.sessionRow}>
+        {sessionRows.map((session) => (
+          <div key={session.label} style={styles.sessionRow}>
             <div>
-              <div style={styles.sessionTitle}>{row.label}</div>
-              <div style={styles.sessionTime}>{row.time}</div>
+              <div style={styles.sessionTitle}>{session.label}</div>
+              <div style={styles.sessionTime}>
+                Starts {session.localStart} local • {session.newYorkStart}
+              </div>
             </div>
-            <div style={styles.sessionCountdown}>{row.value}</div>
+
+            <div style={styles.sessionCountdown}>{session.countdown}</div>
           </div>
         ))}
       </div>
 
       <p style={styles.recoveryNote}>
-        These times are based on your local timezone. We can later add custom session settings.
+        Countdown uses the trader's computer/phone timezone: {userTimeZone}.
       </p>
     </div>
   );
 }
-
 
 function TopStat({ icon, iconStyle, label, value, detail }) {
   return (
