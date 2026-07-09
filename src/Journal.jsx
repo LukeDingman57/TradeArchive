@@ -162,6 +162,10 @@ export default function Journal({ setActivePage }) {
   const [userPlan, setUserPlan] = useState("free");
   const [customRules, setCustomRules] = useState([]);
   const [customRuleChecks, setCustomRuleChecks] = useState({});
+  const [showPlaybookModal, setShowPlaybookModal] = useState(false);
+  const [newRule, setNewRule] = useState("");
+  const [savingRule, setSavingRule] = useState(false);
+  const [rulesMessage, setRulesMessage] = useState("");
   const [propAccounts, setPropAccounts] = useState(loadStoredAccounts);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -827,6 +831,65 @@ export default function Journal({ setActivePage }) {
     setCustomRuleChecks(nextChecks);
   };
 
+  const addTradingRule = async () => {
+    const trimmedRule = newRule.trim();
+    if (!trimmedRule) return;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setRulesMessage("Log in before adding rules.");
+      return;
+    }
+
+    setSavingRule(true);
+    setRulesMessage("");
+
+    const { data, error } = await supabase
+      .from("trading_rules")
+      .insert([{ user_id: user.id, rule_name: trimmedRule }])
+      .select("id, rule_name")
+      .single();
+
+    if (error) {
+      console.error("Error adding trading rule:", error);
+      setRulesMessage(`Could not add rule: ${error.message}`);
+    } else {
+      const nextRules = [...customRules, data];
+      setCustomRules(nextRules);
+      resetCustomRuleChecks(nextRules);
+      setNewRule("");
+      setRulesMessage("Rule added. It will now appear in Add Trade.");
+    }
+
+    setSavingRule(false);
+  };
+
+  const deleteTradingRule = async (ruleId) => {
+    const confirmed = window.confirm("Delete this trading rule?");
+    if (!confirmed) return;
+
+    setRulesMessage("");
+
+    const { error } = await supabase
+      .from("trading_rules")
+      .delete()
+      .eq("id", ruleId);
+
+    if (error) {
+      console.error("Error deleting trading rule:", error);
+      setRulesMessage(`Could not delete rule: ${error.message}`);
+      return;
+    }
+
+    const nextRules = customRules.filter((rule) => String(rule.id) !== String(ruleId));
+    setCustomRules(nextRules);
+    resetCustomRuleChecks(nextRules);
+    setRulesMessage("Rule deleted.");
+  };
+
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -1269,6 +1332,7 @@ export default function Journal({ setActivePage }) {
     setShowAddModal(false);
     setShowEditModal(false);
     setShowViewModal(false);
+    setShowPlaybookModal(false);
   };
 
   const goToPreviousMonth = () => {
@@ -1340,9 +1404,18 @@ export default function Journal({ setActivePage }) {
       <div style={{ ...styles.content, ...(isMobile ? styles.contentMobile : {}) }}>
         <div style={{ ...styles.headingRow, ...(isMobile ? styles.headingRowMobile : {}) }}>
           <h1 style={{ ...styles.heading, ...(isMobile ? styles.headingMobile : {}) }}>Journal</h1>
-          <button style={{ ...styles.quickAddButton, ...(isMobile ? styles.quickAddButtonMobile : {}) }} onClick={openAddModal}>
-            + Add Trade
-          </button>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: isMobile ? "stretch" : "flex-end" }}>
+            <button
+              type="button"
+              style={{ ...styles.playbookButton, ...(isMobile ? styles.quickAddButtonMobile : {}) }}
+              onClick={() => setShowPlaybookModal(true)}
+            >
+              My Playbook
+            </button>
+            <button style={{ ...styles.quickAddButton, ...(isMobile ? styles.quickAddButtonMobile : {}) }} onClick={openAddModal}>
+              + Add Trade
+            </button>
+          </div>
         </div>
 
         <div style={{ ...styles.statsGrid, ...(isMobile ? styles.statsGridMobile : {}) }}>
@@ -1937,6 +2010,19 @@ export default function Journal({ setActivePage }) {
         </div>
       </div>
 
+      {showPlaybookModal && (
+        <PlaybookModal
+          rules={customRules}
+          newRule={newRule}
+          setNewRule={setNewRule}
+          savingRule={savingRule}
+          rulesMessage={rulesMessage}
+          onAddRule={addTradingRule}
+          onDeleteRule={deleteTradingRule}
+          onClose={() => setShowPlaybookModal(false)}
+        />
+      )}
+
       {showAddModal && (
         <div style={styles.modalOverlay} onClick={closeAllModals}>
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -2166,6 +2252,84 @@ export default function Journal({ setActivePage }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function PlaybookModal({
+  rules,
+  newRule,
+  setNewRule,
+  savingRule,
+  rulesMessage,
+  onAddRule,
+  onDeleteRule,
+  onClose,
+}) {
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.playbookModal} onClick={(event) => event.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <div>
+            <div style={styles.playbookEyebrow}>MY PLAYBOOK</div>
+            <h2 style={styles.modalTitle}>Trading Rules</h2>
+            <p style={styles.playbookSubtext}>
+              These rules show up inside Add Trade so you can track discipline and rule compliance.
+            </p>
+          </div>
+
+          <button style={styles.closeButton} onClick={onClose}>
+            ✕
+          </button>
+        </div>
+
+        <div style={styles.playbookAddRow}>
+          <input
+            value={newRule}
+            onChange={(event) => setNewRule(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") onAddRule();
+            }}
+            placeholder="Example: Wait until 9:45 AM"
+            style={styles.playbookInput}
+          />
+          <button
+            type="button"
+            onClick={onAddRule}
+            disabled={savingRule}
+            style={styles.playbookAddButton}
+          >
+            {savingRule ? "Adding..." : "+ Add Rule"}
+          </button>
+        </div>
+
+        {rulesMessage ? <div style={styles.playbookMessage}>{rulesMessage}</div> : null}
+
+        <div style={styles.playbookList}>
+          {rules.length ? (
+            rules.map((rule) => (
+              <div key={rule.id} style={styles.playbookRuleRow}>
+                <div style={styles.playbookRuleLeft}>
+                  <span style={styles.playbookCheck}>✓</span>
+                  <span style={styles.playbookRuleName}>{rule.rule_name}</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => onDeleteRule(rule.id)}
+                  style={styles.playbookDeleteButton}
+                >
+                  Delete
+                </button>
+              </div>
+            ))
+          ) : (
+            <div style={styles.playbookEmpty}>
+              No rules yet. Add rules like “No news trades,” “Trade with HTF bias,” or “Max 2 trades per day.”
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -2617,6 +2781,18 @@ const styles = {
     fontWeight: 800,
     cursor: "pointer",
     boxShadow: "0 10px 22px rgba(37,99,235,0.28)",
+  },
+
+
+  playbookButton: {
+    border: "1px solid rgba(147,197,253,0.24)",
+    background: "rgba(96,165,250,0.10)",
+    color: "#bfdbfe",
+    borderRadius: "14px",
+    padding: "13px 18px",
+    fontSize: "15px",
+    fontWeight: 900,
+    cursor: "pointer",
   },
   statsGrid: {
     display: "grid",
@@ -3666,6 +3842,137 @@ const styles = {
     fontSize: "14px",
     lineHeight: 1.55,
     fontWeight: 600,
+  },
+
+  playbookModal: {
+    width: "100%",
+    maxWidth: "720px",
+    maxHeight: "88vh",
+    overflowY: "auto",
+    background: "linear-gradient(180deg, rgba(15,23,42,0.98), rgba(5,13,27,0.98))",
+    border: "1px solid rgba(148,163,184,0.18)",
+    borderRadius: "22px",
+    padding: "24px",
+    boxShadow: "0 28px 80px rgba(0,0,0,0.46)",
+    boxSizing: "border-box",
+  },
+
+  playbookEyebrow: {
+    color: "#93c5fd",
+    fontSize: "11px",
+    fontWeight: 950,
+    letterSpacing: "0.16em",
+    marginBottom: "8px",
+  },
+
+  playbookSubtext: {
+    margin: "8px 0 0",
+    color: "rgba(255,255,255,0.66)",
+    fontSize: "14px",
+    lineHeight: 1.55,
+    maxWidth: "520px",
+  },
+
+  playbookAddRow: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+    marginBottom: "12px",
+  },
+
+  playbookInput: {
+    flex: 1,
+    minWidth: "240px",
+    padding: "13px 14px",
+    borderRadius: "12px",
+    border: "1px solid rgba(148,163,184,0.16)",
+    background: "rgba(148,163,184,0.06)",
+    color: "white",
+    fontSize: "14px",
+    outline: "none",
+  },
+
+  playbookAddButton: {
+    padding: "13px 16px",
+    borderRadius: "12px",
+    border: "1px solid rgba(96,165,250,0.45)",
+    background: "linear-gradient(180deg,#3b82f6 0%,#2563eb 100%)",
+    color: "white",
+    fontWeight: 900,
+    cursor: "pointer",
+  },
+
+  playbookMessage: {
+    color: "#bfdbfe",
+    fontSize: "13px",
+    fontWeight: 750,
+    marginBottom: "12px",
+  },
+
+  playbookList: {
+    display: "grid",
+    gap: "10px",
+    marginTop: "12px",
+  },
+
+  playbookRuleRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "12px",
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(255,255,255,0.04)",
+    borderRadius: "14px",
+    padding: "12px 14px",
+  },
+
+  playbookRuleLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    minWidth: 0,
+  },
+
+  playbookCheck: {
+    width: "24px",
+    height: "24px",
+    borderRadius: "999px",
+    background: "rgba(34,197,94,0.12)",
+    border: "1px solid rgba(34,197,94,0.25)",
+    color: "#86efac",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "13px",
+    fontWeight: 950,
+    flexShrink: 0,
+  },
+
+  playbookRuleName: {
+    color: "#ffffff",
+    fontSize: "14px",
+    fontWeight: 800,
+    lineHeight: 1.4,
+  },
+
+  playbookDeleteButton: {
+    border: "1px solid rgba(248,113,113,0.24)",
+    background: "rgba(248,113,113,0.08)",
+    color: "#f87171",
+    borderRadius: "10px",
+    padding: "8px 11px",
+    fontSize: "13px",
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+
+  playbookEmpty: {
+    color: "rgba(255,255,255,0.58)",
+    fontSize: "14px",
+    lineHeight: 1.55,
+    border: "1px dashed rgba(255,255,255,0.12)",
+    borderRadius: "14px",
+    padding: "14px",
   },
 
 };
