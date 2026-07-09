@@ -16,8 +16,8 @@ export default async function handler(req, res) {
     const { data, error } = await supabase
       .from("economic_events")
       .select("*")
-      .gte("event_time", new Date().toISOString())
-      .order("event_time", { ascending: true });
+      .gte("date", new Date().toISOString())
+      .order("date", { ascending: true });
 
     if (error) {
       return res.status(500).json({ error: error.message });
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
 
     const events = data.map((event) => ({
       id: event.id,
-      date: event.event_time,
+      date: event.date,
       event: event.event,
       currency: event.currency || "USD",
       country: event.country || "",
