@@ -107,19 +107,9 @@ const money = (value) => `$${Number(value || 0).toLocaleString()}`;
 
 const getAvailablePayout = (account) => {
   const profit = Number(account?.balance || 0) - Number(account?.startingBalance || 0);
-  if (profit <= 0) return 0;
+  if (profit <= 0 || account?.type !== "Funded") return 0;
 
-  const firm = String(account?.firm || "").toLowerCase();
-
-  if (firm.includes("topstep") && account?.type === "Funded") {
-    return profit * 0.5;
-  }
-
-  if (account?.type === "Funded") {
-    return profit;
-  }
-
-  return 0;
+  return profit * 0.5;
 };
 
 const getPayoutDayGoal = (account) => {
@@ -548,7 +538,7 @@ export default function Dashboard({ setActivePage, session }) {
                     {selectedRecoveryAccount?.type === "Funded"
                       ? getPayoutDaysLeft(selectedRecoveryAccount) === 0
                         ? "Eligible"
-                        : `${getPayoutDaysLeft(selectedRecoveryAccount)} / ${getPayoutDayGoal(selectedRecoveryAccount)}`
+                        : `${getPayoutDaysCompleted(selectedRecoveryAccount)} / ${getPayoutDayGoal(selectedRecoveryAccount)}`
                       : money(recoveryNeeded)}
                   </div>
                   <div style={styles.recoveryPercent}>{recoveryProgress}%</div>
@@ -566,7 +556,7 @@ export default function Dashboard({ setActivePage, session }) {
                 <p style={styles.recoveryNote}>
                   {selectedRecoveryAccount
                     ? selectedRecoveryAccount.type === "Funded"
-                      ? `Estimated available payout: ${money(getAvailablePayout(selectedRecoveryAccount))}. Topstep uses 50% of net profit.`
+                      ? `Estimated available payout: ${money(getAvailablePayout(selectedRecoveryAccount))}. Estimate uses 50% of net profit.`
                       : `At $200 risk and 1.5R avg, that's about ${Math.ceil(
                           recoveryNeeded / 300 || 0
                         )} winning trades.`
@@ -996,12 +986,12 @@ function AccountRow({ account, onClick }) {
 
       <AccountMetric label="Balance" value={money(account.balance)} />
       <AccountMetric
-        label={account.type === "Funded" ? "Days Until Payout" : account.targetLabel}
+        label={account.type === "Funded" ? "Payout Days" : account.targetLabel}
         value={
           account.type === "Funded"
             ? getPayoutDaysLeft(account) === 0
               ? "Eligible"
-              : `${getPayoutDaysLeft(account)} / ${getPayoutDayGoal(account)}`
+              : `${getPayoutDaysCompleted(account)} / ${getPayoutDayGoal(account)}`
             : money(account.targetAmount)
         }
       />

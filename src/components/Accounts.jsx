@@ -112,7 +112,7 @@ function getAccountProgress(account) {
 }
 
 function getAccountTargetLabel(account) {
-  if (getPayoutDayGoal(account)) return "Days Until Payout";
+  if (getPayoutDayGoal(account)) return "Payout Days";
   return account?.type === "Evaluation" ? "To Pass" : "To Payout";
 }
 
@@ -121,27 +121,27 @@ function getAccountTargetValue(account) {
 
   if (goal) {
     const daysLeft = getPayoutDaysLeft(account);
-    return daysLeft === 0 ? "Eligible" : `${daysLeft} / ${goal}`;
+    const completed = getPayoutDaysCompleted(account);
+    return daysLeft === 0 ? "Eligible" : `${completed} / ${goal}`;
   }
 
   return money(account?.targetAmount);
 }
 
+function getPayoutDaysDetail(account) {
+  const goal = getPayoutDayGoal(account);
+  if (!goal) return "";
+  const daysLeft = getPayoutDaysLeft(account);
+  return daysLeft === 0 ? "Eligible for payout" : `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`;
+}
+
 function getAvailablePayout(account) {
   const profit = Number(account?.balance || 0) - Number(account?.startingBalance || 0);
-  if (profit <= 0) return 0;
+  if (profit <= 0 || account?.type !== "Funded") return 0;
 
-  const firm = String(account?.firm || "").toLowerCase();
-
-  if (firm.includes("topstep") && account?.type === "Funded") {
-    return profit * 0.5;
-  }
-
-  if (account?.type === "Funded") {
-    return profit;
-  }
-
-  return 0;
+  // Default funded-account estimate: most prop firms cap payouts around 50% of net profit.
+  // We can customize this per firm later if needed.
+  return profit * 0.5;
 }
 
 function getTotalAvailablePayout(accounts) {
@@ -469,7 +469,7 @@ export default function Accounts({ setActivePage }) {
                         <span>{getAccountTargetLabel(account)}</span>
                         <strong>
                           {getPayoutDayGoal(account)
-                            ? getAccountTargetValue(account)
+                            ? `${getAccountTargetValue(account)} • ${getPayoutDaysDetail(account)}`
                             : `${getAccountProgress(account)}%`}
                         </strong>
                       </div>
@@ -524,7 +524,7 @@ export default function Accounts({ setActivePage }) {
               <Field label="Current Balance"><input style={styles.input} type="number" value={form.currentBalance} onChange={(e) => updateForm("currentBalance", e.target.value)} /></Field>
               {form.type === "Funded" ? (
                 <>
-                  <Field label="Days Until Payout">
+                  <Field label="Days Left Until Payout">
                     <input style={styles.input} type="number" min="0" max="5" value={form.payoutDaysLeft} onChange={(e) => updateForm("payoutDaysLeft", e.target.value)} />
                   </Field>
                   <Field label="Payout Day Goal">
@@ -568,12 +568,12 @@ function AccountDetail({ account, onEdit, onDelete, onRecordPayout, onAddPayoutD
       <div style={styles.detailMoney}><div><span style={styles.detailLabel}>Balance</span><strong style={styles.detailBalance}>{money(account.balance)}</strong></div><div><span style={styles.detailLabel}>Net P/L</span><strong style={styles.detailBalance}>{money(profit, true)}</strong></div></div>
       <div style={styles.detailProgressHeader}>
         <span>{getAccountTargetLabel(account)}</span>
-        <strong>{payoutGoal ? getAccountTargetValue(account) : `${progress}%`}</strong>
+        <strong>{payoutGoal ? `${getAccountTargetValue(account)} • ${getPayoutDaysDetail(account)}` : `${progress}%`}</strong>
       </div>
       <div style={styles.progressTrackBig}><div style={{ ...styles.progressFill, width: `${progress}%` }} /></div>
       <div style={styles.detailGrid}>
         <DetailMetric
-          label={payoutGoal ? "Payout Days Left" : "Remaining Goal"}
+          label={payoutGoal ? "Days Left" : "Remaining Goal"}
           value={payoutGoal ? winsNeeded : money(account.targetAmount)}
         />
         <DetailMetric label="Available Payout" value={money(getAvailablePayout(account))} />
@@ -607,9 +607,7 @@ function AccountDetail({ account, onEdit, onDelete, onRecordPayout, onAddPayoutD
         <div style={styles.noteBox}>
           <span>Available Payout Estimate</span>
           <p>
-            {isTopstepFundedAccount(account)
-              ? "Topstep estimate uses 50% of net profit."
-              : "This estimate uses current net profit until this firm's exact payout rules are added."}
+            Estimated available payout uses 50% of net profit for funded accounts. Firm-specific payout rules can be customized later.
           </p>
         </div>
       ) : null}
