@@ -63,6 +63,54 @@ function money(value, showPlus = false) {
   return `${sign}$${Math.abs(number).toLocaleString()}`;
 }
 
+function isTopstepFundedAccount(account) {
+  return (
+    String(account?.firm || "").toLowerCase().includes("topstep") &&
+    account?.type === "Funded"
+  );
+}
+
+function getPayoutDayGoal(account) {
+  if (!isTopstepFundedAccount(account)) return 0;
+  return Number(account?.payoutDayGoal || 5);
+}
+
+function getPayoutDays(account) {
+  const goal = getPayoutDayGoal(account);
+  if (!goal) return 0;
+
+  if (Number.isFinite(Number(account?.payoutDays))) {
+    return Math.max(0, Math.min(goal, Number(account.payoutDays || 0)));
+  }
+
+  return account?.status === "Eligible" ? goal : 0;
+}
+
+function getAccountProgress(account) {
+  const goal = getPayoutDayGoal(account);
+
+  if (goal) {
+    return Math.round((getPayoutDays(account) / goal) * 100);
+  }
+
+  return Number(account?.progress || 0);
+}
+
+function getAccountTargetLabel(account) {
+  if (getPayoutDayGoal(account)) return "Payout Days";
+  return account?.type === "Evaluation" ? "To Pass" : "To Payout";
+}
+
+function getAccountTargetValue(account) {
+  const goal = getPayoutDayGoal(account);
+
+  if (goal) {
+    return `${getPayoutDays(account)} / ${goal}`;
+  }
+
+  return money(account?.targetAmount);
+}
+
 function createAccount(form, existingId = null, existingCreatedAt = null, accountNumber = 1, groupId = "") {
   const firm = form.firm === "Other" ? form.customFirm || "Other" : form.firm;
   const accountSize = Number(form.accountSize || 0);
@@ -369,14 +417,14 @@ export default function Accounts({ setActivePage }) {
                     </div>
                     <div style={styles.listProgress}>
                       <div style={styles.progressTop}>
-                        <span>{account.targetLabel}</span>
+                        <span>{getAccountTargetLabel(account)}</span>
                         <strong>
-                          {account.payoutDayGoal
-                            ? `${account.payoutDays || 0} / ${account.payoutDayGoal}`
-                            : `${account.progress}%`}
+                          {getPayoutDayGoal(account)
+                            ? getAccountTargetValue(account)
+                            : `${getAccountProgress(account)}%`}
                         </strong>
                       </div>
-                      <div style={styles.progressTrack}><div style={{ ...styles.progressFill, width: `${account.progress}%` }} /></div>
+                      <div style={styles.progressTrack}><div style={{ ...styles.progressFill, width: `${getAccountProgress(account)}%` }} /></div>
                     </div>
                     <div style={styles.listAmount}>{money(account.balance)}</div>
                   </button>
@@ -459,36 +507,34 @@ function Field({ label, children }) { return <label style={styles.field}>{label}
 
 function AccountDetail({ account, onEdit, onDelete, onRecordPayout, onAddPayoutDay, onResetPayoutDays }) {
   const profit = Number(account.balance || 0) - Number(account.startingBalance || 0);
-  const progress = Number(account.progress || 0);
-  const winsNeeded = account.payoutDayGoal
-    ? Math.max(0, Number(account.payoutDayGoal || 0) - Number(account.payoutDays || 0))
+  const progress = getAccountProgress(account);
+  const payoutGoal = getPayoutDayGoal(account);
+  const payoutDays = getPayoutDays(account);
+  const winsNeeded = payoutGoal
+    ? Math.max(0, payoutGoal - payoutDays)
     : Math.ceil(Number(account.targetAmount || 0) / 300);
   return (
     <div>
       <div style={styles.detailTop}><div style={styles.firmLogoLarge}>{account.logo}</div><div><h2 style={styles.detailTitle}>{account.name}</h2><div style={styles.accountTags}><span style={styles.accountTag}>{account.firm}</span><span style={styles.accountTag}>{account.type}</span><span style={styles.accountTag}>{account.status}</span></div></div></div>
       <div style={styles.detailMoney}><div><span style={styles.detailLabel}>Balance</span><strong style={styles.detailBalance}>{money(account.balance)}</strong></div><div><span style={styles.detailLabel}>Net P/L</span><strong style={styles.detailBalance}>{money(profit, true)}</strong></div></div>
       <div style={styles.detailProgressHeader}>
-        <span>{account.targetLabel}</span>
-        <strong>
-          {account.payoutDayGoal
-            ? `${account.payoutDays || 0} / ${account.payoutDayGoal}`
-            : `${progress}%`}
-        </strong>
+        <span>{getAccountTargetLabel(account)}</span>
+        <strong>{payoutGoal ? getAccountTargetValue(account) : `${progress}%`}</strong>
       </div>
       <div style={styles.progressTrackBig}><div style={{ ...styles.progressFill, width: `${progress}%` }} /></div>
       <div style={styles.detailGrid}>
         <DetailMetric
-          label={account.payoutDayGoal ? "Payout Days Left" : "Remaining Goal"}
-          value={account.payoutDayGoal ? winsNeeded : money(account.targetAmount)}
+          label={payoutGoal ? "Payout Days Left" : "Remaining Goal"}
+          value={payoutGoal ? winsNeeded : money(account.targetAmount)}
         />
         <DetailMetric label="Daily Loss Limit" value={money(account.dailyLossLimit)} />
         <DetailMetric label="Max Drawdown" value={money(account.maxDrawdown)} />
         <DetailMetric
-          label={account.payoutDayGoal ? "Rule" : "Est. Wins Needed"}
-          value={account.payoutDayGoal ? ">$150 days" : winsNeeded || 0}
+          label={payoutGoal ? "Rule" : "Est. Wins Needed"}
+          value={payoutGoal ? ">$150 days" : winsNeeded || 0}
         />
       </div>
-      {account.payoutDayGoal ? (
+      {payoutGoal ? (
         <div style={styles.payoutActions}>
           <button type="button" style={styles.editButton} onClick={onAddPayoutDay}>
             + Add Payout Day
