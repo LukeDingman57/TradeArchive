@@ -1178,18 +1178,17 @@ export default function App() {
         />
       )}
 
-      {!isMobile && (
+      {!isMobile && activePage === "dashboard" && (
         <div
           style={{
             position: "fixed",
-            top: "88px",
+            top: "18px",
             right: "22px",
             zIndex: 200,
             display: "flex",
             alignItems: "center",
             gap: "12px",
-            maxWidth: "calc(100vw - 280px)",
-            flexWrap: "wrap",
+
             background: "rgba(8,15,28,0.88)",
             border: "1px solid rgba(148,163,184,0.14)",
             padding: "10px 14px",
@@ -1270,7 +1269,7 @@ export default function App() {
           flex: 1,
           minWidth: 0,
           width: "100%",
-          paddingTop: isMobile ? "64px" : "18px",
+          paddingTop: isMobile ? "64px" : 0,
           paddingBottom: isMobile ? "86px" : 0,
           overflow: "auto",
         }}
