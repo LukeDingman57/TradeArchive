@@ -1022,7 +1022,7 @@ export default function App() {
     }
 
     if (activePage === "dashboard") {
-      return <Dashboard setActivePage={setActivePage} />;
+      return <Dashboard setActivePage={setActivePage} session={session} />;
     }
 
     if (activePage === "accounts") {
@@ -1132,7 +1132,7 @@ export default function App() {
       );
     }
 
-    return <Dashboard setActivePage={setActivePage} />;
+    return <Dashboard setActivePage={setActivePage} session={session} />;
   };
 
 
