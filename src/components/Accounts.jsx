@@ -104,7 +104,7 @@ function createAccount(form, existingId = null, existingCreatedAt = null, accoun
     accountSize,
     startingBalance,
     balance,
-    targetAmount,
+    targetAmount: payoutDayGoal ? 0 : targetAmount,
     dailyLossLimit: Number(form.dailyLossLimit || 0),
     maxDrawdown: Number(form.maxDrawdown || 0),
     payoutRule:
@@ -159,7 +159,12 @@ export default function Accounts({ setActivePage }) {
   const evalCount = accounts.filter((account) => account.type === "Evaluation").length;
   const totalBalance = accounts.reduce((sum, account) => sum + Number(account.balance || 0), 0);
   const totalProfit = accounts.reduce((sum, account) => sum + (Number(account.balance || 0) - Number(account.startingBalance || 0)), 0);
-  const totalTargets = accounts.reduce((sum, account) => sum + Number(account.targetAmount || 0), 0);
+  const evalAccounts = accounts.filter((account) => account.type === "Evaluation");
+  const fundedPayoutAccounts = accounts.filter((account) => account.payoutDayGoal);
+  const totalTargets = evalAccounts.reduce((sum, account) => sum + Number(account.targetAmount || 0), 0);
+  const eligiblePayoutCount = fundedPayoutAccounts.filter(
+    (account) => Number(account.payoutDays || 0) >= Number(account.payoutDayGoal || 0)
+  ).length;
 
   const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }));
 
@@ -324,7 +329,15 @@ export default function Accounts({ setActivePage }) {
 
         <section style={styles.summaryGrid}>
           <SummaryCard label="Total Balance" value={money(totalBalance)} detail="Across all firms" />
-          <SummaryCard label="Remaining Goals" value={money(totalTargets)} detail="Pass and payout targets" />
+          <SummaryCard
+            label={evalAccounts.length ? "Evaluation Goals" : "Payout Progress"}
+            value={evalAccounts.length ? money(totalTargets) : `${eligiblePayoutCount} Eligible`}
+            detail={
+              evalAccounts.length
+                ? "Only evaluation pass targets"
+                : `${fundedPayoutAccounts.length} funded account${fundedPayoutAccounts.length === 1 ? "" : "s"} tracked`
+            }
+          />
           <SummaryCard label="Data Source" value="Manual" detail="Supabase sync comes next" />
         </section>
 
