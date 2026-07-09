@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { supabase } from "./lib/supabase";
 import Dashboard from "./components/Dashboard";
@@ -690,6 +690,7 @@ export default function App() {
   const [billingError, setBillingError] = useState("");
   const [authMode, setAuthMode] = useState("login");
   const isMobile = useIsMobile();
+  const lastSeenUpdateRef = useRef(0);
 
   const openAuth = (mode = "login") => {
     setAuthMode(mode);
@@ -742,6 +743,55 @@ export default function App() {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const MIN_UPDATE_GAP_MS = 60 * 1000;
+
+    const updateLastSeen = async (force = false) => {
+      const now = Date.now();
+
+      if (!force && now - lastSeenUpdateRef.current < MIN_UPDATE_GAP_MS) {
+        return;
+      }
+
+      lastSeenUpdateRef.current = now;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ last_seen_at: new Date().toISOString() })
+        .eq("id", session.user.id);
+
+      if (error) {
+        console.error("Error updating last_seen_at:", error);
+      }
+    };
+
+    const handleActivity = () => updateLastSeen(false);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        updateLastSeen(true);
+      }
+    };
+
+    updateLastSeen(true);
+
+    const intervalId = window.setInterval(() => updateLastSeen(false), 5 * 60 * 1000);
+
+    window.addEventListener("click", handleActivity);
+    window.addEventListener("keydown", handleActivity);
+    window.addEventListener("focus", handleActivity);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("click", handleActivity);
+      window.removeEventListener("keydown", handleActivity);
+      window.removeEventListener("focus", handleActivity);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [session?.user?.id]);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
