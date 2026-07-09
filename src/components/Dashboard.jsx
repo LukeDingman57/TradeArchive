@@ -122,6 +122,32 @@ const getAvailablePayout = (account) => {
   return 0;
 };
 
+const getPayoutDayGoal = (account) => {
+  if (account?.type !== "Funded") return 0;
+  return Number(account?.payoutDayGoal || 5);
+};
+
+const getPayoutDaysLeft = (account) => {
+  const goal = getPayoutDayGoal(account);
+  if (!goal) return 0;
+
+  if (Number.isFinite(Number(account?.payoutDaysLeft))) {
+    return Math.max(0, Math.min(goal, Number(account.payoutDaysLeft || 0)));
+  }
+
+  if (Number.isFinite(Number(account?.payoutDays))) {
+    return Math.max(0, Math.min(goal, goal - Number(account.payoutDays || 0)));
+  }
+
+  return account?.status === "Eligible" ? 0 : goal;
+};
+
+const getPayoutDaysCompleted = (account) => {
+  const goal = getPayoutDayGoal(account);
+  if (!goal) return 0;
+  return Math.max(0, Math.min(goal, goal - getPayoutDaysLeft(account)));
+};
+
 const STORAGE_KEY = "tradearchive_dashboard_accounts";
 const SELECTED_RECOVERY_KEY = "tradearchive_selected_recovery_account";
 
@@ -304,24 +330,24 @@ export default function Dashboard({ setActivePage, session }) {
     0
   );
   const evaluationAccounts = accounts.filter((account) => account.type === "Evaluation");
-  const fundedPayoutAccounts = accounts.filter((account) => account.payoutDayGoal);
+  const fundedPayoutAccounts = accounts.filter((account) => account.type === "Funded");
   const totalEvaluationTargets = evaluationAccounts.reduce(
     (sum, account) => sum + Number(account.targetAmount || 0),
     0
   );
   const totalPayoutDaysCompleted = fundedPayoutAccounts.reduce(
-    (sum, account) => sum + Number(account.payoutDays || 0),
+    (sum, account) => sum + getPayoutDaysCompleted(account),
     0
   );
   const totalPayoutDaysNeeded = fundedPayoutAccounts.reduce(
-    (sum, account) => sum + Number(account.payoutDayGoal || 0),
+    (sum, account) => sum + getPayoutDayGoal(account),
     0
   );
   const eligiblePayoutCount = fundedPayoutAccounts.filter(
-    (account) => Number(account.payoutDays || 0) >= Number(account.payoutDayGoal || 0)
+    (account) => getPayoutDaysLeft(account) === 0
   ).length;
   const payoutDaysLeftByAccount = fundedPayoutAccounts.map((account) =>
-    Math.max(0, Number(account.payoutDayGoal || 0) - Number(account.payoutDays || 0))
+    getPayoutDaysLeft(account)
   );
   const closestPayoutDaysLeft = payoutDaysLeftByAccount.length
     ? Math.min(...payoutDaysLeftByAccount)
@@ -491,7 +517,7 @@ export default function Dashboard({ setActivePage, session }) {
             <Panel>
               <div style={styles.recoveryHeader}>
                 <h2 style={styles.sectionTitle}>
-                  {selectedRecoveryAccount?.payoutDayGoal ? "Payout Progress" : "Recovery Goal"}
+                  {selectedRecoveryAccount?.type === "Funded" ? "Payout Progress" : "Recovery Goal"}
                 </h2>
 
                 <select
@@ -519,8 +545,10 @@ export default function Dashboard({ setActivePage, session }) {
 
                 <div style={styles.recoveryValueRow}>
                   <div style={styles.recoveryValue}>
-                    {selectedRecoveryAccount?.payoutDayGoal
-                      ? `${selectedRecoveryAccount.payoutDays || 0} / ${selectedRecoveryAccount.payoutDayGoal}`
+                    {selectedRecoveryAccount?.type === "Funded"
+                      ? getPayoutDaysLeft(selectedRecoveryAccount) === 0
+                        ? "Eligible"
+                        : `${getPayoutDaysLeft(selectedRecoveryAccount)} / ${getPayoutDayGoal(selectedRecoveryAccount)}`
                       : money(recoveryNeeded)}
                   </div>
                   <div style={styles.recoveryPercent}>{recoveryProgress}%</div>
@@ -537,8 +565,8 @@ export default function Dashboard({ setActivePage, session }) {
 
                 <p style={styles.recoveryNote}>
                   {selectedRecoveryAccount
-                    ? selectedRecoveryAccount.payoutDayGoal
-                      ? `Topstep funded estimate: ${money(getAvailablePayout(selectedRecoveryAccount))} available payout based on 50% of net profit.`
+                    ? selectedRecoveryAccount.type === "Funded"
+                      ? `Estimated available payout: ${money(getAvailablePayout(selectedRecoveryAccount))}. Topstep uses 50% of net profit.`
                       : `At $200 risk and 1.5R avg, that's about ${Math.ceil(
                           recoveryNeeded / 300 || 0
                         )} winning trades.`
@@ -968,10 +996,12 @@ function AccountRow({ account, onClick }) {
 
       <AccountMetric label="Balance" value={money(account.balance)} />
       <AccountMetric
-        label={account.targetLabel}
+        label={account.type === "Funded" ? "Days Until Payout" : account.targetLabel}
         value={
-          account.payoutDayGoal
-            ? `${account.payoutDays || 0} / ${account.payoutDayGoal}`
+          account.type === "Funded"
+            ? getPayoutDaysLeft(account) === 0
+              ? "Eligible"
+              : `${getPayoutDaysLeft(account)} / ${getPayoutDayGoal(account)}`
             : money(account.targetAmount)
         }
       />

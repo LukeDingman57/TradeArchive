@@ -63,6 +63,10 @@ function money(value, showPlus = false) {
   return `${sign}$${Math.abs(number).toLocaleString()}`;
 }
 
+function isFundedAccount(account) {
+  return account?.type === "Funded";
+}
+
 function isTopstepFundedAccount(account) {
   return (
     String(account?.firm || "").toLowerCase().includes("topstep") &&
@@ -71,7 +75,7 @@ function isTopstepFundedAccount(account) {
 }
 
 function getPayoutDayGoal(account) {
-  if (!isTopstepFundedAccount(account)) return 0;
+  if (!isFundedAccount(account)) return 0;
   return Number(account?.payoutDayGoal || 5);
 }
 
@@ -155,7 +159,7 @@ function createAccount(form, existingId = null, existingCreatedAt = null, accoun
   const lowerFirm = firm.toLowerCase();
   const isTopstep = lowerFirm.includes("topstep");
   const isFunded = form.type === "Funded";
-  const payoutDayGoal = isTopstep && isFunded ? Number(form.payoutDayGoal || 5) : 0;
+  const payoutDayGoal = isFunded ? Number(form.payoutDayGoal || 5) : 0;
   const payoutDaysLeft = payoutDayGoal
     ? Math.max(0, Math.min(payoutDayGoal, Number(form.payoutDaysLeft ?? payoutDayGoal)))
     : 0;
@@ -195,7 +199,7 @@ function createAccount(form, existingId = null, existingCreatedAt = null, accoun
     maxDrawdown: Number(form.maxDrawdown || 0),
     payoutRule:
       form.payoutRule ||
-      (isTopstep && isFunded ? "5 winning days over $150" : ""),
+      (isTopstep && isFunded ? "5 winning days over $150" : isFunded ? "Payout rules vary by firm" : ""),
     payoutDaysLeft,
     payoutDays: payoutDaysCompleted,
     payoutDayGoal,
@@ -248,10 +252,10 @@ export default function Accounts({ setActivePage }) {
   const totalProfit = accounts.reduce((sum, account) => sum + (Number(account.balance || 0) - Number(account.startingBalance || 0)), 0);
   const totalAvailablePayout = getTotalAvailablePayout(accounts);
   const evalAccounts = accounts.filter((account) => account.type === "Evaluation");
-  const fundedPayoutAccounts = accounts.filter((account) => account.payoutDayGoal);
+  const fundedPayoutAccounts = accounts.filter((account) => getPayoutDayGoal(account));
   const totalTargets = evalAccounts.reduce((sum, account) => sum + Number(account.targetAmount || 0), 0);
   const eligiblePayoutCount = fundedPayoutAccounts.filter(
-    (account) => Number(account.payoutDays || 0) >= Number(account.payoutDayGoal || 0)
+    (account) => getPayoutDaysLeft(account) === 0
   ).length;
 
   const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }));
@@ -518,7 +522,7 @@ export default function Accounts({ setActivePage }) {
               <Field label="Account Size"><input style={styles.input} type="number" value={form.accountSize} onChange={(e) => updateForm("accountSize", e.target.value)} /></Field>
               <Field label="Starting Balance"><input style={styles.input} type="number" value={form.startingBalance} onChange={(e) => updateForm("startingBalance", e.target.value)} /></Field>
               <Field label="Current Balance"><input style={styles.input} type="number" value={form.currentBalance} onChange={(e) => updateForm("currentBalance", e.target.value)} /></Field>
-              {form.firm === "Topstep" && form.type === "Funded" ? (
+              {form.type === "Funded" ? (
                 <>
                   <Field label="Days Until Payout">
                     <input style={styles.input} type="number" min="0" max="5" value={form.payoutDaysLeft} onChange={(e) => updateForm("payoutDaysLeft", e.target.value)} />
@@ -602,7 +606,11 @@ function AccountDetail({ account, onEdit, onDelete, onRecordPayout, onAddPayoutD
       {payoutGoal ? (
         <div style={styles.noteBox}>
           <span>Available Payout Estimate</span>
-          <p>Topstep funded estimate uses 50% of net profit. Example: +$1,572 profit = about $786 available.</p>
+          <p>
+            {isTopstepFundedAccount(account)
+              ? "Topstep estimate uses 50% of net profit."
+              : "This estimate uses current net profit until this firm's exact payout rules are added."}
+          </p>
         </div>
       ) : null}
       {account.payoutRule ? <div style={styles.noteBox}><span>Payout Rule</span><p>{account.payoutRule}</p></div> : null}
