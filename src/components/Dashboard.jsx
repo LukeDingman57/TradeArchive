@@ -136,10 +136,10 @@ const mapDashboardTrade = (trade) => {
 };
 
 const tools = [
-  { label: "Recovery Calculator", icon: "◎", page: "tools" },
-  { label: "Risk Calculator", icon: "◇", page: "tools" },
-  { label: "Economic Calendar", icon: "▣", page: "calendar" },
-  { label: "Session Countdown", icon: "◷", page: "tools" },
+  { label: "Recovery Calculator", icon: "◎", action: "recoveryCalculator" },
+  { label: "Risk Calculator", icon: "◇", action: "riskCalculator" },
+  { label: "Economic Calendar", icon: "▣", page: "news" },
+  { label: "Session Countdown", icon: "◷", action: "sessionCountdown" },
 ];
 
 const money = (value) => `$${Number(value || 0).toLocaleString()}`;
@@ -392,6 +392,17 @@ export default function Dashboard({ setActivePage, session }) {
     }
   };
 
+  const handleQuickTool = (tool) => {
+    if (tool.action) {
+      setActiveModal(tool.action);
+      return;
+    }
+
+    if (tool.page) {
+      goToPage(tool.page);
+    }
+  };
+
   const fundedCount = accounts.filter((account) => account.type === "Funded").length;
   const evalCount = accounts.filter((account) => account.type === "Evaluation").length;
   const monthlyPL = accounts.reduce(
@@ -577,7 +588,7 @@ export default function Dashboard({ setActivePage, session }) {
                       ...styles.toolItem,
                       ...(index === tools.length - 1 ? styles.toolItemLast : {}),
                     }}
-                    onClick={() => goToPage(tool.page)}
+                    onClick={() => handleQuickTool(tool)}
                   >
                     <span style={styles.toolIcon}>{tool.icon}</span>
                     <span>{tool.label}</span>
@@ -741,6 +752,18 @@ export default function Dashboard({ setActivePage, session }) {
       {activeModal === "recoveryCalculator" && (
         <Modal title="Recovery Calculator" onClose={closeModal}>
           <RecoveryCalculator />
+        </Modal>
+      )}
+
+      {activeModal === "riskCalculator" && (
+        <Modal title="Risk Calculator" onClose={closeModal}>
+          <RiskCalculator />
+        </Modal>
+      )}
+
+      {activeModal === "sessionCountdown" && (
+        <Modal title="Session Countdown" onClose={closeModal}>
+          <SessionCountdown />
         </Modal>
       )}
     </div>
@@ -1018,6 +1041,149 @@ function RecoveryCalculator() {
           At {money(risk)} risk and {averageR}R average, that is about {winsNeeded} clean winning trades.
         </p>
       </div>
+    </div>
+  );
+}
+
+
+function RiskCalculator() {
+  const [accountBalance, setAccountBalance] = React.useState(50000);
+  const [riskAmount, setRiskAmount] = React.useState(200);
+  const [stopPoints, setStopPoints] = React.useState(20);
+  const [instrument, setInstrument] = React.useState("MNQ");
+
+  const pointValueMap = {
+    MNQ: 2,
+    NQ: 20,
+    MES: 5,
+    ES: 50,
+    M2K: 5,
+    RTY: 50,
+  };
+
+  const pointValue = pointValueMap[instrument] || 1;
+  const contractRisk = Math.max(0, Number(stopPoints || 0) * pointValue);
+  const contracts = contractRisk > 0 ? Math.floor(Number(riskAmount || 0) / contractRisk) : 0;
+  const riskPercent = Number(accountBalance || 0)
+    ? ((Number(riskAmount || 0) / Number(accountBalance || 0)) * 100).toFixed(2)
+    : "0.00";
+
+  return (
+    <div>
+      <div style={styles.formGrid}>
+        <label style={styles.formLabel}>
+          Account Balance
+          <input
+            style={styles.formInput}
+            type="number"
+            value={accountBalance}
+            onChange={(event) => setAccountBalance(event.target.value)}
+          />
+        </label>
+
+        <label style={styles.formLabel}>
+          Dollar Risk
+          <input
+            style={styles.formInput}
+            type="number"
+            value={riskAmount}
+            onChange={(event) => setRiskAmount(event.target.value)}
+          />
+        </label>
+
+        <label style={styles.formLabel}>
+          Instrument
+          <select
+            style={styles.formInput}
+            value={instrument}
+            onChange={(event) => setInstrument(event.target.value)}
+          >
+            <option>MNQ</option>
+            <option>NQ</option>
+            <option>MES</option>
+            <option>ES</option>
+            <option>M2K</option>
+            <option>RTY</option>
+          </select>
+        </label>
+
+        <label style={styles.formLabel}>
+          Stop Size Points
+          <input
+            style={styles.formInput}
+            type="number"
+            value={stopPoints}
+            onChange={(event) => setStopPoints(event.target.value)}
+          />
+        </label>
+      </div>
+
+      <div style={styles.calculatorResult}>
+        <span style={styles.metricLabel}>Suggested size</span>
+        <strong style={styles.calculatorNumber}>{contracts} contract{contracts === 1 ? "" : "s"}</strong>
+        <p style={styles.recoveryNote}>
+          {instrument} risk is about {money(contractRisk)} per contract with a {stopPoints}-point stop.
+          That equals about {riskPercent}% of the account.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SessionCountdown() {
+  const [now, setNow] = React.useState(new Date());
+
+  React.useEffect(() => {
+    const intervalId = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  const getTodayAt = (hour, minute = 0) => {
+    const date = new Date(now);
+    date.setHours(hour, minute, 0, 0);
+    return date;
+  };
+
+  const marketOpen = getTodayAt(8, 30);
+  const noTradeBefore = getTodayAt(8, 45);
+  const cutoff = getTodayAt(10, 30);
+
+  const formatCountdown = (target) => {
+    const diff = target.getTime() - now.getTime();
+
+    if (diff <= 0) return "Started";
+
+    const totalSeconds = Math.floor(diff / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    return `${hours}h ${minutes}m ${seconds}s`;
+  };
+
+  const rows = [
+    { label: "NY Open", time: "8:30 AM local", value: formatCountdown(marketOpen) },
+    { label: "Your no-trade-before rule", time: "8:45 AM local", value: formatCountdown(noTradeBefore) },
+    { label: "Morning cutoff", time: "10:30 AM local", value: formatCountdown(cutoff) },
+  ];
+
+  return (
+    <div>
+      <div style={styles.sessionList}>
+        {rows.map((row) => (
+          <div key={row.label} style={styles.sessionRow}>
+            <div>
+              <div style={styles.sessionTitle}>{row.label}</div>
+              <div style={styles.sessionTime}>{row.time}</div>
+            </div>
+            <div style={styles.sessionCountdown}>{row.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <p style={styles.recoveryNote}>
+        These times are based on your local timezone. We can later add custom session settings.
+      </p>
     </div>
   );
 }
@@ -2029,6 +2195,43 @@ const styles = {
     fontWeight: 900,
     letterSpacing: "-0.06em",
     marginTop: "8px",
+  },
+
+  sessionList: {
+    display: "grid",
+    gap: "12px",
+    marginBottom: "16px",
+  },
+
+  sessionRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "16px",
+    border: "1px solid rgba(148,163,184,0.13)",
+    background: "rgba(2,8,19,0.35)",
+    borderRadius: "14px",
+    padding: "16px",
+  },
+
+  sessionTitle: {
+    color: "#ffffff",
+    fontSize: "15px",
+    fontWeight: 850,
+    marginBottom: "5px",
+  },
+
+  sessionTime: {
+    color: "rgba(255,255,255,0.62)",
+    fontSize: "13px",
+    fontWeight: 700,
+  },
+
+  sessionCountdown: {
+    color: "#93c5fd",
+    fontSize: "18px",
+    fontWeight: 900,
+    whiteSpace: "nowrap",
   },
 
 
