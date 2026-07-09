@@ -17,6 +17,7 @@ const DEFAULT_FORM = {
   firm: "Topstep",
   customFirm: "",
   name: "",
+  accountCount: "1",
   type: "Evaluation",
   status: "Active",
   accountSize: "50000",
@@ -26,6 +27,9 @@ const DEFAULT_FORM = {
   dailyLossLimit: "1000",
   maxDrawdown: "2000",
   payoutRule: "",
+  payoutDays: "0",
+  payoutDayGoal: "5",
+  payoutHistory: [],
   notes: "",
 };
 
@@ -59,31 +63,58 @@ function money(value, showPlus = false) {
   return `${sign}$${Math.abs(number).toLocaleString()}`;
 }
 
-function createAccount(form, existingId = null, existingCreatedAt = null) {
+function createAccount(form, existingId = null, existingCreatedAt = null, accountNumber = 1, groupId = "") {
   const firm = form.firm === "Other" ? form.customFirm || "Other" : form.firm;
   const accountSize = Number(form.accountSize || 0);
   const startingBalance = Number(form.startingBalance || accountSize || 0);
   const balance = Number(form.currentBalance || startingBalance || 0);
   const targetAmount = Number(form.targetAmount || 0);
   const profit = balance - startingBalance;
-  const progress = targetAmount > 0 ? Math.max(0, Math.min(100, (profit / targetAmount) * 100)) : 0;
+  const lowerFirm = firm.toLowerCase();
+  const isTopstep = lowerFirm.includes("topstep");
+  const isFunded = form.type === "Funded";
+  const payoutDayGoal = isTopstep && isFunded ? Number(form.payoutDayGoal || 5) : 0;
+  const payoutDays = payoutDayGoal
+    ? Math.max(0, Math.min(payoutDayGoal, Number(form.payoutDays || 0)))
+    : 0;
+
+  const progress =
+    payoutDayGoal > 0
+      ? Math.max(0, Math.min(100, (payoutDays / payoutDayGoal) * 100))
+      : targetAmount > 0
+      ? Math.max(0, Math.min(100, (profit / targetAmount) * 100))
+      : 0;
+
+  const baseName =
+    form.name ||
+    `${firm} ${accountSize ? `${accountSize / 1000}K` : ""}`.trim();
 
   return {
     id: existingId || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    groupId,
+    accountNumber,
     firm,
     logo: getFirmLogo(firm),
-    name: form.name || `${firm} ${accountSize ? `${accountSize / 1000}K` : ""}`.trim(),
+    name: accountNumber > 1 && !existingId ? `${baseName} #${accountNumber}` : baseName,
     type: form.type,
-    status: form.status,
+    status:
+      payoutDayGoal && payoutDays >= payoutDayGoal
+        ? "Eligible"
+        : form.status,
     accountSize,
     startingBalance,
     balance,
     targetAmount,
     dailyLossLimit: Number(form.dailyLossLimit || 0),
     maxDrawdown: Number(form.maxDrawdown || 0),
-    payoutRule: form.payoutRule || "",
+    payoutRule:
+      form.payoutRule ||
+      (isTopstep && isFunded ? "5 winning days over $150" : ""),
+    payoutDays,
+    payoutDayGoal,
+    payoutHistory: form.payoutHistory || [],
     notes: form.notes || "",
-    targetLabel: form.type === "Evaluation" ? "To Pass" : "To Payout",
+    targetLabel: payoutDayGoal ? "Payout Days" : form.type === "Evaluation" ? "To Pass" : "To Payout",
     progress: Math.round(progress),
     createdAt: existingCreatedAt || new Date().toISOString(),
   };
@@ -94,6 +125,7 @@ function accountToForm(account) {
     firm: FIRM_OPTIONS.includes(account.firm) ? account.firm : "Other",
     customFirm: FIRM_OPTIONS.includes(account.firm) ? "" : account.firm,
     name: account.name || "",
+    accountCount: "1",
     type: account.type || "Evaluation",
     status: account.status || "Active",
     accountSize: String(account.accountSize || ""),
@@ -103,6 +135,9 @@ function accountToForm(account) {
     dailyLossLimit: String(account.dailyLossLimit || ""),
     maxDrawdown: String(account.maxDrawdown || ""),
     payoutRule: account.payoutRule || "",
+    payoutDays: String(account.payoutDays || 0),
+    payoutDayGoal: String(account.payoutDayGoal || 5),
+    payoutHistory: account.payoutHistory || [],
     notes: account.notes || "",
   };
 }
@@ -148,15 +183,32 @@ export default function Accounts({ setActivePage }) {
 
   const saveAccount = () => {
     const existing = accounts.find((account) => account.id === editingId);
-    const nextAccount = createAccount(form, editingId, existing?.createdAt);
+
+    if (editingId) {
+      const nextAccount = createAccount(form, editingId, existing?.createdAt, existing?.accountNumber || 1, existing?.groupId || "");
+      setAccounts((current) =>
+        current.map((account) => (account.id === editingId ? nextAccount : account))
+      );
+      closeEditor();
+      return;
+    }
+
+    const accountCount = Math.max(1, Math.min(20, Number(form.accountCount || 1)));
+    const groupId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+    const newAccounts = Array.from({ length: accountCount }, (_, index) =>
+      createAccount(form, null, null, index + 1, groupId)
+    );
+
     setAccounts((current) => {
-      if (editingId) return current.map((account) => (account.id === editingId ? nextAccount : account));
-      if (current.length === 0 && typeof window !== "undefined") {
-        window.localStorage.setItem(SELECTED_RECOVERY_KEY, nextAccount.id);
-        setSelectedAccountId(nextAccount.id);
+      if (current.length === 0 && newAccounts[0] && typeof window !== "undefined") {
+        window.localStorage.setItem(SELECTED_RECOVERY_KEY, newAccounts[0].id);
+        setSelectedAccountId(newAccounts[0].id);
       }
-      return [...current, nextAccount];
+
+      return [...current, ...newAccounts];
     });
+
     closeEditor();
   };
 
@@ -170,6 +222,66 @@ export default function Accounts({ setActivePage }) {
     if (typeof window !== "undefined" && window.localStorage.getItem(SELECTED_RECOVERY_KEY) === accountId) {
       window.localStorage.removeItem(SELECTED_RECOVERY_KEY);
     }
+  };
+
+  const recordPayout = (accountId) => {
+    const payoutAmount = window.prompt("Payout amount? Example: 1500");
+    if (payoutAmount === null) return;
+
+    setAccounts((current) =>
+      current.map((account) => {
+        if (account.id !== accountId) return account;
+
+        const payout = {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          amount: Number(payoutAmount || 0),
+          date: new Date().toISOString(),
+        };
+
+        return {
+          ...account,
+          payoutDays: 0,
+          progress: account.payoutDayGoal ? 0 : account.progress,
+          status: "Active",
+          payoutHistory: [payout, ...(account.payoutHistory || [])],
+        };
+      })
+    );
+  };
+
+  const addPayoutDay = (accountId) => {
+    setAccounts((current) =>
+      current.map((account) => {
+        if (account.id !== accountId || !account.payoutDayGoal) return account;
+
+        const nextDays = Math.min(account.payoutDayGoal, Number(account.payoutDays || 0) + 1);
+        const nextProgress = Math.round((nextDays / account.payoutDayGoal) * 100);
+
+        return {
+          ...account,
+          payoutDays: nextDays,
+          progress: nextProgress,
+          status: nextDays >= account.payoutDayGoal ? "Eligible" : "Active",
+        };
+      })
+    );
+  };
+
+  const resetPayoutDays = (accountId) => {
+    if (!window.confirm("Reset payout days to 0 / 5?")) return;
+
+    setAccounts((current) =>
+      current.map((account) =>
+        account.id === accountId
+          ? {
+              ...account,
+              payoutDays: 0,
+              progress: account.payoutDayGoal ? 0 : account.progress,
+              status: "Active",
+            }
+          : account
+      )
+    );
   };
 
   const goDashboard = () => {
@@ -243,7 +355,14 @@ export default function Accounts({ setActivePage }) {
                       </div>
                     </div>
                     <div style={styles.listProgress}>
-                      <div style={styles.progressTop}><span>{account.targetLabel}</span><strong>{account.progress}%</strong></div>
+                      <div style={styles.progressTop}>
+                        <span>{account.targetLabel}</span>
+                        <strong>
+                          {account.payoutDayGoal
+                            ? `${account.payoutDays || 0} / ${account.payoutDayGoal}`
+                            : `${account.progress}%`}
+                        </strong>
+                      </div>
                       <div style={styles.progressTrack}><div style={{ ...styles.progressFill, width: `${account.progress}%` }} /></div>
                     </div>
                     <div style={styles.listAmount}>{money(account.balance)}</div>
@@ -255,7 +374,14 @@ export default function Accounts({ setActivePage }) {
 
           <aside style={styles.detailColumn}>
             <section style={styles.card}>
-              {selectedAccount ? <AccountDetail account={selectedAccount} onEdit={() => openEditEditor(selectedAccount)} onDelete={() => deleteAccount(selectedAccount.id)} /> : <div style={styles.emptyDetail}><div style={styles.emptyIconSmall}>+</div><h3 style={styles.emptyTitle}>No account selected</h3><p style={styles.emptyText}>Add a firm account and its details will show here.</p></div>}
+              {selectedAccount ? <AccountDetail
+                account={selectedAccount}
+                onEdit={() => openEditEditor(selectedAccount)}
+                onDelete={() => deleteAccount(selectedAccount.id)}
+                onRecordPayout={() => recordPayout(selectedAccount.id)}
+                onAddPayoutDay={() => addPayoutDay(selectedAccount.id)}
+                onResetPayoutDays={() => resetPayoutDays(selectedAccount.id)}
+              /> : <div style={styles.emptyDetail}><div style={styles.emptyIconSmall}>+</div><h3 style={styles.emptyTitle}>No account selected</h3><p style={styles.emptyText}>Add a firm account and its details will show here.</p></div>}
             </section>
             <section style={styles.card}>
               <h2 style={styles.sectionTitle}>Account Setup Flow</h2>
@@ -279,13 +405,25 @@ export default function Accounts({ setActivePage }) {
             <div style={styles.formGrid}>
               <Field label="Prop Firm"><select style={styles.input} value={form.firm} onChange={(e) => updateForm("firm", e.target.value)}>{FIRM_OPTIONS.map((firm) => <option key={firm}>{firm}</option>)}</select></Field>
               {form.firm === "Other" && <Field label="Custom Firm Name"><input style={styles.input} value={form.customFirm} placeholder="Example: Bulenox" onChange={(e) => updateForm("customFirm", e.target.value)} /></Field>}
-              <Field label="Account Name"><input style={styles.input} value={form.name} placeholder="Topstep 50K #1" onChange={(e) => updateForm("name", e.target.value)} /></Field>
+              <Field label="Account Name"><input style={styles.input} value={form.name} placeholder="Topstep 50K" onChange={(e) => updateForm("name", e.target.value)} /></Field>
+              {!editingId && <Field label="Number of Accounts"><input style={styles.input} type="number" min="1" max="20" value={form.accountCount} onChange={(e) => updateForm("accountCount", e.target.value)} /></Field>}
               <Field label="Account Type"><select style={styles.input} value={form.type} onChange={(e) => updateForm("type", e.target.value)}><option>Evaluation</option><option>Funded</option></select></Field>
               <Field label="Status"><select style={styles.input} value={form.status} onChange={(e) => updateForm("status", e.target.value)}><option>Active</option><option>Passed</option><option>Funded</option><option>Paused</option><option>Blown</option></select></Field>
               <Field label="Account Size"><input style={styles.input} type="number" value={form.accountSize} onChange={(e) => updateForm("accountSize", e.target.value)} /></Field>
               <Field label="Starting Balance"><input style={styles.input} type="number" value={form.startingBalance} onChange={(e) => updateForm("startingBalance", e.target.value)} /></Field>
               <Field label="Current Balance"><input style={styles.input} type="number" value={form.currentBalance} onChange={(e) => updateForm("currentBalance", e.target.value)} /></Field>
-              <Field label="Needed to Pass / Payout"><input style={styles.input} type="number" value={form.targetAmount} onChange={(e) => updateForm("targetAmount", e.target.value)} /></Field>
+              {form.firm === "Topstep" && form.type === "Funded" ? (
+                <>
+                  <Field label="Current Payout Days">
+                    <input style={styles.input} type="number" min="0" max="5" value={form.payoutDays} onChange={(e) => updateForm("payoutDays", e.target.value)} />
+                  </Field>
+                  <Field label="Payout Day Goal">
+                    <input style={styles.input} type="number" min="1" value={form.payoutDayGoal} onChange={(e) => updateForm("payoutDayGoal", e.target.value)} />
+                  </Field>
+                </>
+              ) : (
+                <Field label="Needed to Pass / Payout"><input style={styles.input} type="number" value={form.targetAmount} onChange={(e) => updateForm("targetAmount", e.target.value)} /></Field>
+              )}
               <Field label="Daily Loss Limit"><input style={styles.input} type="number" value={form.dailyLossLimit} onChange={(e) => updateForm("dailyLossLimit", e.target.value)} /></Field>
               <Field label="Max Drawdown"><input style={styles.input} type="number" value={form.maxDrawdown} onChange={(e) => updateForm("maxDrawdown", e.target.value)} /></Field>
               <label style={{ ...styles.field, ...styles.fullWidth }}>Payout Rule<input style={styles.input} value={form.payoutRule} placeholder="Example: 5 winning days over $200" onChange={(e) => updateForm("payoutRule", e.target.value)} /></label>
@@ -306,17 +444,60 @@ function TimelineItem({ active, number, title, text }) { return <div style={styl
 function DetailMetric({ label, value }) { return <div style={styles.detailMetric}><span>{label}</span><strong>{value}</strong></div>; }
 function Field({ label, children }) { return <label style={styles.field}>{label}{children}</label>; }
 
-function AccountDetail({ account, onEdit, onDelete }) {
+function AccountDetail({ account, onEdit, onDelete, onRecordPayout, onAddPayoutDay, onResetPayoutDays }) {
   const profit = Number(account.balance || 0) - Number(account.startingBalance || 0);
   const progress = Number(account.progress || 0);
-  const winsNeeded = Math.ceil(Number(account.targetAmount || 0) / 300);
+  const winsNeeded = account.payoutDayGoal
+    ? Math.max(0, Number(account.payoutDayGoal || 0) - Number(account.payoutDays || 0))
+    : Math.ceil(Number(account.targetAmount || 0) / 300);
   return (
     <div>
       <div style={styles.detailTop}><div style={styles.firmLogoLarge}>{account.logo}</div><div><h2 style={styles.detailTitle}>{account.name}</h2><div style={styles.accountTags}><span style={styles.accountTag}>{account.firm}</span><span style={styles.accountTag}>{account.type}</span><span style={styles.accountTag}>{account.status}</span></div></div></div>
       <div style={styles.detailMoney}><div><span style={styles.detailLabel}>Balance</span><strong style={styles.detailBalance}>{money(account.balance)}</strong></div><div><span style={styles.detailLabel}>Net P/L</span><strong style={styles.detailBalance}>{money(profit, true)}</strong></div></div>
-      <div style={styles.detailProgressHeader}><span>{account.targetLabel}</span><strong>{progress}%</strong></div>
+      <div style={styles.detailProgressHeader}>
+        <span>{account.targetLabel}</span>
+        <strong>
+          {account.payoutDayGoal
+            ? `${account.payoutDays || 0} / ${account.payoutDayGoal}`
+            : `${progress}%`}
+        </strong>
+      </div>
       <div style={styles.progressTrackBig}><div style={{ ...styles.progressFill, width: `${progress}%` }} /></div>
-      <div style={styles.detailGrid}><DetailMetric label="Remaining Goal" value={money(account.targetAmount)} /><DetailMetric label="Daily Loss Limit" value={money(account.dailyLossLimit)} /><DetailMetric label="Max Drawdown" value={money(account.maxDrawdown)} /><DetailMetric label="Est. Wins Needed" value={winsNeeded || 0} /></div>
+      <div style={styles.detailGrid}>
+        <DetailMetric
+          label={account.payoutDayGoal ? "Payout Days Left" : "Remaining Goal"}
+          value={account.payoutDayGoal ? winsNeeded : money(account.targetAmount)}
+        />
+        <DetailMetric label="Daily Loss Limit" value={money(account.dailyLossLimit)} />
+        <DetailMetric label="Max Drawdown" value={money(account.maxDrawdown)} />
+        <DetailMetric
+          label={account.payoutDayGoal ? "Rule" : "Est. Wins Needed"}
+          value={account.payoutDayGoal ? ">$150 days" : winsNeeded || 0}
+        />
+      </div>
+      {account.payoutDayGoal ? (
+        <div style={styles.payoutActions}>
+          <button type="button" style={styles.editButton} onClick={onAddPayoutDay}>
+            + Add Payout Day
+          </button>
+          <button type="button" style={styles.editButton} onClick={onRecordPayout}>
+            Record Payout
+          </button>
+          <button type="button" style={styles.secondarySmallButton} onClick={onResetPayoutDays}>
+            Reset Days
+          </button>
+        </div>
+      ) : null}
+      {account.payoutHistory?.length ? (
+        <div style={styles.noteBox}>
+          <span>Payout History</span>
+          {account.payoutHistory.map((payout) => (
+            <p key={payout.id}>
+              {new Date(payout.date).toLocaleDateString("en-US")} — {money(payout.amount)}
+            </p>
+          ))}
+        </div>
+      ) : null}
       {account.payoutRule ? <div style={styles.noteBox}><span>Payout Rule</span><p>{account.payoutRule}</p></div> : null}
       {account.notes ? <div style={styles.noteBox}><span>Notes</span><p>{account.notes}</p></div> : null}
       <div style={styles.detailActions}><button type="button" style={styles.editButton} onClick={onEdit}>Edit Account</button><button type="button" style={styles.deleteButton} onClick={onDelete}>Delete</button></div>
@@ -390,6 +571,8 @@ const styles = {
   detailMetric: { background: "rgba(2,8,19,0.35)", border: "1px solid rgba(148,163,184,0.12)", borderRadius: "12px", padding: "13px" },
   noteBox: { background: "rgba(2,8,19,0.35)", border: "1px solid rgba(148,163,184,0.12)", borderRadius: "12px", padding: "13px", marginBottom: "10px" },
   detailActions: { display: "flex", gap: "10px", marginTop: "16px" },
+  payoutActions: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "14px" },
+  secondarySmallButton: { border: "1px solid rgba(148,163,184,0.18)", background: "rgba(2,8,19,0.35)", color: "#ffffff", borderRadius: "10px", padding: "12px", fontSize: "13px", fontWeight: 850, cursor: "pointer" },
   editButton: { flex: 1, border: "1px solid rgba(96,165,250,0.24)", background: "rgba(37,99,235,0.14)", color: "#bfdbfe", borderRadius: "10px", padding: "12px", fontSize: "13px", fontWeight: 850, cursor: "pointer" },
   deleteButton: { border: "1px solid rgba(248,113,113,0.22)", background: "rgba(127,29,29,0.16)", color: "#fecaca", borderRadius: "10px", padding: "12px", fontSize: "13px", fontWeight: 850, cursor: "pointer" },
   timeline: { display: "grid", gap: "16px", marginTop: "20px" },
