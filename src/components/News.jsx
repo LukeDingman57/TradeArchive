@@ -1,4 +1,60 @@
 import React from "react";
+import { useSettings } from "./SettingsContext";
+
+
+let activePreferences = {
+  timezone: "Local time",
+  timeFormat: "12 hour",
+  dateFormat: "MM/DD/YYYY",
+};
+
+function getIntlTimeZone(timezone) {
+  if (timezone === "New York time") return "America/New_York";
+  if (timezone === "UTC") return "UTC";
+  return undefined;
+}
+
+function getDateParts(date, timeZone) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  return Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value])
+  );
+}
+
+function formatDateByPreference(date) {
+  const timeZone = getIntlTimeZone(activePreferences.timezone);
+  const format = activePreferences.dateFormat || "MM/DD/YYYY";
+
+  if (format === "DD/MM/YYYY") {
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      timeZone,
+    }).format(date);
+  }
+
+  if (format === "YYYY-MM-DD") {
+    const parts = getDateParts(date, timeZone);
+    return `${parts.year}-${parts.month}-${parts.day}`;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    timeZone,
+  }).format(date);
+}
+
 
 const NEWS_FILTER_KEY = "tradearchive_news_filters";
 
@@ -65,31 +121,39 @@ function formatDateLabel(dateString) {
   if (!dateString) return "—";
 
   const eventDate = new Date(dateString);
+  if (Number.isNaN(eventDate.getTime())) return "—";
+
+  const timeZone = getIntlTimeZone(activePreferences.timezone);
   const today = new Date();
-
-  const eventDay = eventDate.toDateString();
-  const todayDay = today.toDateString();
-
-  const tomorrow = new Date();
+  const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
 
-  if (eventDay === todayDay) return "Today";
-  if (eventDay === tomorrow.toDateString()) return "Tomorrow";
+  const eventParts = getDateParts(eventDate, timeZone);
+  const todayParts = getDateParts(today, timeZone);
+  const tomorrowParts = getDateParts(tomorrow, timeZone);
 
-  return eventDate.toLocaleDateString([], {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
+  const eventKey = `${eventParts.year}-${eventParts.month}-${eventParts.day}`;
+  const todayKey = `${todayParts.year}-${todayParts.month}-${todayParts.day}`;
+  const tomorrowKey = `${tomorrowParts.year}-${tomorrowParts.month}-${tomorrowParts.day}`;
+
+  if (eventKey === todayKey) return "Today";
+  if (eventKey === tomorrowKey) return "Tomorrow";
+
+  return formatDateByPreference(eventDate);
 }
 
 function formatTime(dateString) {
   if (!dateString) return "—";
 
-  return new Date(dateString).toLocaleTimeString([], {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "—";
+
+  return new Intl.DateTimeFormat(undefined, {
     hour: "numeric",
     minute: "2-digit",
-  });
+    hour12: activePreferences.timeFormat !== "24 hour",
+    timeZone: getIntlTimeZone(activePreferences.timezone),
+  }).format(date);
 }
 
 function valueOrDash(value) {
@@ -119,11 +183,55 @@ function normalizeEvent(event, index) {
 }
 
 export default function News({ setActivePage }) {
+  const { settings, resolvedTheme } = useSettings();
+
+  activePreferences = {
+    ...activePreferences,
+    ...(settings?.preferences || {}),
+  };
+
+  const settingsDefaults = React.useMemo(
+    () => ({
+      impacts: settings?.news?.impacts?.length
+        ? settings.news.impacts
+        : defaultFilters.impacts,
+      currencies: settings?.news?.currencies?.length
+        ? settings.news.currencies
+        : defaultFilters.currencies,
+      range: settings?.news?.range || defaultFilters.range,
+      search: "",
+    }),
+    [settings?.news?.impacts, settings?.news?.currencies, settings?.news?.range]
+  );
+
+  const isLightTheme = resolvedTheme === "light";
   const [events, setEvents] = React.useState([]);
-  const [filters, setFilters] = React.useState(loadFilters);
+  const [filters, setFilters] = React.useState(() => {
+    const stored = loadFilters();
+
+    return {
+      ...settingsDefaults,
+      ...stored,
+      impacts: stored?.impacts?.length ? stored.impacts : settingsDefaults.impacts,
+      currencies: stored?.currencies?.length
+        ? stored.currencies
+        : settingsDefaults.currencies,
+      range: stored?.range || settingsDefaults.range,
+    };
+  });
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
   const [selectedId, setSelectedId] = React.useState("");
+
+
+  React.useEffect(() => {
+    setFilters((current) => ({
+      ...current,
+      impacts: settingsDefaults.impacts,
+      currencies: settingsDefaults.currencies,
+      range: settingsDefaults.range,
+    }));
+  }, [settingsDefaults]);
 
   React.useEffect(() => {
     localStorage.setItem(NEWS_FILTER_KEY, JSON.stringify(filters));
@@ -166,6 +274,22 @@ export default function News({ setActivePage }) {
     loadEvents();
   }, []);
 
+
+  React.useEffect(() => {
+    setEvents((currentEvents) =>
+      currentEvents.map((event, index) => ({
+        ...event,
+        id: event.id || `${event.rawDate || index}-${event.event || index}`,
+        day: formatDateLabel(event.rawDate),
+        time: formatTime(event.rawDate),
+      }))
+    );
+  }, [
+    settings?.preferences?.timezone,
+    settings?.preferences?.timeFormat,
+    settings?.preferences?.dateFormat,
+  ]);
+
   const filteredEvents = React.useMemo(() => {
     const search = filters.search.trim().toLowerCase();
 
@@ -204,7 +328,17 @@ export default function News({ setActivePage }) {
   };
 
   return (
-    <div style={styles.page}>
+    <div
+      style={{
+        ...styles.page,
+        ...(isLightTheme
+          ? {
+              background: "#eef4fb",
+              color: "#0f172a",
+            }
+          : {}),
+      }}
+    >
       <div style={styles.inner}>
         <header style={styles.header}>
           <div>
@@ -219,7 +353,7 @@ export default function News({ setActivePage }) {
             <button style={styles.secondaryButton} onClick={() => setActivePage?.("dashboard")}>
               Dashboard
             </button>
-            <button style={styles.primaryButton} onClick={() => setFilters(defaultFilters)}>
+            <button style={styles.primaryButton} onClick={() => setFilters(settingsDefaults)}>
               Reset Filters
             </button>
           </div>

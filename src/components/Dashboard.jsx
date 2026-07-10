@@ -1,5 +1,98 @@
 import React from "react";
 import { supabase } from "../lib/supabase";
+import { useSettings } from "./SettingsContext";
+
+
+let activePreferences = {
+  currency: "USD",
+  dateFormat: "MM/DD/YYYY",
+  timeFormat: "12 hour",
+  timezone: "Local time",
+};
+
+const getIntlTimeZone = (timezone) => {
+  if (timezone === "New York time") return "America/New_York";
+  if (timezone === "UTC") return "UTC";
+  return undefined;
+};
+
+const formatCurrencyValue = (value, { showPlus = false } = {}) => {
+  const number = Number(value || 0);
+  const currency = activePreferences.currency || "USD";
+  const absolute = Math.abs(number);
+
+  let formatted;
+
+  try {
+    formatted = new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      minimumFractionDigits: absolute % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2,
+    }).format(absolute);
+  } catch {
+    formatted = `$${absolute.toLocaleString()}`;
+  }
+
+  if (number < 0) return `-${formatted}`;
+  if (number > 0 && showPlus) return `+${formatted}`;
+  return formatted;
+};
+
+const formatDashboardDate = (dateValue, options = {}) => {
+  if (!dateValue) return "";
+
+  const date =
+    typeof dateValue === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)
+      ? new Date(`${dateValue}T00:00:00`)
+      : new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  const dateFormat = activePreferences.dateFormat || "MM/DD/YYYY";
+  const timeZone = getIntlTimeZone(activePreferences.timezone);
+
+  if (options.long) {
+    return new Intl.DateTimeFormat(undefined, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      timeZone,
+    }).format(date);
+  }
+
+  if (dateFormat === "DD/MM/YYYY") {
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      timeZone,
+    }).format(date);
+  }
+
+  if (dateFormat === "YYYY-MM-DD") {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone,
+    }).formatToParts(date);
+
+    const values = Object.fromEntries(
+      parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value])
+    );
+
+    return `${values.year}-${values.month}-${values.day}`;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    timeZone,
+  }).format(date);
+};
+
 
 function useIsMobileDashboard() {
   const getIsMobile = () =>
@@ -91,8 +184,8 @@ const createAccount = ({
 
 const formatDashboardMoney = (value) => {
   const number = Number(value || 0);
-  if (number > 0) return `+$${number.toLocaleString()}`;
-  if (number < 0) return `-$${Math.abs(number).toLocaleString()}`;
+  if (number > 0) return formatCurrencyValue(number, { showPlus: true });
+  if (number < 0) return formatCurrencyValue(number);
   return "BE";
 };
 
@@ -112,10 +205,13 @@ const formatTradeDate = (dateValue) => {
   if (sameDay(tradeDate, today)) return "Today";
   if (sameDay(tradeDate, yesterday)) return "Yesterday";
 
-  return tradeDate.toLocaleDateString("en-US", {
+  const timeZone = getIntlTimeZone(activePreferences.timezone);
+
+  return new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric",
-  });
+    timeZone,
+  }).format(tradeDate);
 };
 
 const mapDashboardTrade = (trade) => {
@@ -142,7 +238,8 @@ const tools = [
   { label: "Session Countdown", icon: "◷", action: "sessionCountdown" },
 ];
 
-const money = (value) => `$${Number(value || 0).toLocaleString()}`;
+const money = (value, showPlus = false) =>
+  formatCurrencyValue(value, { showPlus });
 
 const getAvailablePayout = (account) => {
   const profit = Number(account?.balance || 0) - Number(account?.startingBalance || 0);
@@ -230,7 +327,15 @@ const loadSelectedRecoveryAccountId = () => {
 
 export default function Dashboard({ setActivePage, session }) {
   const isMobile = useIsMobileDashboard();
+  const { settings, resolvedTheme } = useSettings();
   const [activeModal, setActiveModal] = React.useState(null);
+
+  activePreferences = {
+    ...activePreferences,
+    ...(settings?.preferences || {}),
+  };
+
+  const isLightTheme = resolvedTheme === "light";
 
   // Dynamic greeting, user name and date
   const user = session?.user;
@@ -242,7 +347,14 @@ export default function Dashboard({ setActivePage, session }) {
     "Trader";
 
   const now = new Date();
-  const hour = now.getHours();
+  const selectedTimeZone = getIntlTimeZone(settings?.preferences?.timezone);
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      hour12: false,
+      timeZone: selectedTimeZone,
+    }).format(now)
+  );
 
   const greeting =
     hour < 12
@@ -251,11 +363,7 @@ export default function Dashboard({ setActivePage, session }) {
       ? "Good afternoon"
       : "Good evening";
 
-  const formattedDate = now.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
+  const formattedDate = formatDashboardDate(now, { long: true });
 
   const [accounts, setAccounts] = React.useState(loadStoredAccounts);
   const [selectedRecoveryAccountId, setSelectedRecoveryAccountId] = React.useState(
@@ -450,7 +558,19 @@ export default function Dashboard({ setActivePage, session }) {
     : 0;
 
   return (
-    <div style={{ ...styles.page, ...(isMobile ? styles.pageMobile : {}) }}>
+    <div
+      style={{
+        ...styles.page,
+        ...(isMobile ? styles.pageMobile : {}),
+        ...(isLightTheme
+          ? {
+              background:
+                "radial-gradient(circle at 30% 0%, rgba(37,99,235,0.10), transparent 28%), #eef4fb",
+              color: "#0f172a",
+            }
+          : {}),
+      }}
+    >
       <div style={styles.pageGlow} />
 
       <div style={styles.inner}>
@@ -497,7 +617,7 @@ export default function Dashboard({ setActivePage, session }) {
             icon="↗"
             iconStyle={styles.blueOrb}
             label="Monthly P/L"
-            value={monthlyPL > 0 ? `+${money(monthlyPL)}` : money(monthlyPL)}
+            value={money(monthlyPL, monthlyPL > 0)}
             detail={`Available payout: ${money(totalAvailablePayout)}`}
           />
 
@@ -1132,6 +1252,8 @@ function RiskCalculator() {
 
 function SessionCountdown() {
   const [now, setNow] = React.useState(new Date());
+  const displayTimeZone = getIntlTimeZone(activePreferences.timezone);
+  const use12HourTime = activePreferences.timeFormat !== "24 hour";
 
   React.useEffect(() => {
     const intervalId = window.setInterval(() => setNow(new Date()), 1000);
@@ -1139,9 +1261,11 @@ function SessionCountdown() {
   }, []);
 
   const userTimeZone =
-    typeof Intl !== "undefined"
-      ? Intl.DateTimeFormat().resolvedOptions().timeZone
-      : "Local time";
+    activePreferences.timezone === "Local time"
+      ? typeof Intl !== "undefined"
+        ? Intl.DateTimeFormat().resolvedOptions().timeZone
+        : "Local time"
+      : activePreferences.timezone;
 
   const getTimeZoneOffsetMs = (timeZone, date) => {
     const parts = new Intl.DateTimeFormat("en-US", {
@@ -1240,11 +1364,13 @@ function SessionCountdown() {
   };
 
   const formatLocalStart = (date) =>
-    date.toLocaleString("en-US", {
+    new Intl.DateTimeFormat(undefined, {
       weekday: "short",
       hour: "numeric",
       minute: "2-digit",
-    });
+      hour12: use12HourTime,
+      timeZone: displayTimeZone,
+    }).format(date);
 
   const sessions = [
     {

@@ -1,66 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
-
-const STORAGE_KEY = "tradearchive_settings_v1";
-
-const defaultSettings = {
-  preferences: {
-    theme: "Dark",
-    timezone: "Local time",
-    currency: "USD",
-    dateFormat: "MM/DD/YYYY",
-    timeFormat: "12 hour",
-  },
-  journal: {
-    defaultRisk: "200",
-    defaultInstrument: "MNQ",
-    defaultAccount: "",
-    defaultRR: "1.4",
-    autoSaveDrafts: true,
-    rememberLastValues: true,
-  },
-  news: {
-    currencies: ["USD"],
-    impacts: ["High", "Medium"],
-    range: "Today",
-    showCountdowns: true,
-    autoRefresh: true,
-  },
-};
-
-function loadSettings() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-    return {
-      ...defaultSettings,
-      ...saved,
-      preferences: { ...defaultSettings.preferences, ...(saved.preferences || {}) },
-      journal: { ...defaultSettings.journal, ...(saved.journal || {}) },
-      news: { ...defaultSettings.news, ...(saved.news || {}) },
-    };
-  } catch {
-    return defaultSettings;
-  }
-}
-
-function applySettingsToDocument(nextSettings) {
-  if (typeof window === "undefined" || typeof document === "undefined") return;
-
-  const preferences = nextSettings?.preferences || defaultSettings.preferences;
-  const theme = preferences.theme || "Dark";
-
-  document.documentElement.dataset.taTheme = theme.toLowerCase().replace(/\s+/g, "-");
-  document.documentElement.dataset.taTimezone = preferences.timezone || "Local time";
-  document.documentElement.dataset.taCurrency = preferences.currency || "USD";
-  document.documentElement.dataset.taDateFormat = preferences.dateFormat || "MM/DD/YYYY";
-  document.documentElement.dataset.taTimeFormat = preferences.timeFormat || "12 hour";
-
-  window.dispatchEvent(
-    new CustomEvent("tradearchive-settings-changed", {
-      detail: nextSettings,
-    })
-  );
-}
+import { useSettings } from "./SettingsContext";
 
 export default function Settings({
   session,
@@ -70,9 +10,15 @@ export default function Settings({
   onLogout,
 }) {
   const [activeSection, setActiveSection] = useState("account");
-  const [settings, setSettings] = useState(defaultSettings);
   const [message, setMessage] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+
+  const {
+    settings,
+    updateSection: contextUpdateSection,
+    toggleArrayValue: contextToggleArrayValue,
+    resetSettings,
+  } = useSettings();
 
   const userEmail = session?.user?.email || "";
   const displayName =
@@ -81,43 +27,20 @@ export default function Settings({
     userEmail?.split("@")?.[0] ||
     "TradeArchive user";
 
-  useEffect(() => {
-    const loadedSettings = loadSettings();
-    setSettings(loadedSettings);
-    applySettingsToDocument(loadedSettings);
-  }, []);
-
   const showToast = (text) => {
     setMessage(text);
     window.clearTimeout(window.__taSettingsToast);
     window.__taSettingsToast = window.setTimeout(() => setMessage(""), 2200);
   };
 
-  const saveSettings = (nextSettings, successMessage = "Saved") => {
-    setSettings(nextSettings);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSettings));
-    applySettingsToDocument(nextSettings);
-    showToast(successMessage);
-  };
-
   const updateSection = (section, field, value) => {
-    const nextSettings = {
-      ...settings,
-      [section]: {
-        ...settings[section],
-        [field]: value,
-      },
-    };
-    saveSettings(nextSettings);
+    contextUpdateSection(section, field, value);
+    showToast("Saved");
   };
 
   const toggleArrayValue = (section, field, value) => {
-    const current = settings[section][field] || [];
-    const nextValues = current.includes(value)
-      ? current.filter((item) => item !== value)
-      : [...current, value];
-
-    updateSection(section, field, nextValues);
+    contextToggleArrayValue(section, field, value);
+    showToast("Saved");
   };
 
   const sendPasswordReset = async () => {
@@ -161,9 +84,7 @@ export default function Settings({
   };
 
   const resetLocalSettings = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setSettings(defaultSettings);
-    applySettingsToDocument(defaultSettings);
+    resetSettings();
     showToast("Local settings reset");
   };
 

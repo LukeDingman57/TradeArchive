@@ -1,5 +1,90 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "./lib/supabase";
+import { useSettings } from "./components/SettingsContext";
+
+
+let activePreferences = {
+  currency: "USD",
+  dateFormat: "MM/DD/YYYY",
+  timezone: "Local time",
+};
+
+function getIntlTimeZone(timezone) {
+  if (timezone === "New York time") return "America/New_York";
+  if (timezone === "UTC") return "UTC";
+  return undefined;
+}
+
+function formatCurrencyValue(value, showPlus = false) {
+  const number = Number(value || 0);
+  const absolute = Math.abs(number);
+  const currency = activePreferences.currency || "USD";
+
+  let formatted;
+
+  try {
+    formatted = new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      minimumFractionDigits: absolute % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2,
+    }).format(absolute);
+  } catch {
+    formatted = `$${absolute.toLocaleString()}`;
+  }
+
+  if (number < 0) return `-${formatted}`;
+  if (number > 0 && showPlus) return `+${formatted}`;
+  return formatted;
+}
+
+function formatJournalDate(value) {
+  if (!value) return "—";
+
+  const date =
+    typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? new Date(`${value}T00:00:00`)
+      : new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "—";
+
+  const timeZone = getIntlTimeZone(activePreferences.timezone);
+  const format = activePreferences.dateFormat || "MM/DD/YYYY";
+
+  if (format === "DD/MM/YYYY") {
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      timeZone,
+    }).format(date);
+  }
+
+  if (format === "YYYY-MM-DD") {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone,
+    }).formatToParts(date);
+
+    const values = Object.fromEntries(
+      parts
+        .filter((part) => part.type !== "literal")
+        .map((part) => [part.type, part.value])
+    );
+
+    return `${values.year}-${values.month}-${values.day}`;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    timeZone,
+  }).format(date);
+}
+
 
 const defaultTrades = [
   {
@@ -230,6 +315,14 @@ const getAccountSelectionMeta = (accounts = [], selectionValue = "") => {
 
 
 export default function Journal({ setActivePage }) {
+  const { settings, resolvedTheme } = useSettings();
+
+  activePreferences = {
+    ...activePreferences,
+    ...(settings?.preferences || {}),
+  };
+
+  const isLightTheme = resolvedTheme === "light";
   const [showAddModal, setShowAddModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -997,9 +1090,23 @@ export default function Journal({ setActivePage }) {
   };
 
   const resetForm = () => {
+    const journalDefaults = settings?.journal || {};
+    const defaultAccountText = String(journalDefaults.defaultAccount || "").trim();
+
+    const matchedAccount =
+      propAccounts.find(
+        (account) =>
+          String(account.id) === defaultAccountText ||
+          String(account.name || "").toLowerCase() === defaultAccountText.toLowerCase()
+      ) || null;
+
     setForm({
       ...emptyForm,
       date: new Date().toISOString().slice(0, 10),
+      symbol: journalDefaults.defaultInstrument || emptyForm.symbol,
+      accountId: matchedAccount?.id || "",
+      accountName: matchedAccount?.name || "",
+      accountFirm: matchedAccount?.firm || "",
     });
   };
 
@@ -1388,10 +1495,8 @@ export default function Journal({ setActivePage }) {
   };
 
   const formatPnl = (value) => {
-    const num = Number(value);
-    if (num > 0) return `+$${num}`;
-    if (num < 0) return `-$${Math.abs(num)}`;
-    return "$0";
+    const num = Number(value || 0);
+    return formatCurrencyValue(num, num > 0);
   };
 
   const formatR = (value) => {
@@ -1448,7 +1553,19 @@ export default function Journal({ setActivePage }) {
   }
 
   return (
-    <div style={{ ...styles.page, ...(isMobile ? styles.pageMobile : {}) }}>
+    <div
+      style={{
+        ...styles.page,
+        ...(isMobile ? styles.pageMobile : {}),
+        ...(isLightTheme
+          ? {
+              background:
+                "radial-gradient(circle at top left, rgba(37,99,235,0.08), transparent 26%), #eef4fb",
+              color: "#0f172a",
+            }
+          : {}),
+      }}
+    >
       <div style={{ ...styles.topbar, ...(isMobile ? styles.topbarMobile : {}) }}>
         <div
           style={{ ...styles.topLogo, ...(isMobile ? styles.topLogoMobile : {}) }}
@@ -1513,9 +1630,7 @@ export default function Journal({ setActivePage }) {
                 color: stats.totalPnl >= 0 ? "#4ade80" : "#f87171",
               }}
             >
-              {stats.totalPnl >= 0
-                ? `+$${stats.totalPnl}`
-                : `-$${Math.abs(stats.totalPnl)}`}
+              {formatPnl(stats.totalPnl)}
             </div>
           </div>
 
@@ -1600,9 +1715,7 @@ export default function Journal({ setActivePage }) {
                           fontWeight: 700,
                         }}
                       >
-                        {item.totalPnl >= 0
-                          ? `+$${item.totalPnl}`
-                          : `-$${Math.abs(item.totalPnl)}`}
+                        {formatPnl(item.totalPnl)}
                       </td>
                     </tr>
                   ))
@@ -1817,7 +1930,7 @@ export default function Journal({ setActivePage }) {
           {selectedCalendarDate && (
             <div style={styles.activeDateFilterBar}>
               <div style={styles.activeDateFilterText}>
-                Showing trades for <span style={{ color: "#93c5fd" }}>{selectedCalendarDate}</span>
+                Showing trades for <span style={{ color: "#93c5fd" }}>{formatJournalDate(selectedCalendarDate)}</span>
               </div>
               <button style={styles.clearDateButton} onClick={clearDateFilter}>
                 Clear Date Filter              </button>
@@ -1856,7 +1969,7 @@ export default function Journal({ setActivePage }) {
                       style={styles.rowClickable}
                       onClick={() => openViewModal(row)}
                     >
-                      <td style={styles.td}>{row.date}</td>
+                      <td style={styles.td}>{formatJournalDate(row.date)}</td>
                       <td style={styles.td}>
                         <span style={styles.accountPill}>
                           {row.accountName || "Unassigned"}

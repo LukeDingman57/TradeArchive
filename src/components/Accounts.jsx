@@ -1,4 +1,83 @@
 import React from "react";
+import { useSettings } from "./SettingsContext";
+
+
+let activePreferences = {
+  currency: "USD",
+  dateFormat: "MM/DD/YYYY",
+  timezone: "Local time",
+};
+
+function getIntlTimeZone(timezone) {
+  if (timezone === "New York time") return "America/New_York";
+  if (timezone === "UTC") return "UTC";
+  return undefined;
+}
+
+function formatCurrency(value, showPlus = false) {
+  const number = Number(value || 0);
+  const absolute = Math.abs(number);
+  const currency = activePreferences.currency || "USD";
+
+  let formatted;
+
+  try {
+    formatted = new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      minimumFractionDigits: absolute % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2,
+    }).format(absolute);
+  } catch {
+    formatted = `$${absolute.toLocaleString()}`;
+  }
+
+  if (number < 0) return `-${formatted}`;
+  if (number > 0 && showPlus) return `+${formatted}`;
+  return formatted;
+}
+
+function formatAppDate(value) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+
+  const timeZone = getIntlTimeZone(activePreferences.timezone);
+  const format = activePreferences.dateFormat || "MM/DD/YYYY";
+
+  if (format === "DD/MM/YYYY") {
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      timeZone,
+    }).format(date);
+  }
+
+  if (format === "YYYY-MM-DD") {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone,
+    }).formatToParts(date);
+
+    const values = Object.fromEntries(
+      parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value])
+    );
+
+    return `${values.year}-${values.month}-${values.day}`;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    timeZone,
+  }).format(date);
+}
+
 
 const STORAGE_KEY = "tradearchive_dashboard_accounts";
 const SELECTED_RECOVERY_KEY = "tradearchive_selected_recovery_account";
@@ -58,15 +137,7 @@ function getFirmLogo(firmName) {
 }
 
 function money(value, showPlus = false) {
-  const number = Number(value || 0);
-  const sign = number > 0 && showPlus ? "+" : number < 0 ? "-" : "";
-  const absolute = Math.abs(number);
-  const formatted = absolute.toLocaleString("en-US", {
-    minimumFractionDigits: absolute % 1 === 0 ? 0 : 2,
-    maximumFractionDigits: 2,
-  });
-
-  return `${sign}$${formatted}`;
+  return formatCurrency(value, showPlus);
 }
 
 function isFundedAccount(account) {
@@ -245,6 +316,14 @@ function accountToForm(account) {
 }
 
 export default function Accounts({ setActivePage }) {
+  const { settings, resolvedTheme } = useSettings();
+
+  activePreferences = {
+    ...activePreferences,
+    ...(settings?.preferences || {}),
+  };
+
+  const isLightTheme = resolvedTheme === "light";
   const [accounts, setAccounts] = React.useState(loadStoredAccounts);
   const [form, setForm] = React.useState(DEFAULT_FORM);
   const [editingId, setEditingId] = React.useState(null);
@@ -402,7 +481,18 @@ export default function Accounts({ setActivePage }) {
   };
 
   return (
-    <div style={styles.page}>
+    <div
+      style={{
+        ...styles.page,
+        ...(isLightTheme
+          ? {
+              background:
+                "radial-gradient(circle at 25% -10%, rgba(37,99,235,0.10), transparent 30%), #eef4fb",
+              color: "#0f172a",
+            }
+          : {}),
+      }}
+    >
       <div style={styles.glowOne} />
       <div style={styles.glowTwo} />
       <div style={styles.inner}>
@@ -616,7 +706,7 @@ function AccountDetail({ account, onEdit, onDelete, onRecordPayout, onAddPayoutD
           <span>Payout History</span>
           {account.payoutHistory.map((payout) => (
             <p key={payout.id}>
-              {new Date(payout.date).toLocaleDateString("en-US")} — {money(payout.amount)}
+              {formatAppDate(payout.date)} — {money(payout.amount)}
             </p>
           ))}
         </div>
