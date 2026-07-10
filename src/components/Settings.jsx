@@ -520,12 +520,12 @@ const styles = {
     minHeight: "100vh",
     color: "white",
     background: "linear-gradient(180deg, #07101d 0%, #08111f 48%, #050b14 100%)",
-    padding: "42px 44px 70px",
+    padding: "28px 36px 48px",
     boxSizing: "border-box",
   },
   shell: {
     width: "100%",
-    maxWidth: "1240px",
+    maxWidth: "1140px",
     margin: "0 auto",
   },
   headerRow: {
@@ -545,7 +545,7 @@ const styles = {
   },
   title: {
     margin: 0,
-    fontSize: "44px",
+    fontSize: "36px",
     lineHeight: 1,
     fontWeight: 950,
     letterSpacing: "-0.055em",
@@ -582,8 +582,8 @@ const styles = {
   },
   settingsFrame: {
     display: "grid",
-    gridTemplateColumns: "250px minmax(0, 1fr)",
-    gap: "22px",
+    gridTemplateColumns: "210px minmax(0, 1fr)",
+    gap: "18px",
     alignItems: "start",
   },
   settingsNav: {
@@ -591,7 +591,7 @@ const styles = {
     top: "24px",
     border: "1px solid rgba(148,163,184,0.12)",
     background: "rgba(8,15,28,0.54)",
-    borderRadius: "22px",
+    borderRadius: "20px",
     padding: "14px",
     boxShadow: "0 18px 42px rgba(0,0,0,0.20)",
   },
@@ -605,7 +605,7 @@ const styles = {
   },
   navItem: {
     width: "100%",
-    height: "42px",
+    height: "38px",
     border: "1px solid transparent",
     borderRadius: "13px",
     background: "transparent",
@@ -663,11 +663,11 @@ const styles = {
     lineHeight: 1.5,
   },
   contentPanel: {
-    minHeight: "610px",
+    minHeight: "520px",
     border: "1px solid rgba(148,163,184,0.12)",
     background: "linear-gradient(180deg, rgba(15,23,42,0.70), rgba(8,15,28,0.52))",
     borderRadius: "24px",
-    padding: "28px 34px 34px",
+    padding: "24px 28px 28px",
     boxShadow: "0 22px 54px rgba(0,0,0,0.24)",
   },
   panelTop: {
@@ -698,16 +698,16 @@ const styles = {
   divider: {
     height: "1px",
     background: "rgba(148,163,184,0.12)",
-    margin: "24px 0 26px",
+    margin: "20px 0 22px",
   },
   panelStack: {
     display: "grid",
-    gap: "28px",
+    gap: "20px",
   },
   group: {
     display: "grid",
-    gridTemplateColumns: "240px minmax(0, 1fr)",
-    gap: "34px",
+    gridTemplateColumns: "200px minmax(0, 1fr)",
+    gap: "26px",
     alignItems: "start",
   },
   groupHeader: {
@@ -732,12 +732,12 @@ const styles = {
     background: "rgba(2,6,23,0.24)",
   },
   settingRow: {
-    minHeight: "76px",
+    minHeight: "64px",
     display: "grid",
-    gridTemplateColumns: "minmax(0, 1fr) 300px",
-    gap: "22px",
+    gridTemplateColumns: "minmax(0, 1fr) 260px",
+    gap: "18px",
     alignItems: "center",
-    padding: "17px 18px",
+    padding: "14px 18px",
     borderBottom: "1px solid rgba(148,163,184,0.09)",
   },
   rowCopy: {
