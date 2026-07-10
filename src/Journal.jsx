@@ -143,6 +143,91 @@ const getAccountLabel = (account) => {
 const getAccountById = (accounts, accountId) =>
   accounts.find((account) => String(account.id) === String(accountId)) || null;
 
+const getFirmGroupValue = (firm) => `firm:${encodeURIComponent(firm || "Unknown")}`;
+const getGroupIdValue = (groupId) => `group:${encodeURIComponent(groupId)}`;
+const getAllAccountsValue = () => "all:accounts";
+
+const getAccountSelectionOptions = (accounts = []) => {
+  const firmGroups = {};
+  const accountGroups = {};
+
+  accounts.forEach((account) => {
+    const firm = account.firm || "Other";
+    if (!firmGroups[firm]) firmGroups[firm] = [];
+    firmGroups[firm].push(account);
+
+    if (account.groupId) {
+      if (!accountGroups[account.groupId]) accountGroups[account.groupId] = [];
+      accountGroups[account.groupId].push(account);
+    }
+  });
+
+  return {
+    firmGroups,
+    accountGroups: Object.entries(accountGroups)
+      .filter(([, groupAccounts]) => groupAccounts.length > 1)
+      .map(([groupId, groupAccounts]) => ({
+        groupId,
+        accounts: groupAccounts,
+        label: `${groupAccounts[0]?.firm || "Account"} ${groupAccounts[0]?.accountSize ? `${Number(groupAccounts[0].accountSize) / 1000}K` : ""} Group (${groupAccounts.length})`,
+      })),
+  };
+};
+
+const getAccountSelectionMeta = (accounts = [], selectionValue = "") => {
+  if (!selectionValue) {
+    return {
+      accountId: "",
+      accountName: "",
+      accountFirm: "",
+      selectedAccounts: [],
+    };
+  }
+
+  if (selectionValue === getAllAccountsValue()) {
+    return {
+      accountId: selectionValue,
+      accountName: `All Accounts (${accounts.length})`,
+      accountFirm: "Multiple",
+      selectedAccounts: accounts,
+    };
+  }
+
+  if (selectionValue.startsWith("firm:")) {
+    const firm = decodeURIComponent(selectionValue.replace("firm:", ""));
+    const selectedAccounts = accounts.filter((account) => account.firm === firm);
+
+    return {
+      accountId: selectionValue,
+      accountName: `All ${firm} Accounts (${selectedAccounts.length})`,
+      accountFirm: firm,
+      selectedAccounts,
+    };
+  }
+
+  if (selectionValue.startsWith("group:")) {
+    const groupId = decodeURIComponent(selectionValue.replace("group:", ""));
+    const selectedAccounts = accounts.filter((account) => account.groupId === groupId);
+    const firstAccount = selectedAccounts[0];
+
+    return {
+      accountId: selectionValue,
+      accountName: `${firstAccount?.firm || "Account"} Group (${selectedAccounts.length})`,
+      accountFirm: firstAccount?.firm || "",
+      selectedAccounts,
+    };
+  }
+
+  const selectedAccount = getAccountById(accounts, selectionValue);
+
+  return {
+    accountId: selectedAccount?.id || "",
+    accountName: selectedAccount?.name || "",
+    accountFirm: selectedAccount?.firm || "",
+    selectedAccounts: selectedAccount ? [selectedAccount] : [],
+  };
+};
+
 
 export default function Journal({ setActivePage }) {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -985,16 +1070,13 @@ export default function Journal({ setActivePage }) {
     const stopNum = form.stop === "" ? null : Number(form.stop);
     const targetNum = form.target === "" ? null : Number(form.target);
     const rMultiple = calculateRMultiple(form.side, entryNum, stopNum, targetNum);
-    const selectedAccount = getAccountById(propAccounts, form.accountId);
+    const selectedAccountMeta = getAccountSelectionMeta(propAccounts, form.accountId);
 
     const tradeToInsert = {
       user_id: user.id,
-      account_id: form.accountId || null,
-      account_name: selectedAccount?.name || form.accountName || "",
-      account_firm: selectedAccount?.firm || form.accountFirm || "",
-      account_id: form.accountId || null,
-      account_name: selectedAccount?.name || form.accountName || "",
-      account_firm: selectedAccount?.firm || form.accountFirm || "",
+      account_id: selectedAccountMeta.accountId || null,
+      account_name: selectedAccountMeta.accountName || form.accountName || "",
+      account_firm: selectedAccountMeta.accountFirm || form.accountFirm || "",
       date: form.date,
       symbol: form.symbol,
       setup: form.setup,
@@ -1069,9 +1151,12 @@ export default function Journal({ setActivePage }) {
     const targetNum = form.target === "" ? null : Number(form.target);
 
     const rMultiple = calculateRMultiple(form.side, entryNum, stopNum, targetNum);
-    const selectedAccount = getAccountById(propAccounts, form.accountId);
+    const selectedAccountMeta = getAccountSelectionMeta(propAccounts, form.accountId);
 
     const updatedTradePayload = {
+      account_id: selectedAccountMeta.accountId || null,
+      account_name: selectedAccountMeta.accountName || form.accountName || "",
+      account_firm: selectedAccountMeta.accountFirm || form.accountFirm || "",
       date: form.date,
       symbol: form.symbol,
       setup: form.setup,
@@ -2359,20 +2444,57 @@ function TradeForm({
           <select
             value={form.accountId || ""}
             onChange={(e) => {
-              const selected = getAccountById(propAccounts, e.target.value);
-              handleChange("accountId", e.target.value);
-              handleChange("accountName", selected?.name || "");
-              handleChange("accountFirm", selected?.firm || "");
+              const selectionMeta = getAccountSelectionMeta(propAccounts, e.target.value);
+              handleChange("accountId", selectionMeta.accountId);
+              handleChange("accountName", selectionMeta.accountName);
+              handleChange("accountFirm", selectionMeta.accountFirm);
             }}
             style={styles.input}
           >
-            <option value="" style={{ backgroundColor: "#0f172a", color: "#ffffff" }}>Unassigned trade</option>
-            {propAccounts.map((account) => (
-              <option key={account.id} value={account.id} style={{ backgroundColor: "#0f172a", color: "#ffffff" }}>
-                {getAccountLabel(account)}
+            <option value="" style={{ backgroundColor: "#0f172a", color: "#ffffff" }}>
+              Unassigned trade
+            </option>
+
+            {propAccounts.length > 1 && (
+              <option value={getAllAccountsValue()} style={{ backgroundColor: "#0f172a", color: "#ffffff" }}>
+                All Accounts ({propAccounts.length})
               </option>
+            )}
+
+            {Object.entries(getAccountSelectionOptions(propAccounts).firmGroups).map(([firm, accounts]) => (
+              <optgroup key={firm} label={firm}>
+                {accounts.length > 1 && (
+                  <option value={getFirmGroupValue(firm)} style={{ backgroundColor: "#0f172a", color: "#ffffff" }}>
+                    All {firm} Accounts ({accounts.length})
+                  </option>
+                )}
+
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id} style={{ backgroundColor: "#0f172a", color: "#ffffff" }}>
+                    {account.name || getAccountLabel(account)}
+                  </option>
+                ))}
+              </optgroup>
             ))}
+
+            {getAccountSelectionOptions(propAccounts).accountGroups.length > 0 && (
+              <optgroup label="Saved Account Groups">
+                {getAccountSelectionOptions(propAccounts).accountGroups.map((group) => (
+                  <option key={group.groupId} value={getGroupIdValue(group.groupId)} style={{ backgroundColor: "#0f172a", color: "#ffffff" }}>
+                    {group.label}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
+
+          {form.accountId && (
+            <div style={styles.accountHelpBox}>
+              {getAccountSelectionMeta(propAccounts, form.accountId).selectedAccounts.length > 1
+                ? `This trade will be tagged to ${getAccountSelectionMeta(propAccounts, form.accountId).accountName}.`
+                : "This trade will be tagged to the selected account."}
+            </div>
+          )}
 
           {propAccounts.length === 0 && (
             <div style={styles.accountHelpBox}>
