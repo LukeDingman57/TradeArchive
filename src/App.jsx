@@ -6,6 +6,7 @@ import Sidebar from "./components/Sidebar";
 import Accounts from "./components/Accounts";
 import News from "./components/News";
 import Settings from "./components/Settings";
+import { SettingsProvider } from "./context/SettingsContext";
 import Journal from "./Journal";
 import "./App.css";
 
@@ -998,14 +999,15 @@ export default function App() {
 
 
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: "#08111f",
-        overflowX: "hidden",
-      }}
-    >
+    <SettingsProvider>
+      <div
+        style={{
+          display: "flex",
+          minHeight: "100vh",
+          background: "#08111f",
+          overflowX: "hidden",
+        }}
+      >
       {!isMobile && (
         <Sidebar activePage={activePage} setActivePage={setActivePage} session={session} />
       )}
@@ -1126,8 +1128,9 @@ export default function App() {
         {renderPage()}
       </div>
 
-      <Analytics />
-    </div>
+        <Analytics />
+      </div>
+    </SettingsProvider>
   );
 }
 
