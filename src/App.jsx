@@ -6,7 +6,7 @@ import Sidebar from "./components/Sidebar";
 import Accounts from "./components/Accounts";
 import News from "./components/News";
 import Settings from "./components/Settings";
-import { SettingsProvider } from "./context/SettingsContext";
+import { SettingsProvider } from "./components/SettingsContext";
 import Journal from "./Journal";
 import "./App.css";
 
