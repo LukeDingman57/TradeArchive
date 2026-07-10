@@ -2826,19 +2826,23 @@ const filterButton = (active) => ({
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "linear-gradient(180deg, #162334 0%, #101b2b 35%, #0c1522 100%)",
-    color: "#fff",
-    fontFamily:
-      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    background:
+      "radial-gradient(circle at top left, rgba(37,99,235,0.10), transparent 26%), linear-gradient(180deg, #07101d 0%, #08111f 45%, #050b14 100%)",
+    color: "#ffffff",
+    overflowX: "hidden",
   },
   topbar: {
-    height: "76px",
-    borderBottom: "1px solid rgba(255,255,255,0.1)",
+    height: "70px",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "0 32px",
-    background: "rgba(18,30,46,0.9)",
+    padding: "0 34px",
+    borderBottom: "1px solid rgba(148,163,184,0.12)",
+    background: "rgba(8,15,28,0.72)",
+    backdropFilter: "blur(12px)",
+    position: "sticky",
+    top: 0,
+    zIndex: 50,
   },
   topLogo: {
     fontSize: "22px",
@@ -2874,7 +2878,10 @@ const styles = {
     padding: "10px 16px",
   },
   content: {
-    padding: "36px 32px",
+    padding: "48px 34px 70px",
+    maxWidth: "1720px",
+    margin: "0 auto",
+    boxSizing: "border-box",
   },
   headingRow: {
     display: "flex",
@@ -2919,11 +2926,12 @@ const styles = {
     marginBottom: "20px",
   },
   statCard: {
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))",
-    borderRadius: "14px",
-    padding: "20px",
-    boxShadow: "0 10px 28px rgba(0,0,0,0.18)",
+    background:
+      "linear-gradient(180deg, rgba(15,23,42,0.72), rgba(8,15,28,0.82))",
+    border: "1px solid rgba(148,163,184,0.14)",
+    borderRadius: "16px",
+    padding: "22px",
+    boxShadow: "0 14px 32px rgba(0,0,0,0.16)",
   },
   statLabel: {
     color: "rgba(255,255,255,0.7)",
@@ -2935,16 +2943,17 @@ const styles = {
     fontWeight: 800,
   },
   analyticsCard: {
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))",
-    borderRadius: "14px",
+    background:
+      "linear-gradient(180deg, rgba(15,23,42,0.72), rgba(8,15,28,0.86))",
+    border: "1px solid rgba(148,163,184,0.14)",
+    borderRadius: "18px",
+    boxShadow: "0 18px 45px rgba(0,0,0,0.18)",
     overflow: "hidden",
-    boxShadow: "0 10px 28px rgba(0,0,0,0.22)",
-    marginBottom: "20px",
   },
   analyticsHeader: {
-    padding: "18px 20px",
-    borderBottom: "1px solid rgba(255,255,255,0.1)",
+    padding: "22px 24px",
+    borderBottom: "1px solid rgba(148,163,184,0.12)",
+    background: "rgba(8,15,28,0.30)",
   },
   analyticsTitle: {
     fontSize: "28px",
@@ -2958,19 +2967,21 @@ const styles = {
   analyticsTable: {
     width: "100%",
     borderCollapse: "collapse",
-    minWidth: "700px",
+    color: "#e5e7eb",
+    background: "transparent",
   },
   insightsCard: {
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "linear-gradient(180deg, rgba(96,165,250,0.08), rgba(255,255,255,0.02))",
-    borderRadius: "14px",
+    background:
+      "linear-gradient(180deg, rgba(15,23,42,0.72), rgba(8,15,28,0.86))",
+    border: "1px solid rgba(148,163,184,0.14)",
+    borderRadius: "18px",
+    boxShadow: "0 18px 45px rgba(0,0,0,0.18)",
     overflow: "hidden",
-    boxShadow: "0 10px 28px rgba(0,0,0,0.22)",
-    marginBottom: "20px",
   },
   insightsHeader: {
-    padding: "18px 20px",
-    borderBottom: "1px solid rgba(255,255,255,0.1)",
+    padding: "22px 24px",
+    borderBottom: "1px solid rgba(148,163,184,0.12)",
+    background: "rgba(8,15,28,0.30)",
   },
   insightsTitle: {
     fontSize: "28px",
@@ -3014,20 +3025,17 @@ const styles = {
     fontWeight: 600,
   },
   card: {
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))",
-    borderRadius: "14px",
+    background:
+      "linear-gradient(180deg, rgba(15,23,42,0.72), rgba(8,15,28,0.86))",
+    border: "1px solid rgba(148,163,184,0.14)",
+    borderRadius: "18px",
+    boxShadow: "0 18px 45px rgba(0,0,0,0.18)",
     overflow: "hidden",
-    boxShadow: "0 10px 28px rgba(0,0,0,0.28)",
   },
   tableHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "20px",
-    padding: "18px 20px",
-    borderBottom: "1px solid rgba(255,255,255,0.1)",
-    flexWrap: "wrap",
+    padding: "22px 24px",
+    borderBottom: "1px solid rgba(148,163,184,0.12)",
+    background: "rgba(8,15,28,0.30)",
   },
   headerRight: {
     display: "flex",
@@ -3140,6 +3148,8 @@ const styles = {
   table: {
     width: "100%",
     borderCollapse: "collapse",
+    color: "#e5e7eb",
+    background: "transparent",
   },
   th: {
     textAlign: "left",
@@ -3235,21 +3245,17 @@ const styles = {
     cursor: "pointer",
   },
   calendarCard: {
-    marginTop: "20px",
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))",
-    borderRadius: "14px",
+    background:
+      "linear-gradient(180deg, rgba(15,23,42,0.72), rgba(8,15,28,0.86))",
+    border: "1px solid rgba(148,163,184,0.14)",
+    borderRadius: "18px",
+    boxShadow: "0 18px 45px rgba(0,0,0,0.18)",
     overflow: "hidden",
-    boxShadow: "0 10px 28px rgba(0,0,0,0.25)",
   },
   calendarHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "16px",
-    padding: "20px",
-    borderBottom: "1px solid rgba(255,255,255,0.1)",
-    flexWrap: "wrap",
+    padding: "22px 24px",
+    borderBottom: "1px solid rgba(148,163,184,0.12)",
+    background: "rgba(8,15,28,0.30)",
   },
   calendarTitle: {
     fontSize: "30px",
@@ -3890,20 +3896,17 @@ const styles = {
   },
 
   actionInsightsCard: {
-    marginTop: "20px",
-    marginBottom: "20px",
-    borderRadius: "24px",
     background:
-      "linear-gradient(135deg, rgba(15,23,42,0.98), rgba(30,41,59,0.88))",
-    border: "1px solid rgba(96,165,250,0.24)",
-    boxShadow: "0 18px 45px rgba(0,0,0,0.24)",
+      "linear-gradient(180deg, rgba(15,23,42,0.72), rgba(8,15,28,0.86))",
+    border: "1px solid rgba(148,163,184,0.14)",
+    borderRadius: "18px",
+    boxShadow: "0 18px 45px rgba(0,0,0,0.18)",
     overflow: "hidden",
   },
   actionInsightsTop: {
-    padding: "24px 26px 18px",
-    borderBottom: "1px solid rgba(255,255,255,0.08)",
-    background:
-      "radial-gradient(circle at top left, rgba(96,165,250,0.16), transparent 34%)",
+    padding: "22px 24px",
+    borderBottom: "1px solid rgba(148,163,184,0.12)",
+    background: "rgba(8,15,28,0.30)",
   },
   actionInsightsEyebrow: {
     color: "#93c5fd",
