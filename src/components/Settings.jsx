@@ -26,37 +26,17 @@ const defaultSettings = {
     showCountdowns: true,
     autoRefresh: true,
   },
-  notifications: {
-    dailyJournalReminder: false,
-    weeklyReview: false,
-    payoutReminder: true,
-    newsReminder: false,
-  },
 };
 
 function loadSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-
     return {
       ...defaultSettings,
       ...saved,
-      preferences: {
-        ...defaultSettings.preferences,
-        ...(saved.preferences || {}),
-      },
-      journal: {
-        ...defaultSettings.journal,
-        ...(saved.journal || {}),
-      },
-      news: {
-        ...defaultSettings.news,
-        ...(saved.news || {}),
-      },
-      notifications: {
-        ...defaultSettings.notifications,
-        ...(saved.notifications || {}),
-      },
+      preferences: { ...defaultSettings.preferences, ...(saved.preferences || {}) },
+      journal: { ...defaultSettings.journal, ...(saved.journal || {}) },
+      news: { ...defaultSettings.news, ...(saved.news || {}) },
     };
   } catch {
     return defaultSettings;
@@ -74,80 +54,17 @@ export default function Settings({
   const [settings, setSettings] = useState(defaultSettings);
   const [message, setMessage] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
-  const [search, setSearch] = useState("");
 
   useEffect(() => {
     setSettings(loadSettings());
   }, []);
 
-  const navItems = useMemo(
-    () => [
-      {
-        id: "account",
-        icon: "U",
-        title: "Account",
-        text: "Login, email, and account access",
-        keywords: "account email password login logout profile",
-      },
-      {
-        id: "preferences",
-        icon: "P",
-        title: "Preferences",
-        text: "Theme, timezone, currency, and formats",
-        keywords: "theme timezone currency date time format preferences",
-      },
-      {
-        id: "journal",
-        icon: "J",
-        title: "Journal Defaults",
-        text: "Risk, instrument, RR, and draft settings",
-        keywords: "journal risk instrument account rr drafts trades",
-      },
-      {
-        id: "news",
-        icon: "N",
-        title: "News Defaults",
-        text: "Calendar filters and reminders",
-        keywords: "news economic calendar currencies impact countdown refresh",
-      },
-      {
-        id: "billing",
-        icon: "B",
-        title: "Billing",
-        text: "Subscription, invoices, and payment method",
-        keywords: "billing subscription stripe invoice payment plan upgrade",
-      },
-      {
-        id: "support",
-        icon: "S",
-        title: "Support",
-        text: "Contact, bugs, feedback, and feature requests",
-        keywords: "support contact bug feature request discord help",
-      },
-      {
-        id: "privacy",
-        icon: "L",
-        title: "Privacy",
-        text: "Exports, local settings, and account deletion",
-        keywords: "privacy export delete data settings local account",
-      },
-    ],
-    []
-  );
-
-  const filteredNavItems = navItems.filter((item) => {
-    const query = search.trim().toLowerCase();
-    if (!query) return true;
-
-    return `${item.title} ${item.text} ${item.keywords}`
-      .toLowerCase()
-      .includes(query);
-  });
-
-  const saveSettings = (nextSettings, successMessage = "Settings saved.") => {
+  const saveSettings = (nextSettings, successMessage = "Saved") => {
     setSettings(nextSettings);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSettings));
     setMessage(successMessage);
+    window.clearTimeout(window.__taSettingsToast);
+    window.__taSettingsToast = window.setTimeout(() => setMessage(""), 2200);
   };
 
   const updateSection = (section, field, value) => {
@@ -158,7 +75,6 @@ export default function Settings({
         [field]: value,
       },
     };
-
     saveSettings(nextSettings);
   };
 
@@ -173,23 +89,20 @@ export default function Settings({
 
   const sendPasswordReset = async () => {
     if (!session?.user?.email) {
-      setMessage("Log in first to reset your password.");
+      setMessage("Log in first");
       return;
     }
 
     try {
       setResetLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(
-        session.user.email,
-        {
-          redirectTo: window.location.origin,
-        }
-      );
+      const { error } = await supabase.auth.resetPasswordForEmail(session.user.email, {
+        redirectTo: window.location.origin,
+      });
 
       if (error) throw error;
-      setMessage("Password reset email sent.");
+      setMessage("Password reset sent");
     } catch (err) {
-      setMessage(err?.message || "Could not send password reset email.");
+      setMessage(err?.message || "Could not send reset email");
     } finally {
       setResetLoading(false);
     }
@@ -211,18 +124,33 @@ export default function Settings({
     link.download = "tradearchive-settings.json";
     link.click();
     URL.revokeObjectURL(url);
-    setMessage("Settings export downloaded.");
+    setMessage("Export downloaded");
   };
 
   const resetLocalSettings = () => {
     localStorage.removeItem(STORAGE_KEY);
     setSettings(defaultSettings);
-    setMessage("Local settings reset.");
+    setMessage("Local settings reset");
   };
+
+  const navItems = useMemo(
+    () => [
+      { id: "account", label: "Account", icon: "User" },
+      { id: "preferences", label: "Preferences", icon: "Sliders" },
+      { id: "journal", label: "Journal", icon: "Journal" },
+      { id: "news", label: "News", icon: "Calendar" },
+      { id: "billing", label: "Billing", icon: "Card" },
+      { id: "support", label: "Support", icon: "Help" },
+      { id: "privacy", label: "Privacy", icon: "Shield" },
+    ],
+    []
+  );
+
+  const activeItem = navItems.find((item) => item.id === activeSection);
 
   const handleNavClick = (id) => {
     if (id === "billing") {
-      onManageBilling?.();
+      setActiveSection("billing");
       return;
     }
 
@@ -230,138 +158,83 @@ export default function Settings({
     setMessage("");
   };
 
-  const currentSection = navItems.find((item) => item.id === activeSection);
-
   return (
-    <div style={styles.page}>
+    <main style={styles.page}>
       <div style={styles.shell}>
         <div style={styles.headerRow}>
           <div>
-            <p style={styles.eyebrow}>SETTINGS</p>
-            <h1 style={styles.title}>Settings</h1>
-            <p style={styles.subtitle}>
-              Manage your TradeArchive account, defaults, and workspace preferences.
-            </p>
-          </div>
-
-          <div style={styles.accountPill}>
-            <div style={styles.accountDot}>TA</div>
-            <div style={styles.accountTextWrap}>
-              <div style={styles.accountPillLabel}>Signed in as</div>
-              <div style={styles.accountEmail}>
-                {session?.user?.email || "Guest user"}
-              </div>
-            </div>
+            <p style={styles.eyebrow}>Settings</p>
+            <h1 style={styles.title}>Workspace settings</h1>
+            <p style={styles.subtitle}>Manage your account, defaults, billing, and TradeArchive preferences.</p>
           </div>
         </div>
 
         {billingError ? <div style={styles.errorBox}>{billingError}</div> : null}
-        {message ? <div style={styles.successBox}>{message}</div> : null}
+        {message ? <div style={styles.toast}>{message}</div> : null}
 
-        <div style={styles.settingsShell}>
-          <aside style={styles.navPanel}>
-            <div style={styles.searchWrap}>
-              <span style={styles.searchIcon}>⌕</span>
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search settings"
-                style={styles.searchInput}
-              />
-            </div>
+        <div style={styles.settingsFrame}>
+          <aside style={styles.settingsNav}>
+            <div style={styles.navHeader}>General</div>
+            {navItems.map((item) => {
+              const isActive = activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleNavClick(item.id)}
+                  style={{ ...styles.navItem, ...(isActive ? styles.navItemActive : {}) }}
+                >
+                  <span style={{ ...styles.navIcon, ...(isActive ? styles.navIconActive : {}) }}>
+                    {iconMap[item.icon]}
+                  </span>
+                  <span style={styles.navLabel}>{item.label}</span>
+                </button>
+              );
+            })}
 
-            <div style={styles.navGroupLabel}>Workspace</div>
-
-            <nav style={styles.navList}>
-              {filteredNavItems.map((item) => {
-                const isActive = activeSection === item.id;
-                const isBilling = item.id === "billing";
-
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleNavClick(item.id)}
-                    style={{
-                      ...styles.navButton,
-                      ...(isActive ? styles.navButtonActive : {}),
-                    }}
-                  >
-                    <span
-                      style={{
-                        ...styles.navIcon,
-                        ...(isActive ? styles.navIconActive : {}),
-                      }}
-                    >
-                      {item.icon}
-                    </span>
-                    <span style={styles.navCopy}>
-                      <span style={styles.navTitle}>{item.title}</span>
-                      <span style={styles.navSub}>{item.text}</span>
-                    </span>
-                    <span style={styles.navArrow}>
-                      {isBilling && portalLoading ? "..." : "›"}
-                    </span>
-                  </button>
-                );
-              })}
-            </nav>
-
-            <div style={styles.sidebarFooter}>
+            <div style={styles.navFooter}>
               <div style={styles.footerBrand}>TradeArchive</div>
-              <div style={styles.footerText}>Version 1.0 • Funded trader workspace</div>
+              <div style={styles.footerText}>v1.0 · Funded trader workspace</div>
             </div>
           </aside>
 
-          <main style={styles.detailPanel}>
-            <div style={styles.panelHeader}>
+          <section style={styles.contentPanel}>
+            <div style={styles.panelTop}>
               <div>
-                <h2 style={styles.panelTitle}>{currentSection?.title}</h2>
-                <p style={styles.panelSubtitle}>{currentSection?.text}</p>
+                <div style={styles.panelKicker}>{activeItem?.label}</div>
+                <h2 style={styles.panelTitle}>{panelMeta[activeSection]?.title}</h2>
+                <p style={styles.panelSubtitle}>{panelMeta[activeSection]?.subtitle}</p>
               </div>
-
-              {activeSection !== "account" && activeSection !== "support" && activeSection !== "privacy" ? (
-                <span style={styles.savedBadge}>Auto-saves</span>
-              ) : null}
             </div>
 
             <div style={styles.divider} />
-
             {renderPanel()}
-          </main>
+          </section>
         </div>
       </div>
-    </div>
+    </main>
   );
 
   function renderPanel() {
     if (activeSection === "account") {
       return (
         <PanelStack>
-          <PanelSection
-            title="Profile"
-            description="This is the email connected to your TradeArchive account."
-          >
-            <InfoRow label="Email address" value={session?.user?.email || "Not logged in"} />
-          </PanelSection>
+          <SettingGroup title="Profile" text="Basic account information tied to this login.">
+            <SettingRow label="Email address" description="Used for login, billing, and password resets.">
+              <ReadOnlyValue value={session?.user?.email || "Not logged in"} />
+            </SettingRow>
+          </SettingGroup>
 
-          <PanelSection
-            title="Security"
-            description="Send a reset email if you need to change your password."
-          >
-            <div style={styles.buttonRow}>
-              <button
-                style={styles.primaryButton}
-                onClick={sendPasswordReset}
-                disabled={resetLoading}
-              >
-                {resetLoading ? "Sending..." : "Send password reset"}
+          <SettingGroup title="Security" text="Manage access to your account.">
+            <SettingRow label="Password" description="Send a reset link to your email.">
+              <button style={styles.primaryButton} onClick={sendPasswordReset} disabled={resetLoading}>
+                {resetLoading ? "Sending..." : "Send reset"}
               </button>
-              <button style={styles.secondaryButton} onClick={onLogout}>
-                Logout
-              </button>
-            </div>
-          </PanelSection>
+            </SettingRow>
+            <SettingRow label="Session" description="Sign out of this device.">
+              <button style={styles.secondaryButton} onClick={onLogout}>Logout</button>
+            </SettingRow>
+          </SettingGroup>
         </PanelStack>
       );
     }
@@ -369,43 +242,26 @@ export default function Settings({
     if (activeSection === "preferences") {
       return (
         <PanelStack>
-          <PanelSection title="Display" description="Choose how the app should look and format time.">
-            <SettingsGrid>
-              <SelectField
-                label="Theme"
-                value={settings.preferences.theme}
-                options={["Dark", "Light", "System"]}
-                onChange={(value) => updateSection("preferences", "theme", value)}
-              />
-              <SelectField
-                label="Timezone"
-                value={settings.preferences.timezone}
-                options={["Local time", "New York time", "UTC"]}
-                onChange={(value) => updateSection("preferences", "timezone", value)}
-              />
-              <SelectField
-                label="Date format"
-                value={settings.preferences.dateFormat}
-                options={["MM/DD/YYYY", "DD/MM/YYYY", "YYYY-MM-DD"]}
-                onChange={(value) => updateSection("preferences", "dateFormat", value)}
-              />
-              <SelectField
-                label="Time format"
-                value={settings.preferences.timeFormat}
-                options={["12 hour", "24 hour"]}
-                onChange={(value) => updateSection("preferences", "timeFormat", value)}
-              />
-            </SettingsGrid>
-          </PanelSection>
+          <SettingGroup title="Appearance" text="Control how TradeArchive looks and displays time.">
+            <SettingRow label="Theme" description="Choose your preferred app appearance.">
+              <SelectField value={settings.preferences.theme} options={["Dark", "Light", "System"]} onChange={(value) => updateSection("preferences", "theme", value)} />
+            </SettingRow>
+            <SettingRow label="Timezone" description="Used for calendars and journal timestamps.">
+              <SelectField value={settings.preferences.timezone} options={["Local time", "New York time", "UTC"]} onChange={(value) => updateSection("preferences", "timezone", value)} />
+            </SettingRow>
+          </SettingGroup>
 
-          <PanelSection title="Money" description="Used for risk, performance, and account values.">
-            <SelectField
-              label="Currency"
-              value={settings.preferences.currency}
-              options={["USD", "EUR", "GBP", "CAD", "AUD"]}
-              onChange={(value) => updateSection("preferences", "currency", value)}
-            />
-          </PanelSection>
+          <SettingGroup title="Formats" text="Set your preferred trading display defaults.">
+            <SettingRow label="Currency" description="Default currency for performance and risk.">
+              <SelectField value={settings.preferences.currency} options={["USD", "EUR", "GBP", "CAD", "AUD"]} onChange={(value) => updateSection("preferences", "currency", value)} />
+            </SettingRow>
+            <SettingRow label="Date format" description="How dates are shown across the app.">
+              <SelectField value={settings.preferences.dateFormat} options={["MM/DD/YYYY", "DD/MM/YYYY", "YYYY-MM-DD"]} onChange={(value) => updateSection("preferences", "dateFormat", value)} />
+            </SettingRow>
+            <SettingRow label="Time format" description="Choose 12-hour or 24-hour time.">
+              <SelectField value={settings.preferences.timeFormat} options={["12 hour", "24 hour"]} onChange={(value) => updateSection("preferences", "timeFormat", value)} />
+            </SettingRow>
+          </SettingGroup>
         </PanelStack>
       );
     }
@@ -413,47 +269,29 @@ export default function Settings({
     if (activeSection === "journal") {
       return (
         <PanelStack>
-          <PanelSection title="Trade entry defaults" description="These defaults pre-fill your journal when adding trades.">
-            <SettingsGrid>
-              <TextField
-                label="Default risk"
-                value={settings.journal.defaultRisk}
-                onChange={(value) => updateSection("journal", "defaultRisk", value)}
-                prefix="$"
-              />
-              <TextField
-                label="Default instrument"
-                value={settings.journal.defaultInstrument}
-                onChange={(value) => updateSection("journal", "defaultInstrument", value)}
-              />
-              <TextField
-                label="Default account"
-                value={settings.journal.defaultAccount}
-                onChange={(value) => updateSection("journal", "defaultAccount", value)}
-                placeholder="Topstep 50k, Alpha Zero..."
-              />
-              <TextField
-                label="Minimum RR"
-                value={settings.journal.defaultRR}
-                onChange={(value) => updateSection("journal", "defaultRR", value)}
-              />
-            </SettingsGrid>
-          </PanelSection>
+          <SettingGroup title="Trade defaults" text="Pre-fill fields when logging a new trade.">
+            <SettingRow label="Default risk" description="Your typical risk per trade.">
+              <TextField value={settings.journal.defaultRisk} onChange={(value) => updateSection("journal", "defaultRisk", value)} prefix="$" />
+            </SettingRow>
+            <SettingRow label="Default instrument" description="Example: MNQ, NQ, MES, ES.">
+              <TextField value={settings.journal.defaultInstrument} onChange={(value) => updateSection("journal", "defaultInstrument", value)} />
+            </SettingRow>
+            <SettingRow label="Default account" description="Optional prop account name.">
+              <TextField value={settings.journal.defaultAccount} onChange={(value) => updateSection("journal", "defaultAccount", value)} placeholder="Topstep 50k, Alpha Zero..." />
+            </SettingRow>
+            <SettingRow label="Minimum RR" description="Minimum reward-to-risk before taking a trade.">
+              <TextField value={settings.journal.defaultRR} onChange={(value) => updateSection("journal", "defaultRR", value)} />
+            </SettingRow>
+          </SettingGroup>
 
-          <PanelSection title="Journal behavior" description="Control how trade drafts are handled.">
-            <Toggle
-              label="Auto-save drafts"
-              text="Keep unsaved journal entries from being lost."
-              checked={settings.journal.autoSaveDrafts}
-              onChange={(value) => updateSection("journal", "autoSaveDrafts", value)}
-            />
-            <Toggle
-              label="Remember last trade values"
-              text="Use the previous trade as the starting point for the next one."
-              checked={settings.journal.rememberLastValues}
-              onChange={(value) => updateSection("journal", "rememberLastValues", value)}
-            />
-          </PanelSection>
+          <SettingGroup title="Behavior" text="Control how your journal remembers trade inputs.">
+            <SettingRow label="Auto-save drafts" description="Keep unfinished trade entries saved locally.">
+              <Toggle checked={settings.journal.autoSaveDrafts} onChange={(value) => updateSection("journal", "autoSaveDrafts", value)} />
+            </SettingRow>
+            <SettingRow label="Remember last trade values" description="Use previous trade values as the next default.">
+              <Toggle checked={settings.journal.rememberLastValues} onChange={(value) => updateSection("journal", "rememberLastValues", value)} />
+            </SettingRow>
+          </SettingGroup>
         </PanelStack>
       );
     }
@@ -461,41 +299,40 @@ export default function Settings({
     if (activeSection === "news") {
       return (
         <PanelStack>
-          <PanelSection title="Calendar filters" description="Pick the news events you want shown by default.">
-            <OptionGroup
-              label="Currencies"
-              options={["USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "NZD"]}
-              selected={settings.news.currencies}
-              onToggle={(value) => toggleArrayValue("news", "currencies", value)}
-            />
-            <OptionGroup
-              label="Impact"
-              options={["High", "Medium", "Low"]}
-              selected={settings.news.impacts}
-              onToggle={(value) => toggleArrayValue("news", "impacts", value)}
-            />
-            <SelectField
-              label="Default range"
-              value={settings.news.range}
-              options={["Today", "Tomorrow", "This Week"]}
-              onChange={(value) => updateSection("news", "range", value)}
-            />
-          </PanelSection>
+          <SettingGroup title="Economic calendar" text="Choose what news events show by default.">
+            <SettingRow label="Currencies" description="Filter the calendar by currencies.">
+              <OptionGroup options={["USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "NZD"]} selected={settings.news.currencies} onToggle={(value) => toggleArrayValue("news", "currencies", value)} />
+            </SettingRow>
+            <SettingRow label="Impact" description="Choose the event importance levels shown.">
+              <OptionGroup options={["High", "Medium", "Low"]} selected={settings.news.impacts} onToggle={(value) => toggleArrayValue("news", "impacts", value)} />
+            </SettingRow>
+            <SettingRow label="Default range" description="The calendar range opened first.">
+              <SelectField value={settings.news.range} options={["Today", "Tomorrow", "This Week"]} onChange={(value) => updateSection("news", "range", value)} />
+            </SettingRow>
+          </SettingGroup>
 
-          <PanelSection title="News behavior" description="Control countdowns and automatic refreshes.">
-            <Toggle
-              label="Show countdown timers"
-              text="Display a timer before high-impact events."
-              checked={settings.news.showCountdowns}
-              onChange={(value) => updateSection("news", "showCountdowns", value)}
-            />
-            <Toggle
-              label="Auto refresh calendar"
-              text="Keep the economic calendar updated while you are using the app."
-              checked={settings.news.autoRefresh}
-              onChange={(value) => updateSection("news", "autoRefresh", value)}
-            />
-          </PanelSection>
+          <SettingGroup title="Calendar behavior" text="Useful display settings for news prep.">
+            <SettingRow label="Show countdown timers" description="Display time remaining until the next event.">
+              <Toggle checked={settings.news.showCountdowns} onChange={(value) => updateSection("news", "showCountdowns", value)} />
+            </SettingRow>
+            <SettingRow label="Auto refresh calendar" description="Refresh events without manually reloading.">
+              <Toggle checked={settings.news.autoRefresh} onChange={(value) => updateSection("news", "autoRefresh", value)} />
+            </SettingRow>
+          </SettingGroup>
+        </PanelStack>
+      );
+    }
+
+    if (activeSection === "billing") {
+      return (
+        <PanelStack>
+          <SettingGroup title="Subscription" text="Manage your plan, payment method, and invoices.">
+            <SettingRow label="Current plan" description="Open Stripe to view subscription details.">
+              <button style={styles.primaryButton} onClick={onManageBilling} disabled={portalLoading}>
+                {portalLoading ? "Opening..." : "Manage billing"}
+              </button>
+            </SettingRow>
+          </SettingGroup>
         </PanelStack>
       );
     }
@@ -503,43 +340,23 @@ export default function Settings({
     if (activeSection === "support") {
       return (
         <PanelStack>
-          <PanelSection title="Contact" description="Give users a simple way to reach you.">
-            <ActionList>
-              <ActionRow
-                title="Contact support"
-                text="Ask a question or get help with your account."
-                button="Email"
-                onClick={() =>
-                  (window.location.href =
-                    "mailto:support@tradearchive.net?subject=TradeArchive Support")
-                }
-              />
-              <ActionRow
-                title="Report a bug"
-                text="Send details about something not working correctly."
-                button="Report"
-                onClick={() =>
-                  (window.location.href =
-                    "mailto:support@tradearchive.net?subject=Bug Report")
-                }
-              />
-              <ActionRow
-                title="Request a feature"
-                text="Tell us what would make TradeArchive more useful."
-                button="Request"
-                onClick={() =>
-                  (window.location.href =
-                    "mailto:support@tradearchive.net?subject=Feature Request")
-                }
-              />
-            </ActionList>
-          </PanelSection>
+          <SettingGroup title="Contact" text="Make it easy for traders to reach you.">
+            <SettingRow label="Contact support" description="Send a general support message.">
+              <button style={styles.primaryButton} onClick={() => (window.location.href = "mailto:support@tradearchive.net?subject=TradeArchive Support")}>Email support</button>
+            </SettingRow>
+            <SettingRow label="Report a bug" description="Let users report something broken.">
+              <button style={styles.secondaryButton} onClick={() => (window.location.href = "mailto:support@tradearchive.net?subject=Bug Report")}>Report bug</button>
+            </SettingRow>
+            <SettingRow label="Request a feature" description="Collect feature ideas from users.">
+              <button style={styles.secondaryButton} onClick={() => (window.location.href = "mailto:support@tradearchive.net?subject=Feature Request")}>Request feature</button>
+            </SettingRow>
+          </SettingGroup>
 
-          <PanelSection title="Community" description="Add your Discord invite once the server is ready.">
-            <div style={styles.emptyState}>
-              Discord community is not connected yet.
-            </div>
-          </PanelSection>
+          <SettingGroup title="Community" text="Add your Discord invite when the server is ready.">
+            <SettingRow label="Discord" description="Create a server for feedback, updates, and user support.">
+              <ReadOnlyValue value="Not connected yet" />
+            </SettingRow>
+          </SettingGroup>
         </PanelStack>
       );
     }
@@ -547,42 +364,24 @@ export default function Settings({
     if (activeSection === "privacy") {
       return (
         <PanelStack>
-          <PanelSection title="Your data" description="Export and reset local workspace settings.">
-            <ActionList>
-              <ActionRow
-                title="Export settings"
-                text="Download your local settings as a JSON file."
-                button="Export"
-                onClick={exportSettings}
-              />
-              <ActionRow
-                title="Reset local settings"
-                text="Restore preferences, journal defaults, and news defaults."
-                button="Reset"
-                onClick={resetLocalSettings}
-              />
-            </ActionList>
-          </PanelSection>
+          <SettingGroup title="Data" text="Give users control over their local settings and account data.">
+            <SettingRow label="Export settings" description="Download your local preferences as JSON.">
+              <button style={styles.primaryButton} onClick={exportSettings}>Export</button>
+            </SettingRow>
+            <SettingRow label="Reset local settings" description="Clear local preferences and return to defaults.">
+              <button style={styles.secondaryButton} onClick={resetLocalSettings}>Reset</button>
+            </SettingRow>
+          </SettingGroup>
 
-          <PanelSection title="Danger zone" description="Account deletion should be handled carefully.">
-            <div style={styles.dangerBox}>
+          <SettingGroup title="Danger zone" text="Sensitive account actions should require support or confirmation.">
+            <div style={styles.dangerRow}>
               <div>
-                <div style={styles.dangerTitle}>Delete account</div>
-                <div style={styles.dangerText}>
-                  Until you add a secure delete-account API endpoint, route these requests through support.
-                </div>
+                <div style={styles.rowLabel}>Delete account</div>
+                <div style={styles.rowDescription}>Until a secure delete endpoint exists, route this through support.</div>
               </div>
-              <button
-                style={styles.dangerButton}
-                onClick={() =>
-                  (window.location.href =
-                    "mailto:support@tradearchive.net?subject=Delete My TradeArchive Account")
-                }
-              >
-                Request deletion
-              </button>
+              <button style={styles.dangerButton} onClick={() => (window.location.href = "mailto:support@tradearchive.net?subject=Delete My TradeArchive Account")}>Request deletion</button>
             </div>
-          </PanelSection>
+          </SettingGroup>
         </PanelStack>
       );
     }
@@ -595,138 +394,138 @@ function PanelStack({ children }) {
   return <div style={styles.panelStack}>{children}</div>;
 }
 
-function PanelSection({ title, description, children }) {
+function SettingGroup({ title, text, children }) {
   return (
-    <section style={styles.sectionBlock}>
-      <div style={styles.sectionIntro}>
-        <h3 style={styles.sectionTitle}>{title}</h3>
-        <p style={styles.sectionDescription}>{description}</p>
+    <div style={styles.group}>
+      <div style={styles.groupHeader}>
+        <h3 style={styles.groupTitle}>{title}</h3>
+        <p style={styles.groupText}>{text}</p>
       </div>
-      <div style={styles.sectionContent}>{children}</div>
-    </section>
-  );
-}
-
-function SettingsGrid({ children }) {
-  return <div style={styles.settingsGrid}>{children}</div>;
-}
-
-function InfoRow({ label, value }) {
-  return (
-    <div style={styles.infoRow}>
-      <div style={styles.fieldLabel}>{label}</div>
-      <div style={styles.infoValue}>{value}</div>
+      <div style={styles.groupRows}>{children}</div>
     </div>
   );
 }
 
-function TextField({ label, value, onChange, placeholder, prefix }) {
+function SettingRow({ label, description, children }) {
   return (
-    <label style={styles.fieldWrap}>
-      <div style={styles.fieldLabel}>{label}</div>
-      <div style={styles.inputWrap}>
-        {prefix ? <span style={styles.prefix}>{prefix}</span> : null}
-        <input
-          value={value}
-          placeholder={placeholder}
-          onChange={(event) => onChange(event.target.value)}
-          style={{ ...styles.input, ...(prefix ? styles.inputWithPrefix : {}) }}
-        />
+    <div style={styles.settingRow}>
+      <div style={styles.rowCopy}>
+        <div style={styles.rowLabel}>{label}</div>
+        <div style={styles.rowDescription}>{description}</div>
       </div>
-    </label>
+      <div style={styles.rowControl}>{children}</div>
+    </div>
   );
 }
 
-function SelectField({ label, value, options, onChange }) {
+function ReadOnlyValue({ value }) {
+  return <div style={styles.readOnlyValue}>{value}</div>;
+}
+
+function TextField({ value, onChange, placeholder, prefix }) {
   return (
-    <label style={styles.fieldWrap}>
-      <div style={styles.fieldLabel}>{label}</div>
-      <select
+    <div style={styles.inputWrap}>
+      {prefix ? <span style={styles.prefix}>{prefix}</span> : null}
+      <input
         value={value}
+        placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        style={styles.input}
-      >
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
+        style={{ ...styles.input, ...(prefix ? styles.inputWithPrefix : {}) }}
+      />
+    </div>
   );
 }
 
-function Toggle({ label, text, checked, onChange }) {
+function SelectField({ value, options, onChange }) {
   return (
-    <button type="button" onClick={() => onChange(!checked)} style={styles.toggleRow}>
-      <span>
-        <span style={styles.toggleTitle}>{label}</span>
-        <span style={styles.toggleText}>{text}</span>
-      </span>
-      <span style={{ ...styles.toggle, ...(checked ? styles.toggleOn : {}) }}>
-        <span style={{ ...styles.toggleDot, ...(checked ? styles.toggleDotOn : {}) }} />
-      </span>
+    <select value={value} onChange={(event) => onChange(event.target.value)} style={styles.input}>
+      {options.map((option) => (
+        <option key={option} value={option}>{option}</option>
+      ))}
+    </select>
+  );
+}
+
+function Toggle({ checked, onChange }) {
+  return (
+    <button type="button" onClick={() => onChange(!checked)} style={{ ...styles.toggle, ...(checked ? styles.toggleOn : {}) }}>
+      <span style={{ ...styles.toggleDot, ...(checked ? styles.toggleDotOn : {}) }} />
     </button>
   );
 }
 
-function OptionGroup({ label, options, selected, onToggle }) {
+function OptionGroup({ options, selected, onToggle }) {
   return (
-    <div style={styles.fieldWrap}>
-      <div style={styles.fieldLabel}>{label}</div>
-      <div style={styles.optionGrid}>
-        {options.map((option) => {
-          const isSelected = selected.includes(option);
-
-          return (
-            <button
-              key={option}
-              type="button"
-              onClick={() => onToggle(option)}
-              style={{
-                ...styles.optionButton,
-                ...(isSelected ? styles.optionButtonActive : {}),
-              }}
-            >
-              {option}
-            </button>
-          );
-        })}
-      </div>
+    <div style={styles.optionGrid}>
+      {options.map((option) => {
+        const isSelected = selected.includes(option);
+        return (
+          <button
+            key={option}
+            type="button"
+            onClick={() => onToggle(option)}
+            style={{ ...styles.optionButton, ...(isSelected ? styles.optionButtonActive : {}) }}
+          >
+            {option}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-function ActionList({ children }) {
-  return <div style={styles.actionList}>{children}</div>;
-}
+const panelMeta = {
+  account: {
+    title: "Account",
+    subtitle: "Login, email, and account access.",
+  },
+  preferences: {
+    title: "Preferences",
+    subtitle: "Set your default workspace display options.",
+  },
+  journal: {
+    title: "Journal defaults",
+    subtitle: "Pre-fill trade entries with your normal risk and instrument.",
+  },
+  news: {
+    title: "News defaults",
+    subtitle: "Control what the economic calendar shows first.",
+  },
+  billing: {
+    title: "Billing",
+    subtitle: "Manage subscription, invoices, and payment method.",
+  },
+  support: {
+    title: "Support",
+    subtitle: "Contact, bugs, feature requests, and community.",
+  },
+  privacy: {
+    title: "Privacy",
+    subtitle: "Export settings, reset data, and account controls.",
+  },
+};
 
-function ActionRow({ title, text, button, onClick }) {
-  return (
-    <div style={styles.actionRow}>
-      <div>
-        <div style={styles.actionTitle}>{title}</div>
-        <div style={styles.actionText}>{text}</div>
-      </div>
-      <button style={styles.secondaryButton} onClick={onClick}>
-        {button}
-      </button>
-    </div>
-  );
-}
+const iconMap = {
+  User: "◉",
+  Sliders: "⌘",
+  Journal: "▤",
+  Calendar: "□",
+  Card: "▭",
+  Help: "?",
+  Shield: "◇",
+};
 
 const styles = {
   page: {
     minHeight: "100vh",
     color: "white",
-    background:
-      "radial-gradient(circle at top left, rgba(37,99,235,0.10), transparent 30%), linear-gradient(180deg, #07101d 0%, #08111f 44%, #050b14 100%)",
-    padding: "34px 34px 64px",
+    background: "linear-gradient(180deg, #07101d 0%, #08111f 48%, #050b14 100%)",
+    padding: "42px 44px 70px",
     boxSizing: "border-box",
   },
   shell: {
     width: "100%",
-    maxWidth: "1280px",
+    maxWidth: "1240px",
     margin: "0 auto",
   },
   headerRow: {
@@ -734,167 +533,106 @@ const styles = {
     alignItems: "flex-end",
     justifyContent: "space-between",
     gap: "24px",
-    marginBottom: "24px",
+    marginBottom: "28px",
   },
   eyebrow: {
-    margin: "0 0 9px",
+    margin: "0 0 12px",
     color: "#93c5fd",
     fontSize: "12px",
-    letterSpacing: "0.16em",
+    letterSpacing: "0.18em",
+    textTransform: "uppercase",
     fontWeight: 900,
   },
   title: {
-    margin: "0 0 8px",
-    fontSize: "48px",
-    lineHeight: 0.95,
+    margin: 0,
+    fontSize: "44px",
+    lineHeight: 1,
     fontWeight: 950,
     letterSpacing: "-0.055em",
   },
   subtitle: {
-    margin: 0,
-    maxWidth: "680px",
+    margin: "13px 0 0",
     color: "rgba(226,232,240,0.68)",
     fontSize: "15px",
-    lineHeight: 1.6,
-  },
-  accountPill: {
-    minWidth: "280px",
-    display: "flex",
-    alignItems: "center",
-    gap: "11px",
-    border: "1px solid rgba(148,163,184,0.13)",
-    background: "rgba(15,23,42,0.48)",
-    borderRadius: "18px",
-    padding: "12px 14px",
-    boxShadow: "0 14px 34px rgba(0,0,0,0.18)",
-  },
-  accountDot: {
-    width: "36px",
-    height: "36px",
-    borderRadius: "13px",
-    display: "grid",
-    placeItems: "center",
-    background: "rgba(59,130,246,0.18)",
-    border: "1px solid rgba(96,165,250,0.22)",
-    color: "#bfdbfe",
-    fontSize: "12px",
-    fontWeight: 950,
-    flexShrink: 0,
-  },
-  accountTextWrap: { minWidth: 0 },
-  accountPillLabel: {
-    color: "rgba(148,163,184,0.78)",
-    fontSize: "11px",
-    fontWeight: 900,
-    textTransform: "uppercase",
-    letterSpacing: "0.06em",
-    marginBottom: "3px",
-  },
-  accountEmail: {
-    color: "rgba(248,250,252,0.88)",
-    fontSize: "13px",
-    fontWeight: 800,
-    overflow: "hidden",
-    whiteSpace: "nowrap",
-    textOverflow: "ellipsis",
+    lineHeight: 1.65,
   },
   errorBox: {
-    marginBottom: "14px",
-    borderRadius: "16px",
-    padding: "13px 15px",
-    background: "rgba(239,68,68,0.12)",
-    border: "1px solid rgba(239,68,68,0.25)",
+    marginBottom: "16px",
+    borderRadius: "14px",
+    padding: "12px 14px",
+    background: "rgba(239,68,68,0.11)",
+    border: "1px solid rgba(239,68,68,0.24)",
     color: "#fecaca",
     fontWeight: 800,
+    fontSize: "13px",
   },
-  successBox: {
-    marginBottom: "14px",
-    borderRadius: "16px",
-    padding: "13px 15px",
-    background: "rgba(34,197,94,0.10)",
-    border: "1px solid rgba(34,197,94,0.22)",
-    color: "#bbf7d0",
-    fontWeight: 800,
+  toast: {
+    position: "fixed",
+    right: "28px",
+    bottom: "28px",
+    zIndex: 1000,
+    borderRadius: "14px",
+    padding: "12px 14px",
+    background: "rgba(15,23,42,0.95)",
+    border: "1px solid rgba(96,165,250,0.24)",
+    color: "#dbeafe",
+    boxShadow: "0 18px 38px rgba(0,0,0,0.35)",
+    fontSize: "13px",
+    fontWeight: 900,
   },
-  settingsShell: {
+  settingsFrame: {
     display: "grid",
-    gridTemplateColumns: "320px minmax(0, 1fr)",
-    gap: "18px",
-    alignItems: "stretch",
+    gridTemplateColumns: "250px minmax(0, 1fr)",
+    gap: "22px",
+    alignItems: "start",
   },
-  navPanel: {
+  settingsNav: {
+    position: "sticky",
+    top: "24px",
     border: "1px solid rgba(148,163,184,0.12)",
-    background:
-      "linear-gradient(180deg, rgba(15,23,42,0.62), rgba(15,23,42,0.28))",
-    borderRadius: "24px",
+    background: "rgba(8,15,28,0.54)",
+    borderRadius: "22px",
     padding: "14px",
-    minHeight: "650px",
-    display: "flex",
-    flexDirection: "column",
-    boxShadow: "0 18px 44px rgba(0,0,0,0.22)",
+    boxShadow: "0 18px 42px rgba(0,0,0,0.20)",
   },
-  searchWrap: {
-    position: "relative",
-    marginBottom: "16px",
-  },
-  searchIcon: {
-    position: "absolute",
-    left: "13px",
-    top: "50%",
-    transform: "translateY(-50%)",
-    color: "rgba(148,163,184,0.85)",
-    fontSize: "17px",
-    pointerEvents: "none",
-  },
-  searchInput: {
-    width: "100%",
-    boxSizing: "border-box",
-    border: "1px solid rgba(148,163,184,0.12)",
-    background: "rgba(2,6,23,0.34)",
-    color: "white",
-    borderRadius: "16px",
-    padding: "13px 14px 13px 38px",
-    fontSize: "14px",
-    outline: "none",
-  },
-  navGroupLabel: {
-    color: "rgba(148,163,184,0.64)",
+  navHeader: {
+    padding: "8px 10px 10px",
+    color: "rgba(148,163,184,0.70)",
     fontSize: "11px",
     fontWeight: 900,
-    letterSpacing: "0.10em",
+    letterSpacing: "0.12em",
     textTransform: "uppercase",
-    margin: "0 8px 8px",
   },
-  navList: {
-    display: "grid",
-    gap: "5px",
-  },
-  navButton: {
+  navItem: {
     width: "100%",
+    height: "42px",
     border: "1px solid transparent",
+    borderRadius: "13px",
     background: "transparent",
-    color: "white",
-    borderRadius: "16px",
-    padding: "11px 10px",
+    color: "rgba(226,232,240,0.72)",
     display: "flex",
     alignItems: "center",
-    gap: "11px",
+    gap: "10px",
+    padding: "0 10px",
     cursor: "pointer",
+    fontFamily: "inherit",
+    fontSize: "14px",
+    fontWeight: 800,
     textAlign: "left",
   },
-  navButtonActive: {
+  navItemActive: {
+    background: "rgba(59,130,246,0.14)",
     border: "1px solid rgba(96,165,250,0.26)",
-    background: "linear-gradient(135deg, rgba(37,99,235,0.22), rgba(15,23,42,0.58))",
-    boxShadow: "0 12px 24px rgba(37,99,235,0.10)",
+    color: "#ffffff",
   },
   navIcon: {
-    width: "34px",
-    height: "34px",
-    borderRadius: "12px",
+    width: "24px",
+    height: "24px",
+    borderRadius: "9px",
+    background: "rgba(148,163,184,0.10)",
+    color: "rgba(203,213,225,0.72)",
     display: "grid",
     placeItems: "center",
-    background: "rgba(148,163,184,0.08)",
-    color: "rgba(203,213,225,0.80)",
     fontSize: "12px",
     fontWeight: 950,
     flexShrink: 0,
@@ -903,234 +641,202 @@ const styles = {
     background: "rgba(59,130,246,0.22)",
     color: "#bfdbfe",
   },
-  navCopy: {
-    flex: 1,
-    minWidth: 0,
-    display: "grid",
-    gap: "3px",
-  },
-  navTitle: {
-    color: "rgba(248,250,252,0.92)",
-    fontSize: "14px",
-    fontWeight: 900,
-  },
-  navSub: {
-    color: "rgba(148,163,184,0.72)",
-    fontSize: "12px",
-    lineHeight: 1.35,
-    whiteSpace: "nowrap",
+  navLabel: {
     overflow: "hidden",
     textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
-  navArrow: {
-    color: "#93c5fd",
-    fontSize: "18px",
-    fontWeight: 900,
-  },
-  sidebarFooter: {
-    marginTop: "auto",
-    padding: "14px 8px 4px",
+  navFooter: {
+    marginTop: "18px",
+    padding: "14px 10px 4px",
     borderTop: "1px solid rgba(148,163,184,0.10)",
   },
   footerBrand: {
-    color: "rgba(248,250,252,0.92)",
     fontSize: "13px",
     fontWeight: 950,
-    marginBottom: "5px",
+    color: "rgba(255,255,255,0.90)",
   },
   footerText: {
+    marginTop: "5px",
     color: "rgba(148,163,184,0.66)",
     fontSize: "12px",
-    lineHeight: 1.45,
+    lineHeight: 1.5,
   },
-  detailPanel: {
+  contentPanel: {
+    minHeight: "610px",
     border: "1px solid rgba(148,163,184,0.12)",
-    background:
-      "linear-gradient(180deg, rgba(15,23,42,0.72), rgba(15,23,42,0.38))",
+    background: "linear-gradient(180deg, rgba(15,23,42,0.70), rgba(8,15,28,0.52))",
     borderRadius: "24px",
-    padding: "26px",
-    minHeight: "650px",
-    boxShadow: "0 18px 44px rgba(0,0,0,0.24)",
+    padding: "28px 34px 34px",
+    boxShadow: "0 22px 54px rgba(0,0,0,0.24)",
   },
-  panelHeader: {
+  panelTop: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: "18px",
+    gap: "20px",
   },
-  panelTitle: {
-    margin: "0 0 7px",
-    fontSize: "30px",
-    fontWeight: 950,
-    letterSpacing: "-0.045em",
-  },
-  panelSubtitle: {
-    margin: 0,
-    color: "rgba(226,232,240,0.62)",
-    fontSize: "14px",
-    lineHeight: 1.55,
-  },
-  savedBadge: {
-    flexShrink: 0,
-    display: "inline-flex",
-    alignItems: "center",
-    border: "1px solid rgba(34,197,94,0.24)",
-    background: "rgba(34,197,94,0.10)",
-    color: "#bbf7d0",
-    borderRadius: "999px",
-    padding: "7px 10px",
+  panelKicker: {
+    color: "#93c5fd",
     fontSize: "12px",
     fontWeight: 900,
+    letterSpacing: "0.12em",
+    textTransform: "uppercase",
+    marginBottom: "8px",
+  },
+  panelTitle: {
+    margin: 0,
+    fontSize: "30px",
+    fontWeight: 950,
+    letterSpacing: "-0.04em",
+  },
+  panelSubtitle: {
+    margin: "9px 0 0",
+    color: "rgba(226,232,240,0.62)",
+    fontSize: "14px",
+    lineHeight: 1.6,
   },
   divider: {
     height: "1px",
     background: "rgba(148,163,184,0.12)",
-    margin: "22px 0",
+    margin: "24px 0 26px",
   },
   panelStack: {
     display: "grid",
-    gap: "26px",
-  },
-  sectionBlock: {
-    display: "grid",
-    gridTemplateColumns: "220px minmax(0, 1fr)",
     gap: "28px",
+  },
+  group: {
+    display: "grid",
+    gridTemplateColumns: "240px minmax(0, 1fr)",
+    gap: "34px",
     alignItems: "start",
   },
-  sectionIntro: {
-    paddingTop: "4px",
+  groupHeader: {
+    paddingTop: "3px",
   },
-  sectionTitle: {
-    margin: "0 0 7px",
+  groupTitle: {
+    margin: 0,
     fontSize: "15px",
     fontWeight: 950,
-    color: "rgba(248,250,252,0.92)",
+    color: "rgba(255,255,255,0.92)",
   },
-  sectionDescription: {
-    margin: 0,
-    color: "rgba(148,163,184,0.72)",
+  groupText: {
+    margin: "8px 0 0",
+    color: "rgba(148,163,184,0.70)",
     fontSize: "13px",
     lineHeight: 1.55,
   },
-  sectionContent: {
-    display: "grid",
-    gap: "12px",
+  groupRows: {
+    border: "1px solid rgba(148,163,184,0.11)",
+    borderRadius: "18px",
+    overflow: "hidden",
+    background: "rgba(2,6,23,0.24)",
   },
-  settingsGrid: {
+  settingRow: {
+    minHeight: "76px",
     display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: "12px",
+    gridTemplateColumns: "minmax(0, 1fr) 300px",
+    gap: "22px",
+    alignItems: "center",
+    padding: "17px 18px",
+    borderBottom: "1px solid rgba(148,163,184,0.09)",
   },
-  fieldWrap: {
-    display: "grid",
-    gap: "7px",
+  rowCopy: {
+    minWidth: 0,
   },
-  fieldLabel: {
-    color: "rgba(203,213,225,0.76)",
-    fontSize: "11px",
+  rowLabel: {
+    fontSize: "14px",
     fontWeight: 900,
-    letterSpacing: "0.06em",
-    textTransform: "uppercase",
+    color: "rgba(255,255,255,0.92)",
+  },
+  rowDescription: {
+    marginTop: "5px",
+    color: "rgba(148,163,184,0.70)",
+    fontSize: "12.5px",
+    lineHeight: 1.5,
+  },
+  rowControl: {
+    display: "flex",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    minWidth: 0,
+  },
+  readOnlyValue: {
+    width: "100%",
+    boxSizing: "border-box",
+    border: "1px solid rgba(148,163,184,0.13)",
+    background: "rgba(15,23,42,0.52)",
+    color: "rgba(255,255,255,0.90)",
+    borderRadius: "13px",
+    padding: "12px 13px",
+    fontSize: "13.5px",
+    fontWeight: 800,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   inputWrap: {
     position: "relative",
+    width: "100%",
   },
   prefix: {
     position: "absolute",
-    left: "13px",
+    left: "12px",
     top: "50%",
     transform: "translateY(-50%)",
-    color: "rgba(255,255,255,0.55)",
+    color: "rgba(255,255,255,0.52)",
     fontWeight: 900,
+    fontSize: "13px",
   },
   input: {
     width: "100%",
     boxSizing: "border-box",
-    border: "1px solid rgba(148,163,184,0.14)",
-    background: "rgba(2,6,23,0.26)",
+    border: "1px solid rgba(148,163,184,0.13)",
+    background: "rgba(15,23,42,0.58)",
     color: "white",
-    borderRadius: "14px",
+    borderRadius: "13px",
     padding: "12px 13px",
-    fontSize: "14px",
+    fontSize: "13.5px",
     outline: "none",
   },
   inputWithPrefix: {
-    paddingLeft: "30px",
-  },
-  infoRow: {
-    border: "1px solid rgba(148,163,184,0.12)",
-    background: "rgba(2,6,23,0.20)",
-    borderRadius: "16px",
-    padding: "14px",
-  },
-  infoValue: {
-    marginTop: "6px",
-    fontSize: "15px",
-    fontWeight: 850,
-    color: "rgba(255,255,255,0.90)",
-  },
-  buttonRow: {
-    display: "flex",
-    gap: "10px",
-    flexWrap: "wrap",
+    paddingLeft: "28px",
   },
   primaryButton: {
     border: "1px solid rgba(96,165,250,0.45)",
     background: "linear-gradient(180deg, #3b82f6 0%, #2563eb 100%)",
     color: "white",
-    borderRadius: "13px",
+    borderRadius: "12px",
     padding: "11px 14px",
     fontWeight: 900,
-    cursor: "pointer",
-    boxShadow: "0 12px 24px rgba(37,99,235,0.22)",
-  },
-  secondaryButton: {
-    border: "1px solid rgba(148,163,184,0.16)",
-    background: "rgba(255,255,255,0.055)",
-    color: "white",
-    borderRadius: "13px",
-    padding: "10px 13px",
-    fontWeight: 900,
+    fontSize: "13px",
     cursor: "pointer",
     whiteSpace: "nowrap",
+    boxShadow: "0 10px 22px rgba(37,99,235,0.22)",
   },
-  toggleRow: {
-    border: "1px solid rgba(148,163,184,0.12)",
-    background: "rgba(2,6,23,0.18)",
+  secondaryButton: {
+    border: "1px solid rgba(148,163,184,0.14)",
+    background: "rgba(255,255,255,0.055)",
     color: "white",
-    borderRadius: "16px",
-    padding: "14px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "18px",
-    cursor: "pointer",
-    textAlign: "left",
-  },
-  toggleTitle: {
-    display: "block",
-    fontSize: "14px",
+    borderRadius: "12px",
+    padding: "11px 14px",
     fontWeight: 900,
-    color: "rgba(248,250,252,0.92)",
-    marginBottom: "4px",
-  },
-  toggleText: {
-    display: "block",
-    fontSize: "12px",
-    lineHeight: 1.45,
-    color: "rgba(148,163,184,0.72)",
+    fontSize: "13px",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
   },
   toggle: {
     width: "46px",
     height: "26px",
+    border: "none",
     borderRadius: "999px",
-    background: "rgba(148,163,184,0.20)",
+    background: "rgba(148,163,184,0.22)",
     position: "relative",
     transition: "0.2s",
-    flexShrink: 0,
+    cursor: "pointer",
+    padding: 0,
   },
   toggleOn: {
-    background: "rgba(59,130,246,0.78)",
+    background: "rgba(59,130,246,0.76)",
   },
   toggleDot: {
     width: "20px",
@@ -1147,6 +853,7 @@ const styles = {
   },
   optionGrid: {
     display: "flex",
+    justifyContent: "flex-end",
     flexWrap: "wrap",
     gap: "8px",
   },
@@ -1155,79 +862,33 @@ const styles = {
     background: "rgba(255,255,255,0.045)",
     color: "rgba(255,255,255,0.74)",
     borderRadius: "999px",
-    padding: "9px 12px",
+    padding: "8px 11px",
+    fontSize: "12px",
     fontWeight: 900,
     cursor: "pointer",
   },
   optionButtonActive: {
     border: "1px solid rgba(96,165,250,0.45)",
-    background: "rgba(59,130,246,0.22)",
+    background: "rgba(59,130,246,0.20)",
     color: "#bfdbfe",
   },
-  actionList: {
+  dangerRow: {
     display: "grid",
-    border: "1px solid rgba(148,163,184,0.10)",
-    borderRadius: "18px",
-    overflow: "hidden",
-  },
-  actionRow: {
-    display: "flex",
+    gridTemplateColumns: "minmax(0, 1fr) auto",
+    gap: "20px",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: "18px",
-    padding: "15px",
-    background: "rgba(2,6,23,0.16)",
-    borderBottom: "1px solid rgba(148,163,184,0.10)",
-  },
-  actionTitle: {
-    color: "rgba(248,250,252,0.92)",
-    fontSize: "14px",
-    fontWeight: 950,
-    marginBottom: "4px",
-  },
-  actionText: {
-    color: "rgba(148,163,184,0.72)",
-    fontSize: "12px",
-    lineHeight: 1.45,
-  },
-  emptyState: {
-    border: "1px dashed rgba(148,163,184,0.18)",
-    color: "rgba(148,163,184,0.78)",
-    background: "rgba(2,6,23,0.14)",
-    borderRadius: "16px",
     padding: "18px",
-    fontSize: "13px",
-    lineHeight: 1.55,
-  },
-  dangerBox: {
-    border: "1px solid rgba(239,68,68,0.22)",
-    background: "rgba(239,68,68,0.08)",
-    borderRadius: "18px",
-    padding: "16px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "18px",
-  },
-  dangerTitle: {
-    color: "#fecaca",
-    fontWeight: 950,
-    fontSize: "15px",
-    marginBottom: "5px",
-  },
-  dangerText: {
-    color: "rgba(254,202,202,0.72)",
-    fontSize: "12px",
-    lineHeight: 1.5,
+    background: "rgba(239,68,68,0.06)",
   },
   dangerButton: {
     border: "1px solid rgba(239,68,68,0.35)",
-    background: "rgba(239,68,68,0.16)",
+    background: "rgba(239,68,68,0.14)",
     color: "#fecaca",
-    borderRadius: "13px",
-    padding: "10px 13px",
+    borderRadius: "12px",
+    padding: "11px 14px",
+    fontSize: "13px",
     fontWeight: 900,
     cursor: "pointer",
-    flexShrink: 0,
+    whiteSpace: "nowrap",
   },
 };
