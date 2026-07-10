@@ -1458,29 +1458,6 @@ export default function Journal({ setActivePage }) {
           <span style={{ color: "#60a5fa" }}>Archive</span>
         </div>
 
-        <div style={{ ...styles.topNav, ...(isMobile ? styles.topNavMobile : {}) }}>
-          <button
-            type="button"
-            style={styles.topNavButton}
-            onClick={() => setActivePage?.("dashboard")}
-          >
-            Dashboard
-          </button>
-          <button
-            type="button"
-            style={{ ...styles.topNavButton, ...styles.activeTopNav }}
-          >
-            Journal
-          </button>
-          <button
-            type="button"
-            style={styles.topNavButton}
-            onClick={() => setActivePage?.("pricing")}
-          >
-            Pricing
-          </button>
-        </div>
-
         <div style={{ ...styles.topRight, ...(isMobile ? styles.topRightMobile : {}) }}>
           <div style={styles.userPill}>User ▾</div>
         </div>
@@ -2850,8 +2827,7 @@ const styles = {
     cursor: "pointer",
   },
   topNav: {
-    display: "flex",
-    gap: "34px",
+    display: "none",
   },
   topNavButton: {
     color: "rgba(255,255,255,0.82)",
