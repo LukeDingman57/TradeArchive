@@ -520,12 +520,12 @@ const styles = {
     minHeight: "100vh",
     color: "white",
     background: "linear-gradient(180deg, #07101d 0%, #08111f 48%, #050b14 100%)",
-    padding: "28px 36px 48px",
+    padding: "32px 36px 52px",
     boxSizing: "border-box",
   },
   shell: {
     width: "100%",
-    maxWidth: "1140px",
+    maxWidth: "1380px",
     margin: "0 auto",
   },
   headerRow: {
@@ -545,7 +545,7 @@ const styles = {
   },
   title: {
     margin: 0,
-    fontSize: "36px",
+    fontSize: "40px",
     lineHeight: 1,
     fontWeight: 950,
     letterSpacing: "-0.055em",
@@ -582,8 +582,8 @@ const styles = {
   },
   settingsFrame: {
     display: "grid",
-    gridTemplateColumns: "210px minmax(0, 1fr)",
-    gap: "18px",
+    gridTemplateColumns: "220px minmax(0, 1fr)",
+    gap: "22px",
     alignItems: "start",
   },
   settingsNav: {
@@ -663,11 +663,11 @@ const styles = {
     lineHeight: 1.5,
   },
   contentPanel: {
-    minHeight: "520px",
+    minHeight: "500px",
     border: "1px solid rgba(148,163,184,0.12)",
     background: "linear-gradient(180deg, rgba(15,23,42,0.70), rgba(8,15,28,0.52))",
     borderRadius: "24px",
-    padding: "24px 28px 28px",
+    padding: "26px 32px 30px",
     boxShadow: "0 22px 54px rgba(0,0,0,0.24)",
   },
   panelTop: {
