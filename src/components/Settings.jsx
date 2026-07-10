@@ -43,6 +43,25 @@ function loadSettings() {
   }
 }
 
+function applySettingsToDocument(nextSettings) {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+
+  const preferences = nextSettings?.preferences || defaultSettings.preferences;
+  const theme = preferences.theme || "Dark";
+
+  document.documentElement.dataset.taTheme = theme.toLowerCase().replace(/\s+/g, "-");
+  document.documentElement.dataset.taTimezone = preferences.timezone || "Local time";
+  document.documentElement.dataset.taCurrency = preferences.currency || "USD";
+  document.documentElement.dataset.taDateFormat = preferences.dateFormat || "MM/DD/YYYY";
+  document.documentElement.dataset.taTimeFormat = preferences.timeFormat || "12 hour";
+
+  window.dispatchEvent(
+    new CustomEvent("tradearchive-settings-changed", {
+      detail: nextSettings,
+    })
+  );
+}
+
 export default function Settings({
   session,
   billingError,
@@ -63,7 +82,9 @@ export default function Settings({
     "TradeArchive user";
 
   useEffect(() => {
-    setSettings(loadSettings());
+    const loadedSettings = loadSettings();
+    setSettings(loadedSettings);
+    applySettingsToDocument(loadedSettings);
   }, []);
 
   const showToast = (text) => {
@@ -75,6 +96,7 @@ export default function Settings({
   const saveSettings = (nextSettings, successMessage = "Saved") => {
     setSettings(nextSettings);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSettings));
+    applySettingsToDocument(nextSettings);
     showToast(successMessage);
   };
 
@@ -141,6 +163,7 @@ export default function Settings({
   const resetLocalSettings = () => {
     localStorage.removeItem(STORAGE_KEY);
     setSettings(defaultSettings);
+    applySettingsToDocument(defaultSettings);
     showToast("Local settings reset");
   };
 
@@ -558,9 +581,15 @@ function TextField({ value, onChange, placeholder, prefix }) {
 
 function SelectField({ value, options, onChange }) {
   return (
-    <select value={value} onChange={(event) => onChange(event.target.value)} style={styles.input}>
+    <select
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      style={styles.input}
+    >
       {options.map((option) => (
-        <option key={option} value={option}>{option}</option>
+        <option key={option} value={option} style={styles.selectOption}>
+          {option}
+        </option>
       ))}
     </select>
   );
@@ -1073,6 +1102,10 @@ const styles = {
   },
   inputWithPrefix: {
     paddingLeft: "28px",
+  },
+  selectOption: {
+    background: "#0f172a",
+    color: "#ffffff",
   },
   primaryButton: {
     border: "1px solid rgba(96,165,250,0.52)",
