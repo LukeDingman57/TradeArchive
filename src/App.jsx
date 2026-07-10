@@ -962,64 +962,101 @@ export default function App() {
     }
 
     if (activePage === "settings") {
+      const settingCards = [
+        {
+          icon: "👤",
+          title: "Account",
+          text: session?.user?.email || "Manage your account details.",
+          action: "Profile",
+        },
+        {
+          icon: "⚙️",
+          title: "Preferences",
+          text: "Theme, timezone, currency, date format, and app defaults.",
+          action: "Coming soon",
+        },
+        {
+          icon: "📒",
+          title: "Journal Defaults",
+          text: "Default risk, instrument, checklist, screenshots, and trade settings.",
+          action: "Coming soon",
+        },
+        {
+          icon: "📰",
+          title: "News Defaults",
+          text: "Default currencies, impact filters, date range, and event reminders.",
+          action: "Coming soon",
+        },
+        {
+          icon: "💳",
+          title: "Billing",
+          text: "Manage your subscription, invoices, and payment method.",
+          action: portalLoading ? "Opening..." : "Manage billing",
+          onClick: handleManageBilling,
+        },
+        {
+          icon: "🛠️",
+          title: "Support",
+          text: "Contact support, report a bug, request a feature, or join Discord.",
+          action: "Contact support",
+          onClick: () => {
+            window.location.href =
+              "mailto:support@tradearchive.net?subject=TradeArchive Support";
+          },
+        },
+        {
+          icon: "🔒",
+          title: "Privacy",
+          text: "Export data, download trades, manage screenshots, or delete account.",
+          action: "Coming soon",
+        },
+      ];
+
       return (
-        <div style={{ minHeight: "100vh", padding: "48px", color: "white" }}>
-          <h1 style={{ fontSize: "42px", marginBottom: "10px" }}>Settings</h1>
-          <p style={{ color: "rgba(255,255,255,0.65)", marginBottom: "30px" }}>
-            Manage your TradeArchive account.
-          </p>
+        <div style={settingsStyles.page}>
+          <div style={settingsStyles.header}>
+            <p style={settingsStyles.eyebrow}>SETTINGS</p>
+            <h1 style={settingsStyles.title}>Manage your workspace</h1>
+            <p style={settingsStyles.subtitle}>
+              Control your account, billing, journal defaults, news preferences, and support options.
+            </p>
+          </div>
 
-          {billingError ? (
-            <div
-              style={{
-                maxWidth: "700px",
-                marginBottom: "18px",
-                borderRadius: "14px",
-                padding: "12px 14px",
-                background: "rgba(239,68,68,0.12)",
-                border: "1px solid rgba(239,68,68,0.25)",
-                color: "#fecaca",
-                fontWeight: "700",
-              }}
-            >
-              {billingError}
-            </div>
-          ) : null}
+          {billingError ? <div style={settingsStyles.errorBox}>{billingError}</div> : null}
 
-          <div
-            style={{
-              maxWidth: "700px",
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: "20px",
-              padding: "24px",
-            }}
-          >
-            <div style={{ marginBottom: "20px" }}>
-              <div style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "6px" }}>
-                Email
+          <div style={settingsStyles.grid}>
+            {settingCards.map((card) => (
+              <button
+                key={card.title}
+                type="button"
+                onClick={card.onClick}
+                disabled={!card.onClick}
+                style={{
+                  ...settingsStyles.card,
+                  ...(!card.onClick ? settingsStyles.disabledCard : {}),
+                }}
+              >
+                <div style={settingsStyles.cardIcon}>{card.icon}</div>
+
+                <div style={settingsStyles.cardBody}>
+                  <div style={settingsStyles.cardTitle}>{card.title}</div>
+                  <div style={settingsStyles.cardText}>{card.text}</div>
+                </div>
+
+                <div style={settingsStyles.cardAction}>{card.action} ›</div>
+              </button>
+            ))}
+          </div>
+
+          <div style={settingsStyles.versionCard}>
+            <div>
+              <div style={settingsStyles.versionTitle}>TradeArchive</div>
+              <div style={settingsStyles.versionText}>
+                Built for funded futures traders.
               </div>
-              <div style={{ fontSize: "16px", fontWeight: "700" }}>
-                {session?.user?.email}
-              </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleManageBilling}
-              disabled={portalLoading}
-              style={{
-                padding: "12px 18px",
-                borderRadius: "12px",
-                border: "1px solid rgba(96,165,250,0.35)",
-                background: "linear-gradient(180deg,#3b82f6 0%,#2563eb 100%)",
-                color: "#fff",
-                cursor: "pointer",
-                fontWeight: "800",
-              }}
-            >
-              {portalLoading ? "Opening Billing..." : "Manage Billing"}
-            </button>
+            <div style={settingsStyles.versionBadge}>v1.0</div>
           </div>
         </div>
       );
@@ -1183,6 +1220,137 @@ export default function App() {
 }
 
 
+
+
+const settingsStyles = {
+  page: {
+    minHeight: "100vh",
+    padding: "46px 42px 70px",
+    color: "white",
+    background:
+      "linear-gradient(180deg, #07101d 0%, #08111f 45%, #050b14 100%)",
+  },
+  header: {
+    maxWidth: "900px",
+    marginBottom: "28px",
+  },
+  eyebrow: {
+    margin: "0 0 10px",
+    color: "#93c5fd",
+    fontSize: "13px",
+    letterSpacing: "0.16em",
+    fontWeight: 900,
+  },
+  title: {
+    margin: "0 0 10px",
+    fontSize: "46px",
+    lineHeight: 1,
+    fontWeight: 950,
+    letterSpacing: "-0.05em",
+  },
+  subtitle: {
+    margin: 0,
+    maxWidth: "720px",
+    color: "rgba(255,255,255,0.68)",
+    fontSize: "16px",
+    lineHeight: 1.65,
+  },
+  errorBox: {
+    maxWidth: "900px",
+    marginBottom: "18px",
+    borderRadius: "16px",
+    padding: "13px 15px",
+    background: "rgba(239,68,68,0.12)",
+    border: "1px solid rgba(239,68,68,0.25)",
+    color: "#fecaca",
+    fontWeight: 800,
+  },
+  grid: {
+    maxWidth: "1100px",
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: "16px",
+  },
+  card: {
+    width: "100%",
+    minHeight: "116px",
+    border: "1px solid rgba(148,163,184,0.12)",
+    background:
+      "linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025))",
+    borderRadius: "22px",
+    padding: "18px",
+    color: "white",
+    display: "flex",
+    alignItems: "center",
+    gap: "15px",
+    textAlign: "left",
+    cursor: "pointer",
+    boxShadow: "0 14px 34px rgba(0,0,0,0.20)",
+  },
+  disabledCard: {
+    cursor: "default",
+  },
+  cardIcon: {
+    width: "46px",
+    height: "46px",
+    borderRadius: "16px",
+    background: "rgba(59,130,246,0.15)",
+    border: "1px solid rgba(96,165,250,0.18)",
+    display: "grid",
+    placeItems: "center",
+    fontSize: "20px",
+    flexShrink: 0,
+  },
+  cardBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  cardTitle: {
+    fontSize: "17px",
+    fontWeight: 900,
+    marginBottom: "6px",
+  },
+  cardText: {
+    color: "rgba(255,255,255,0.62)",
+    fontSize: "13px",
+    lineHeight: 1.5,
+  },
+  cardAction: {
+    color: "#93c5fd",
+    fontSize: "13px",
+    fontWeight: 900,
+    whiteSpace: "nowrap",
+  },
+  versionCard: {
+    maxWidth: "1100px",
+    marginTop: "18px",
+    border: "1px solid rgba(148,163,184,0.10)",
+    background: "rgba(255,255,255,0.035)",
+    borderRadius: "20px",
+    padding: "18px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  versionTitle: {
+    fontSize: "16px",
+    fontWeight: 900,
+  },
+  versionText: {
+    marginTop: "5px",
+    color: "rgba(255,255,255,0.58)",
+    fontSize: "13px",
+  },
+  versionBadge: {
+    padding: "8px 12px",
+    borderRadius: "999px",
+    background: "rgba(96,165,250,0.12)",
+    border: "1px solid rgba(96,165,250,0.22)",
+    color: "#bfdbfe",
+    fontSize: "12px",
+    fontWeight: 900,
+  },
+};
 
 
 const trialBannerStyles = {

@@ -30,6 +30,7 @@ export default function Sidebar({ activePage, setActivePage, session }) {
         <nav style={styles.menuGroup}>
           {navItems.map((item) => {
             const isActive = activePage === item.page;
+
             return (
               <button
                 key={item.page}
@@ -69,8 +70,8 @@ export default function Sidebar({ activePage, setActivePage, session }) {
         <button type="button" onClick={() => setActivePage("settings")} style={styles.footerCard}>
           <div style={styles.footerAvatar}>{initials}</div>
           <div style={styles.footerTextWrap}>
-            <div style={styles.footerTitle}>{userEmail || "Settings"}</div>
-            <div style={styles.footerSub}>Manage billing</div>
+            <div style={styles.footerTitle}>{userEmail || "TradeArchive"}</div>
+            <div style={styles.footerSub}>Settings</div>
           </div>
           <div style={styles.footerArrow}>›</div>
         </button>
