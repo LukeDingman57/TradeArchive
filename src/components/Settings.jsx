@@ -149,11 +149,6 @@ export default function Settings({
   const activeItem = navItems.find((item) => item.id === activeSection);
 
   const handleNavClick = (id) => {
-    if (id === "billing") {
-      setActiveSection("billing");
-      return;
-    }
-
     setActiveSection(id);
     setMessage("");
   };
@@ -475,34 +470,13 @@ function OptionGroup({ options, selected, onToggle }) {
 }
 
 const panelMeta = {
-  account: {
-    title: "Account",
-    subtitle: "Login, email, and account access.",
-  },
-  preferences: {
-    title: "Preferences",
-    subtitle: "Set your default workspace display options.",
-  },
-  journal: {
-    title: "Journal defaults",
-    subtitle: "Pre-fill trade entries with your normal risk and instrument.",
-  },
-  news: {
-    title: "News defaults",
-    subtitle: "Control what the economic calendar shows first.",
-  },
-  billing: {
-    title: "Billing",
-    subtitle: "Manage subscription, invoices, and payment method.",
-  },
-  support: {
-    title: "Support",
-    subtitle: "Contact, bugs, feature requests, and community.",
-  },
-  privacy: {
-    title: "Privacy",
-    subtitle: "Export settings, reset data, and account controls.",
-  },
+  account: { title: "Account", subtitle: "Login, email, and account access." },
+  preferences: { title: "Preferences", subtitle: "Set your default workspace display options." },
+  journal: { title: "Journal defaults", subtitle: "Pre-fill trade entries with your normal risk and instrument." },
+  news: { title: "News defaults", subtitle: "Control what the economic calendar shows first." },
+  billing: { title: "Billing", subtitle: "Manage subscription, invoices, and payment method." },
+  support: { title: "Support", subtitle: "Contact, bugs, feature requests, and community." },
+  privacy: { title: "Privacy", subtitle: "Export settings, reset data, and account controls." },
 };
 
 const iconMap = {
@@ -520,23 +494,23 @@ const styles = {
     minHeight: "100vh",
     color: "white",
     background: "linear-gradient(180deg, #07101d 0%, #08111f 48%, #050b14 100%)",
-    padding: "32px 36px 52px",
+    padding: "32px 34px 56px",
     boxSizing: "border-box",
   },
   shell: {
     width: "100%",
-    maxWidth: "1380px",
-    margin: "0 auto",
+    maxWidth: "1240px",
+    margin: "0",
   },
   headerRow: {
     display: "flex",
     alignItems: "flex-end",
     justifyContent: "space-between",
     gap: "24px",
-    marginBottom: "28px",
+    marginBottom: "24px",
   },
   eyebrow: {
-    margin: "0 0 12px",
+    margin: "0 0 10px",
     color: "#93c5fd",
     fontSize: "12px",
     letterSpacing: "0.18em",
@@ -545,16 +519,16 @@ const styles = {
   },
   title: {
     margin: 0,
-    fontSize: "40px",
+    fontSize: "38px",
     lineHeight: 1,
     fontWeight: 950,
     letterSpacing: "-0.055em",
   },
   subtitle: {
-    margin: "13px 0 0",
+    margin: "12px 0 0",
     color: "rgba(226,232,240,0.68)",
     fontSize: "15px",
-    lineHeight: 1.65,
+    lineHeight: 1.6,
   },
   errorBox: {
     marginBottom: "16px",
@@ -582,21 +556,21 @@ const styles = {
   },
   settingsFrame: {
     display: "grid",
-    gridTemplateColumns: "220px minmax(0, 1fr)",
-    gap: "22px",
+    gridTemplateColumns: "220px minmax(0, 920px)",
+    gap: "20px",
     alignItems: "start",
   },
   settingsNav: {
     position: "sticky",
-    top: "24px",
+    top: "22px",
     border: "1px solid rgba(148,163,184,0.12)",
     background: "rgba(8,15,28,0.54)",
     borderRadius: "20px",
-    padding: "14px",
+    padding: "12px",
     boxShadow: "0 18px 42px rgba(0,0,0,0.20)",
   },
   navHeader: {
-    padding: "8px 10px 10px",
+    padding: "7px 9px 9px",
     color: "rgba(148,163,184,0.70)",
     fontSize: "11px",
     fontWeight: 900,
@@ -607,17 +581,17 @@ const styles = {
     width: "100%",
     height: "38px",
     border: "1px solid transparent",
-    borderRadius: "13px",
+    borderRadius: "12px",
     background: "transparent",
     color: "rgba(226,232,240,0.72)",
     display: "flex",
     alignItems: "center",
-    gap: "10px",
-    padding: "0 10px",
+    gap: "9px",
+    padding: "0 9px",
     cursor: "pointer",
     fontFamily: "inherit",
-    fontSize: "14px",
-    fontWeight: 800,
+    fontSize: "13px",
+    fontWeight: 850,
     textAlign: "left",
   },
   navItemActive: {
@@ -626,14 +600,14 @@ const styles = {
     color: "#ffffff",
   },
   navIcon: {
-    width: "24px",
-    height: "24px",
-    borderRadius: "9px",
+    width: "22px",
+    height: "22px",
+    borderRadius: "8px",
     background: "rgba(148,163,184,0.10)",
     color: "rgba(203,213,225,0.72)",
     display: "grid",
     placeItems: "center",
-    fontSize: "12px",
+    fontSize: "11px",
     fontWeight: 950,
     flexShrink: 0,
   },
@@ -647,8 +621,8 @@ const styles = {
     whiteSpace: "nowrap",
   },
   navFooter: {
-    marginTop: "18px",
-    padding: "14px 10px 4px",
+    marginTop: "14px",
+    padding: "13px 9px 3px",
     borderTop: "1px solid rgba(148,163,184,0.10)",
   },
   footerBrand: {
@@ -660,14 +634,13 @@ const styles = {
     marginTop: "5px",
     color: "rgba(148,163,184,0.66)",
     fontSize: "12px",
-    lineHeight: 1.5,
+    lineHeight: 1.45,
   },
   contentPanel: {
-    minHeight: "500px",
     border: "1px solid rgba(148,163,184,0.12)",
     background: "linear-gradient(180deg, rgba(15,23,42,0.70), rgba(8,15,28,0.52))",
-    borderRadius: "24px",
-    padding: "26px 32px 30px",
+    borderRadius: "22px",
+    padding: "24px 28px 28px",
     boxShadow: "0 22px 54px rgba(0,0,0,0.24)",
   },
   panelTop: {
@@ -681,24 +654,24 @@ const styles = {
     fontWeight: 900,
     letterSpacing: "0.12em",
     textTransform: "uppercase",
-    marginBottom: "8px",
+    marginBottom: "7px",
   },
   panelTitle: {
     margin: 0,
-    fontSize: "30px",
+    fontSize: "28px",
     fontWeight: 950,
     letterSpacing: "-0.04em",
   },
   panelSubtitle: {
-    margin: "9px 0 0",
+    margin: "8px 0 0",
     color: "rgba(226,232,240,0.62)",
     fontSize: "14px",
-    lineHeight: 1.6,
+    lineHeight: 1.55,
   },
   divider: {
     height: "1px",
     background: "rgba(148,163,184,0.12)",
-    margin: "20px 0 22px",
+    margin: "21px 0 22px",
   },
   panelStack: {
     display: "grid",
@@ -706,8 +679,8 @@ const styles = {
   },
   group: {
     display: "grid",
-    gridTemplateColumns: "200px minmax(0, 1fr)",
-    gap: "26px",
+    gridTemplateColumns: "210px minmax(0, 1fr)",
+    gap: "24px",
     alignItems: "start",
   },
   groupHeader: {
@@ -720,29 +693,27 @@ const styles = {
     color: "rgba(255,255,255,0.92)",
   },
   groupText: {
-    margin: "8px 0 0",
+    margin: "7px 0 0",
     color: "rgba(148,163,184,0.70)",
     fontSize: "13px",
-    lineHeight: 1.55,
+    lineHeight: 1.5,
   },
   groupRows: {
     border: "1px solid rgba(148,163,184,0.11)",
-    borderRadius: "18px",
+    borderRadius: "17px",
     overflow: "hidden",
     background: "rgba(2,6,23,0.24)",
   },
   settingRow: {
-    minHeight: "64px",
+    minHeight: "66px",
     display: "grid",
-    gridTemplateColumns: "minmax(0, 1fr) 260px",
+    gridTemplateColumns: "minmax(0, 1fr) 255px",
     gap: "18px",
     alignItems: "center",
-    padding: "14px 18px",
+    padding: "14px 16px",
     borderBottom: "1px solid rgba(148,163,184,0.09)",
   },
-  rowCopy: {
-    minWidth: 0,
-  },
+  rowCopy: { minWidth: 0 },
   rowLabel: {
     fontSize: "14px",
     fontWeight: 900,
@@ -752,7 +723,7 @@ const styles = {
     marginTop: "5px",
     color: "rgba(148,163,184,0.70)",
     fontSize: "12.5px",
-    lineHeight: 1.5,
+    lineHeight: 1.45,
   },
   rowControl: {
     display: "flex",
@@ -766,18 +737,15 @@ const styles = {
     border: "1px solid rgba(148,163,184,0.13)",
     background: "rgba(15,23,42,0.52)",
     color: "rgba(255,255,255,0.90)",
-    borderRadius: "13px",
-    padding: "12px 13px",
+    borderRadius: "12px",
+    padding: "11px 12px",
     fontSize: "13.5px",
     fontWeight: 800,
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   },
-  inputWrap: {
-    position: "relative",
-    width: "100%",
-  },
+  inputWrap: { position: "relative", width: "100%" },
   prefix: {
     position: "absolute",
     left: "12px",
@@ -793,20 +761,18 @@ const styles = {
     border: "1px solid rgba(148,163,184,0.13)",
     background: "rgba(15,23,42,0.58)",
     color: "white",
-    borderRadius: "13px",
-    padding: "12px 13px",
+    borderRadius: "12px",
+    padding: "11px 12px",
     fontSize: "13.5px",
     outline: "none",
   },
-  inputWithPrefix: {
-    paddingLeft: "28px",
-  },
+  inputWithPrefix: { paddingLeft: "28px" },
   primaryButton: {
     border: "1px solid rgba(96,165,250,0.45)",
     background: "linear-gradient(180deg, #3b82f6 0%, #2563eb 100%)",
     color: "white",
     borderRadius: "12px",
-    padding: "11px 14px",
+    padding: "10px 13px",
     fontWeight: 900,
     fontSize: "13px",
     cursor: "pointer",
@@ -818,7 +784,7 @@ const styles = {
     background: "rgba(255,255,255,0.055)",
     color: "white",
     borderRadius: "12px",
-    padding: "11px 14px",
+    padding: "10px 13px",
     fontWeight: 900,
     fontSize: "13px",
     cursor: "pointer",
@@ -835,9 +801,7 @@ const styles = {
     cursor: "pointer",
     padding: 0,
   },
-  toggleOn: {
-    background: "rgba(59,130,246,0.76)",
-  },
+  toggleOn: { background: "rgba(59,130,246,0.76)" },
   toggleDot: {
     width: "20px",
     height: "20px",
@@ -848,9 +812,7 @@ const styles = {
     top: "3px",
     transition: "0.2s",
   },
-  toggleDotOn: {
-    left: "23px",
-  },
+  toggleDotOn: { left: "23px" },
   optionGrid: {
     display: "flex",
     justifyContent: "flex-end",
@@ -875,9 +837,9 @@ const styles = {
   dangerRow: {
     display: "grid",
     gridTemplateColumns: "minmax(0, 1fr) auto",
-    gap: "20px",
+    gap: "18px",
     alignItems: "center",
-    padding: "18px",
+    padding: "16px",
     background: "rgba(239,68,68,0.06)",
   },
   dangerButton: {
@@ -885,7 +847,7 @@ const styles = {
     background: "rgba(239,68,68,0.14)",
     color: "#fecaca",
     borderRadius: "12px",
-    padding: "11px 14px",
+    padding: "10px 13px",
     fontSize: "13px",
     fontWeight: 900,
     cursor: "pointer",
