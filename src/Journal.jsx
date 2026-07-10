@@ -2461,31 +2461,27 @@ function TradeForm({
               </option>
             )}
 
-            {Object.entries(getAccountSelectionOptions(propAccounts).firmGroups).map(([firm, accounts]) => (
-              <optgroup key={firm} label={firm}>
-                {accounts.length > 1 && (
-                  <option value={getFirmGroupValue(firm)} style={{ backgroundColor: "#0f172a", color: "#ffffff" }}>
+            {Object.entries(getAccountSelectionOptions(propAccounts).firmGroups).flatMap(([firm, accounts]) => {
+              const firmOptions = [];
+
+              if (accounts.length > 1) {
+                firmOptions.push(
+                  <option key={`firm-${firm}`} value={getFirmGroupValue(firm)} style={{ backgroundColor: "#0f172a", color: "#ffffff" }}>
                     All {firm} Accounts ({accounts.length})
                   </option>
-                )}
+                );
+              }
 
-                {accounts.map((account) => (
+              accounts.forEach((account) => {
+                firmOptions.push(
                   <option key={account.id} value={account.id} style={{ backgroundColor: "#0f172a", color: "#ffffff" }}>
-                    {account.name || getAccountLabel(account)}
+                    {firm} — {account.name || "Unnamed Account"}
                   </option>
-                ))}
-              </optgroup>
-            ))}
+                );
+              });
 
-            {getAccountSelectionOptions(propAccounts).accountGroups.length > 0 && (
-              <optgroup label="Saved Account Groups">
-                {getAccountSelectionOptions(propAccounts).accountGroups.map((group) => (
-                  <option key={group.groupId} value={getGroupIdValue(group.groupId)} style={{ backgroundColor: "#0f172a", color: "#ffffff" }}>
-                    {group.label}
-                  </option>
-                ))}
-              </optgroup>
-            )}
+              return firmOptions;
+            })}
           </select>
 
           {form.accountId && (
