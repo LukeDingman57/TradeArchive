@@ -45,6 +45,7 @@ function mergeSettings(savedSettings = {}) {
     preferences: {
       ...defaultSettings.preferences,
       ...(savedSettings.preferences || {}),
+      theme: "Dark",
     },
 
     journal: {
@@ -78,76 +79,34 @@ function loadStoredSettings() {
   }
 }
 
-function getSystemTheme() {
-  if (typeof window === "undefined") {
-    return "dark";
-  }
-
-  return window.matchMedia("(prefers-color-scheme: light)").matches
-    ? "light"
-    : "dark";
-}
-
-function resolveTheme(themeSetting) {
-  if (themeSetting === "Light") {
-    return "light";
-  }
-
-  if (themeSetting === "System") {
-    return getSystemTheme();
-  }
-
-  return "dark";
-}
-
 export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState(loadStoredSettings);
-  const [resolvedTheme, setResolvedTheme] = useState(() =>
-    resolveTheme(loadStoredSettings().preferences.theme)
-  );
+  const resolvedTheme = "dark";
 
   useEffect(() => {
+    const nextSettings = mergeSettings(settings);
+
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSettings));
     } catch (error) {
       console.error("Unable to save TradeArchive settings:", error);
     }
-  }, [settings]);
 
-  useEffect(() => {
-    const themeSetting = settings.preferences.theme;
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
+    document.documentElement.dataset.theme = "dark";
+    document.body.dataset.theme = "dark";
+    document.documentElement.style.colorScheme = "dark";
 
-    const applyTheme = () => {
-      const nextTheme = resolveTheme(themeSetting);
-
-      setResolvedTheme(nextTheme);
-
-      document.documentElement.dataset.theme = nextTheme;
-      document.body.dataset.theme = nextTheme;
-
-      document.documentElement.style.colorScheme = nextTheme;
-    };
-
-    applyTheme();
-
-    if (themeSetting !== "System") {
-      return undefined;
+    if (settings?.preferences?.theme !== "Dark") {
+      setSettings(nextSettings);
     }
-
-    mediaQuery.addEventListener("change", applyTheme);
-
-    return () => {
-      mediaQuery.removeEventListener("change", applyTheme);
-    };
-  }, [settings.preferences.theme]);
+  }, [settings]);
 
   const updateSection = (section, field, value) => {
     setSettings((currentSettings) => ({
       ...currentSettings,
       [section]: {
         ...currentSettings[section],
-        [field]: value,
+        [field]: section === "preferences" && field === "theme" ? "Dark" : value,
       },
     }));
   };
@@ -197,7 +156,7 @@ export function SettingsProvider({ children }) {
       toggleArrayValue,
       resetSettings,
     }),
-    [settings, resolvedTheme]
+    [settings]
   );
 
   return (

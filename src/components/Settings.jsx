@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useSettings } from "./SettingsContext";
 
@@ -12,6 +12,9 @@ export default function Settings({
   const [activeSection, setActiveSection] = useState("account");
   const [message, setMessage] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profileEmail, setProfileEmail] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
 
   const {
     settings,
@@ -22,10 +25,21 @@ export default function Settings({
 
   const userEmail = session?.user?.email || "";
   const displayName =
+    profileName ||
     session?.user?.user_metadata?.full_name ||
     session?.user?.user_metadata?.name ||
     userEmail?.split("@")?.[0] ||
     "TradeArchive user";
+
+  useEffect(() => {
+    setProfileName(
+      session?.user?.user_metadata?.full_name ||
+        session?.user?.user_metadata?.name ||
+        userEmail?.split("@")?.[0] ||
+        ""
+    );
+    setProfileEmail(userEmail);
+  }, [session?.user?.id, session?.user?.email, session?.user?.user_metadata, userEmail]);
 
   const showToast = (text) => {
     setMessage(text);
@@ -41,6 +55,81 @@ export default function Settings({
   const toggleArrayValue = (section, field, value) => {
     contextToggleArrayValue(section, field, value);
     showToast("Saved");
+  };
+
+  const editFullName = async () => {
+    if (!session?.user) {
+      showToast("Log in first");
+      return;
+    }
+
+    const nextName = window.prompt("Enter your full name:", displayName);
+    if (nextName === null) return;
+
+    const trimmedName = nextName.trim();
+    if (!trimmedName) {
+      showToast("Name cannot be empty");
+      return;
+    }
+
+    try {
+      setProfileSaving(true);
+
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          full_name: trimmedName,
+          name: trimmedName,
+        },
+      });
+
+      if (error) throw error;
+
+      setProfileName(trimmedName);
+      showToast("Name updated");
+    } catch (err) {
+      showToast(err?.message || "Could not update name");
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const editEmail = async () => {
+    if (!session?.user) {
+      showToast("Log in first");
+      return;
+    }
+
+    const nextEmail = window.prompt(
+      "Enter your new email address:",
+      profileEmail || userEmail
+    );
+
+    if (nextEmail === null) return;
+
+    const trimmedEmail = nextEmail.trim().toLowerCase();
+    const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail);
+
+    if (!emailLooksValid) {
+      showToast("Enter a valid email");
+      return;
+    }
+
+    try {
+      setProfileSaving(true);
+
+      const { error } = await supabase.auth.updateUser({
+        email: trimmedEmail,
+      });
+
+      if (error) throw error;
+
+      setProfileEmail(trimmedEmail);
+      showToast("Confirmation sent to the new email");
+    } catch (err) {
+      showToast(err?.message || "Could not update email");
+    } finally {
+      setProfileSaving(false);
+    }
   };
 
   const sendPasswordReset = async () => {
@@ -182,14 +271,22 @@ export default function Settings({
             <SettingRows>
               <SettingRow icon="User" label="Full name">
                 <ReadOnlyValue value={displayName} />
-                <button style={styles.miniButton} onClick={() => showToast("Profile editing coming soon")}>
-                  Edit
+                <button
+                  style={styles.miniButton}
+                  onClick={editFullName}
+                  disabled={profileSaving}
+                >
+                  {profileSaving ? "Saving..." : "Edit"}
                 </button>
               </SettingRow>
               <SettingRow icon="Mail" label="Email address">
-                <ReadOnlyValue value={session?.user?.email || "Not logged in"} />
-                <button style={styles.miniButton} onClick={() => showToast("Email changes coming soon")}>
-                  Edit
+                <ReadOnlyValue value={profileEmail || session?.user?.email || "Not logged in"} />
+                <button
+                  style={styles.miniButton}
+                  onClick={editEmail}
+                  disabled={profileSaving}
+                >
+                  {profileSaving ? "Saving..." : "Edit"}
                 </button>
               </SettingRow>
             </SettingRows>
@@ -242,11 +339,8 @@ export default function Settings({
     if (activeSection === "preferences") {
       return (
         <PanelStack>
-          <SettingGroup title="Appearance" text="Control how TradeArchive looks and displays time.">
+          <SettingGroup title="Display" text="Control how TradeArchive displays dates and times.">
             <SettingRows>
-              <SettingRow icon="Moon" label="Theme" description="Choose your preferred app appearance.">
-                <SelectField value={settings.preferences.theme} options={["Dark", "Light", "System"]} onChange={(value) => updateSection("preferences", "theme", value)} />
-              </SettingRow>
               <SettingRow icon="Clock" label="Timezone" description="Used for calendars and journal timestamps.">
                 <SelectField value={settings.preferences.timezone} options={["Local time", "New York time", "UTC"]} onChange={(value) => updateSection("preferences", "timezone", value)} />
               </SettingRow>
@@ -567,7 +661,6 @@ const iconMap = {
   Desktop: "▱",
   Activity: "⚙",
   Bank: "♜",
-  Moon: "◐",
   Clock: "◷",
   Dollar: "$",
   Chart: "↗",
