@@ -335,49 +335,62 @@ function PricingPage({
     {
       name: "Free",
       price: "$0",
-      sub: "Try TradeArchive before upgrading",
+      sub: "Perfect for getting started",
       highlight: false,
-      buttonText: "Start Free",
+      badge: "",
+      buttonText: "Get Started",
       action: "free",
       features: [
-        "50 journal entries",
-        "Basic performance stats",
-        "Simple trade review tools",
-        "Track setups, notes, and results",
+        "Up to 50 journal entries",
+        "Up to 3 prop firms",
+        "Economic News Calendar",
+        "Recovery Calculator",
+        "Basic Dashboard",
+      ],
+      limitations: [
+        "No screenshot uploads",
+        "No advanced analytics",
+        "No A/B/C setup grading",
+        "No AI journal insights",
       ],
     },
     {
       name: "Essential",
-      price: "$3.99/mo",
-      sub: "For traders building consistency",
+      price: "$4.99/mo",
+      sub: "Built for serious traders",
       highlight: true,
-      buttonText: "Get Essential Monthly",
+      badge: "Most Popular",
+      buttonText: "Upgrade Now",
       action: "essential",
       features: [
         "Unlimited journal entries",
+        "Unlimited prop firms",
         "Screenshot uploads",
+        "Advanced analytics",
+        "Performance calendar",
+        "A/B/C setup grading",
+        "AI journal insights",
         "Mistake tracking",
-        "Setup tagging for A+, A, B, and C trades",
-        "Performance analytics",
-        "Clean structured journaling system",
-        "Pre-trade checklist ready for the next update",
+        "Everything in Free",
       ],
+      limitations: [],
     },
     {
       name: "Essential Yearly",
-      price: "$39.99/yr",
-      sub: "Save with yearly billing",
+      price: "$49.99/yr",
+      sub: "Save 17% every year",
       highlight: false,
-      buttonText: "Get Essential Yearly",
+      badge: "Best Value",
+      buttonText: "Choose Yearly",
       action: "essential_yearly",
       features: [
         "Everything in Essential",
         "Unlimited journal entries",
-        "Screenshot uploads",
-        "Mistake tracking",
-        "Performance analytics",
-        "Lower effective monthly price",
+        "Unlimited prop firms",
+        "Lowest yearly price",
+        "Priority future updates",
       ],
+      limitations: [],
     },
   ];
 
@@ -402,13 +415,15 @@ function PricingPage({
 
       <div style={{ ...pricingStyles.inner, ...(isMobile ? pricingStyles.innerMobile : {}) }}>
         <div style={{ ...pricingStyles.header, ...(isMobile ? pricingStyles.headerMobile : {}) }}>
-          <p style={{ ...pricingStyles.eyebrow, ...(isMobile ? pricingStyles.eyebrowMobile : {}) }}>PRICING</p>
+          <p style={{ ...pricingStyles.eyebrow, ...(isMobile ? pricingStyles.eyebrowMobile : {}) }}>
+            SIMPLE PRICING
+          </p>
           <h1 style={{ ...pricingStyles.title, ...(isMobile ? pricingStyles.titleMobile : {}) }}>
-            Choose the plan that fits your trading
+            Everything you need to track, improve, and grow as a funded trader.
           </h1>
           <p style={{ ...pricingStyles.subtitle, ...(isMobile ? pricingStyles.subtitleMobile : {}) }}>
-            Start free, then upgrade when you need unlimited journaling,
-            screenshots, mistake tracking, and better review tools.
+            Start free, then upgrade whenever you are ready for unlimited journals,
+            unlimited prop firms, screenshots, analytics, and AI insights.
           </p>
         </div>
 
@@ -439,9 +454,20 @@ function PricingPage({
                 ...(isMobile && plan.highlight ? pricingStyles.cardHighlightMobile : {}),
               }}
             >
-              {plan.highlight && (
-                <div style={{ ...pricingStyles.badge, ...(isMobile ? pricingStyles.badgeMobile : {}) }}>Most Popular</div>
-              )}
+              {plan.badge ? (
+                <div
+                  style={{
+                    ...pricingStyles.badge,
+                    ...(isMobile ? pricingStyles.badgeMobile : {}),
+                    ...(plan.name === "Essential Yearly"
+                      ? pricingStyles.badgeYearly
+                      : {}),
+                  }}
+                >
+                  {plan.name === "Essential Yearly" ? "★ " : ""}
+                  {plan.badge}
+                </div>
+              ) : null}
 
               <div style={{ ...pricingStyles.cardTop, ...(isMobile ? pricingStyles.cardTopMobile : {}) }}>
                 <h2 style={{ ...pricingStyles.planName, ...(isMobile ? pricingStyles.planNameMobile : {}) }}>{plan.name}</h2>
@@ -461,7 +487,7 @@ function PricingPage({
 
               <div style={{ ...pricingStyles.featureList, ...(isMobile ? pricingStyles.featureListMobile : {}) }}>
                 {plan.features.map((feature, i) => (
-                  <div key={i} style={{ ...pricingStyles.featureRow, ...(isMobile ? pricingStyles.featureRowMobile : {}) }}>
+                  <div key={`feature-${i}`} style={{ ...pricingStyles.featureRow, ...(isMobile ? pricingStyles.featureRowMobile : {}) }}>
                     <div
                       style={{
                         ...pricingStyles.check,
@@ -473,6 +499,18 @@ function PricingPage({
                     <span>{feature}</span>
                   </div>
                 ))}
+
+                {plan.limitations?.length ? (
+                  <>
+                    <div style={pricingStyles.limitDivider} />
+                    {plan.limitations.map((feature, i) => (
+                      <div key={`limit-${i}`} style={{ ...pricingStyles.featureRow, ...pricingStyles.limitationRow, ...(isMobile ? pricingStyles.featureRowMobile : {}) }}>
+                        <div style={{ ...pricingStyles.check, ...pricingStyles.limitIcon }}>×</div>
+                        <span>{feature}</span>
+                      </div>
+                    ))}
+                  </>
+                ) : null}
               </div>
 
               <button
@@ -497,23 +535,23 @@ function PricingPage({
 
         <div style={{ ...pricingStyles.bottomStrip, ...(isMobile ? pricingStyles.bottomStripMobile : {}) }}>
           <div style={{ ...pricingStyles.stripItem, ...(isMobile ? pricingStyles.stripItemMobile : {}) }}>
-            <div style={pricingStyles.stripLabel}>Built for traders</div>
+            <div style={pricingStyles.stripLabel}>Built for funded traders</div>
             <div style={pricingStyles.stripText}>
-              Clean journaling, screenshots, stats, and trade review in one place
+              Journal, accounts, analytics, prop firm tracking, and news in one place.
             </div>
           </div>
 
           <div style={{ ...pricingStyles.stripItem, ...(isMobile ? pricingStyles.stripItemMobile : {}) }}>
-            <div style={pricingStyles.stripLabel}>Upgrade anytime</div>
+            <div style={pricingStyles.stripLabel}>Cancel anytime</div>
             <div style={pricingStyles.stripText}>
-              Start free, then upgrade when you need more journal space
+              No contracts. Upgrade, downgrade, or cancel whenever you want.
             </div>
           </div>
 
           <div style={{ ...pricingStyles.stripItem, ...(isMobile ? pricingStyles.stripItemMobile : {}) }}>
-            <div style={pricingStyles.stripLabel}>Simple pricing</div>
+            <div style={pricingStyles.stripLabel}>Secure payments</div>
             <div style={pricingStyles.stripText}>
-              Free to start, then one simple paid plan when you need more
+              Secure billing and subscription management powered by Stripe.
             </div>
           </div>
         </div>
@@ -1749,6 +1787,12 @@ const pricingStyles = {
     fontWeight: 800,
   },
 
+  badgeYearly: {
+    background: "rgba(34,197,94,0.16)",
+    border: "1px solid rgba(34,197,94,0.34)",
+    color: "#bbf7d0",
+  },
+
   cardTop: {
     marginBottom: "18px",
   },
@@ -1798,6 +1842,22 @@ const pricingStyles = {
     color: "rgba(255,255,255,0.84)",
     fontSize: "16px",
     lineHeight: 1.5,
+  },
+
+  limitationRow: {
+    color: "rgba(255,255,255,0.52)",
+  },
+
+  limitDivider: {
+    height: "1px",
+    background: "rgba(255,255,255,0.08)",
+    margin: "2px 0 0",
+  },
+
+  limitIcon: {
+    color: "#fca5a5",
+    background: "rgba(239,68,68,0.10)",
+    border: "1px solid rgba(239,68,68,0.18)",
   },
 
   check: {
