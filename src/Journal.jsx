@@ -1181,7 +1181,10 @@ export default function Journal({ setActivePage }) {
 
     const tradeToInsert = {
       user_id: user.id,
-      account_id: selectedAccountMeta.accountId || null,
+      account_id:
+        selectedAccountMeta.selectedAccounts.length === 1
+          ? selectedAccountMeta.selectedAccounts[0].id
+          : null,
       account_name: selectedAccountMeta.accountName || form.accountName || "",
       account_firm: selectedAccountMeta.accountFirm || form.accountFirm || "",
       date: form.date,
@@ -1261,7 +1264,10 @@ export default function Journal({ setActivePage }) {
     const selectedAccountMeta = getAccountSelectionMeta(propAccounts, form.accountId);
 
     const updatedTradePayload = {
-      account_id: selectedAccountMeta.accountId || null,
+      account_id:
+        selectedAccountMeta.selectedAccounts.length === 1
+          ? selectedAccountMeta.selectedAccounts[0].id
+          : null,
       account_name: selectedAccountMeta.accountName || form.accountName || "",
       account_firm: selectedAccountMeta.accountFirm || form.accountFirm || "",
       date: form.date,
